@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { ApiError, readSession, type Account } from "./login/api";
 import { ChoosePassword, LoginScreen, PasskeyOffer } from "./login/LoginScreen";
 import { AuthFrame } from "./login/ui";
@@ -8,6 +8,7 @@ import { SessionProvider } from "./login/session";
 import { navigate } from "./router";
 import { AppShell } from "./shell/AppShell";
 import { forgetStudents } from "./students";
+import { forgetPalette, paletteOf, showPalette } from "./theme";
 
 type Gate =
   | { status: "loading" }
@@ -23,6 +24,15 @@ export function App() {
   useEffect(() => {
     if (gate.status === "unavailable") document.title = "Qbank";
   }, [gate.status]);
+
+  // The account's color scheme, before the screen paints; Dusk when no one is signed in. While the
+  // session is checked, the head script in index.html has already painted the last one used here.
+  const palette = gate.status === "loading" ? undefined : "user" in gate ? paletteOf(gate.user.palette) : null;
+  useLayoutEffect(() => {
+    if (palette === undefined) return;
+    if (palette === null) forgetPalette();
+    else showPalette(palette);
+  }, [palette]);
 
   useEffect(() => {
     const controller = new AbortController();

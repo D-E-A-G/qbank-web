@@ -2408,6 +2408,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/palette": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Pick the account's color scheme
+         * @description Any signed-in account picks its own, the admin included. It follows the account to every device; Look (light or dark) stays per device.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PaletteUpdate"];
+                };
+            };
+            responses: {
+                /** @description The account, with its new color scheme. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Account"];
+                    };
+                };
+                /** @description That is not a color scheme. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Choose a new password first. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/student-password": {
         parameters: {
             query?: never;
@@ -6668,7 +6747,13 @@ export interface components {
             /** @enum {string} */
             role: "student" | "admin";
             mustChangePassword: boolean;
+            palette: components["schemas"]["Palette"];
         };
+        /**
+         * @description The account's color scheme. Every account is on dusk until it picks another with PUT /api/me/palette. More may be added later; show one you do not know as dusk.
+         * @enum {string}
+         */
+        Palette: "dusk" | "slate";
         Error: {
             /** @example invalid_credentials */
             error: string;
@@ -6705,6 +6790,9 @@ export interface components {
         ChangePassword: {
             currentPassword: string;
             newPassword: string;
+        };
+        PaletteUpdate: {
+            palette: components["schemas"]["Palette"];
         };
         TemporaryPasswordSet: {
             /** @enum {string} */

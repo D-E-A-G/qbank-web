@@ -36,6 +36,13 @@
           look = "auto";
         }
         document.documentElement.setAttribute("data-theme", look);
+        try {
+          if (localStorage.getItem("qbank-palette") === "slate") {
+            document.documentElement.setAttribute("data-palette", "slate");
+          }
+        } catch (error) {
+          // Dusk until the session names the account's scheme.
+        }
         var dark =
           look === "dark" || (look === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
         var meta = document.querySelector('meta[name="theme-color"]');

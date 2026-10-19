@@ -1,4 +1,4 @@
-/* Light by default. <html data-theme="dark"> forces dark; data-theme="auto" follows the OS. data-palette="pink"|"ink"|"earth"|"dusk" picks the accent. */
+/* Light by default. <html data-theme="dark"> forces dark; data-theme="auto" follows the OS. data-palette="pink"|"ink"|"earth"|"dusk"|"slate" picks the accent. */
 /* Minimal element defaults so any page linking styles.css looks right. */
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text-1); font: var(--text-body); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; -webkit-tap-highlight-color: transparent; }
