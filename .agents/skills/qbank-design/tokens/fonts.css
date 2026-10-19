@@ -1,0 +1,3 @@
+/* SF Pro / SF Mono are system fonts on iPhone, iPad and Mac (reached via -apple-system / ui-monospace).
+   Off Apple platforms: Inter + JetBrains Mono (both SIL OFL) from Google Fonts as the closest fallbacks. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400..700&display=swap");

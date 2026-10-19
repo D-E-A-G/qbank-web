@@ -1,0 +1,64 @@
+# Serves the built screens on 8080, the way the API served them from WEB_ROOT
+# before they had their own image (apps/api/src/app.ts at bc70160): the same
+# headers, the same caching, and index.html for screen addresses. The server's
+# Caddy sits in front and does HTTPS.
+{
+	# Nothing to change at run time, and the container is read-only: no admin
+	# endpoint, no saved configuration.
+	admin off
+	persist_config off
+	auto_https off
+	# Plain HTTP behind the server's Caddy, so HTTP/1.1 only.
+	servers {
+		protocols h1
+	}
+}
+
+:8080 {
+	root * /srv
+
+	# The headers the API's secureHeaders() sets on every answer.
+	header {
+		Cross-Origin-Resource-Policy same-origin
+		Cross-Origin-Opener-Policy same-origin
+		Origin-Agent-Cluster ?1
+		Referrer-Policy no-referrer
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-DNS-Prefetch-Control off
+		X-Download-Options noopen
+		X-Frame-Options SAMEORIGIN
+		X-Permitted-Cross-Domain-Policies none
+		X-XSS-Protection 0
+	}
+
+	# Screen addresses such as /course/42 are routed by the web app in the
+	# browser, so a path with no extension gets index.html. A missing file (a
+	# path with an extension) stays a 404. Apple's passkey association file is
+	# extensionless and has to be that file, not the screen shell.
+	@screen {
+		not path /.well-known/apple-app-site-association
+		not path_regexp \.[^/]*$
+	}
+	rewrite @screen /index.html
+
+	# Vite puts a content hash in every file name under /assets/, so those never
+	# change. Everything else, a missing asset included, is checked every time.
+	@hashed {
+		path_regexp ^/assets/.*\.[^/]*$
+		file
+	}
+	@unhashed not {
+		path_regexp ^/assets/.*\.[^/]*$
+		file
+	}
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	header @unhashed Cache-Control no-cache
+
+	# file_server fills in a type only when the name has an extension, and
+	# this file has none. Set before file_server runs, which leaves a type
+	# that is already present. Apple requires application/json.
+	header /.well-known/apple-app-site-association Content-Type "application/json"
+
+	file_server
+}

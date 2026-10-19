@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+allowBuilds:
+  esbuild: false
+peerDependencyRules:
+  allowedVersions:
+    # openapi-typescript asks for TypeScript 5; it generates the same types with
+    # TypeScript 6, which the contract test checks.
+    openapi-typescript>typescript: "6"

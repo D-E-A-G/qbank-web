@@ -1,0 +1,497 @@
+# nclex-qbank
+
+A small, private web app that holds NCLEX-style practice questions for one nursing student in an accelerated BSN (ABSN) program, and her answers to them, synced across her iPhone, iPad, and Mac.
+
+This document is the product spec (PRD). Every worker reads it before building anything, and it is the source Claude Design uses to generate the app's design system. The app is built one milestone at a time (see [Milestones](#milestones)).
+
+For study use only; not clinical advice.
+
+## Contents
+
+- [What the app is](#what-the-app-is)
+- [What the app is not](#what-the-app-is-not)
+- [Users](#users)
+- [How questions get into the app](#how-questions-get-into-the-app)
+- [Screens and flows](#screens-and-flows)
+- [Platforms and layouts](#platforms-and-layouts)
+- [Design direction](#design-direction)
+- [Question formats and scoring](#question-formats-and-scoring)
+- [Data the app stores](#data-the-app-stores)
+- [Stack and hosting](#stack-and-hosting)
+- [Privacy and security](#privacy-and-security)
+- [Milestones](#milestones)
+- [Settled decisions](#settled-decisions)
+- [Open questions](#open-questions)
+
+## What the app is
+
+- **A question bank and runner, nothing more.** Her courses, the practice sets in their folders, a timed exam over the folders she picks, a Review list of what she missed or guessed, and a Terms list per course.
+- **Organized the way her program is, and the way she likes:** Semester (1, 2, 3) > Course (for example "NURS 101") > Folder (Week 1, First Pass, ABG Practice, ... named by her) > Practice set > Questions. Her folders can sit on an exam page (Exam 1, Exam 2), one page at most each, so each exam gathers the folders it covers.
+- **The same everywhere.** Every answer is saved on the server, so her progress, Review list, and exam history are identical on her iPhone, iPad, and Mac. Sync is the reason the app exists; without it, the existing offline practice pages would be enough.
+- **Installable.** A web app (PWA) with a manifest and icons: on iPhone and iPad it is added from Share > Add to Home Screen, on the Mac from Safari > File > Add to Dock, and it opens full-screen without browser chrome, like a native app.
+- **The existing runner, kept.** The question screens, the eight question formats, the scoring with partial credit, "I'm guessing", and the per-option rationale all come from the offline practice pages she already uses (see [Question formats and scoring](#question-formats-and-scoring)).
+
+## What the app is not
+
+Each of these was cut on purpose. Anything the student asks for later is a new decision, not a planned phase.
+
+| Not in the app | Why |
+|---|---|
+| Question generation | Questions are made outside the app by the weekly question skill in Codex and imported. |
+| Slides, transcripts, notes, or any course files | They stay in her iCloud course folder. The app holds questions only. |
+| Study plans, high-yield sheets, flashcards, day-by-day exam plans | Study-planning territory, deliberately out of scope. |
+| Spaced repetition, streaks, reminders, a weakness dashboard | Same reason. Review is only "what I missed or guessed". |
+| Analytics beyond per-set and per-exam scores | Not needed for one student. |
+| Offline answering (cached sets, queued answers) | Deferred. The app is online-only; the home-screen icon still works. |
+| Open sign-up, classmates, sharing | Only emails the owner adds can sign up (see [Sign up](#sign-up)). |
+| Email of any kind (reset links, notices) | No email service. The owner resets her password from his admin account. |
+| Native iOS or macOS apps | The installable web app covers all three devices. A SwiftUI iOS app may come later as a second client of the same API (see [Settled decisions](#settled-decisions)). |
+| A theme picker | Only a light/dark mode control. |
+
+## Users
+
+| User | Can do | Cannot do |
+|---|---|---|
+| **The student** | Everything: import question files, make and edit semesters and courses, practice, take exams, use Review and Terms, export her progress, manage her password and passkeys. | Let anyone else sign up. |
+| **The owner** (who set the app up) | Sign in with his own **admin** login to fix things in the app and in her account: import question files; create or fix semesters and courses; restore a replaced set; reset her password; repair her account data if something breaks; keep the sign-up list of emails that may make an account. See **her** progress read-only: her courses, sets, completion, scores, Review list, and exam history. | Answer questions as her, or change her scores, progress, or Review list in normal use. In his words: "this is for her, I'm just creating the app for her to help her study in her program." |
+
+- **Sign-up only for emails the owner adds (2026-10-01).** A student makes her own account from the Sign up screen, but only with an email on the owner's sign-up list. The admin account is never made there; a setup command run by the owner creates it, and can also create a student account and put emails on the sign-up list.
+- **More than one student is possible.** The question bank, courses, folders, and exam pages are shared. Each student's answers, progress, Review list, and exams are her own. The owner picks which student he is looking at in Admin.
+- Every login uses a password with an optional passkey (Face ID / Touch ID).
+
+## How questions get into the app
+
+1. **She makes a set outside the app** by running the weekly `nclex-questions` skill in Codex. Codex runs on one shared ChatGPT plan that is on both her machine and the owner's, so either can run it. The skill reads the week's slides and transcripts from her iCloud folder, writes 12 to 15 hard questions per batch, runs a blind accuracy check, and returns one JSON question file.
+2. **She imports that file in the app** from any device: Import, paste the JSON or choose the file, pick the course and a folder (Unsorted unless she picks one), confirm the set name, Check file, Import.
+3. **The app checks the file's shape** with the same rules the existing runner's importer uses. Errors block the import and are listed in words she can paste back into her Codex chat; warnings import anyway.
+
+The app checks shape, not clinical accuracy. A wrong question is fixed in the JSON and re-imported, which replaces the set (see [Import](#import)).
+
+### The import file
+
+The recipe's JSON, the format the runner's importer accepts, plus an optional table and images per question (see [Tables and images](#tables-and-images)):
+
+```json
+{
+  "title": "Week 4 - Set 1: <topic>",
+  "desc": "One sentence about what this set covers.",
+  "terms": { "orthopnea": ["Orthopnea", "Trouble breathing when lying flat that improves when sitting up."] },
+  "questions": [
+    { "id": "Q1", "type": "single", "topic": "...", "cj": "Analyze cues", "need": "Physiological Adaptation", "diff": 5,
+      "stem": "...", "ask": "...",
+      "options": [ { "t": "...", "ok": true, "why": "..." }, { "t": "...", "why": "..." } ],
+      "rationale": "...", "takeaway": "...", "terms": ["orthopnea"], "src": "Ch 26 slide 22; transcript lines 796-798" }
+  ]
+}
+```
+
+- A question may carry its own `wk` (week label); otherwise it takes the week of its set. This is how a mixed set such as "Weeks 1-3" still counts each question toward its own week.
+- `cj` is the NCLEX clinical judgment step, `need` the NCLEX client need, `diff` a difficulty of 3 to 5, `src` the citation to the week's slides or transcript.
+- **Exam sets:** a file with `"kind": "exam"` next to its `title` is an exam set, its folder's exam bank: questions she has not seen in practice, on the same topics in a different format and wording. They are asked only on exams; they are never listed for practice, never enter Review, and do not count toward the course's progress. Each exam question may name the practice question it is the exam twin of in `"twinOf": "Q3"`: the `id` of a practice question in the same folder. A name that matches no practice question of that folder, or more than one, links to no twin. Without `kind`, a file is a practice set, as before.
+
+#### Tables and images
+
+Any question may also carry a table of readings under its stem and up to 4 images, for vital signs, labs, a rhythm strip, or a diagram. Both are optional. Every screen that shows the question draws them: practice, exam, Review, the set and exam results, and the owner's read-only view.
+
+```json
+{ "id": "Q7", "type": "priority", "stem": "...", "ask": "...",
+  "table": {
+    "caption": "PACU readings",
+    "head": ["Time", "SpO₂", "RR", "HR"],
+    "rows": [["0900", "97%", "16", "82"], ["0915", "93%", "22", "94"], ["0930", "89%", "26", "108"]]
+  },
+  "images": [
+    { "src": "data:image/png;base64,iVBORw0KGgo...", "alt": "Chest tube drainage system with three chambers", "caption": "Water seal chamber" },
+    { "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 200 80\">...</svg>", "alt": "Oxygen before reassessment", "at": "rationale" }
+  ],
+  "options": [ ... ], "rationale": "...", "takeaway": "..." }
+```
+
+- `table`: `rows` is a list of rows, each a list of cell texts (numbers are fine). `head` (the header row) and `caption` are optional. A short row is padded with empty cells. On a phone, a wide table scrolls sideways inside its box.
+- `images`: each image needs `alt`, a short description of what it shows, and exactly one of `src` or `svg`:
+  - `src` is the image itself as a base64 data URL: PNG, JPEG, WebP, or SVG (`data:image/png;base64,...`). Links to images elsewhere are not accepted; the image travels inside the file.
+  - `svg` is SVG markup as text, for a diagram an AI chat draws. It may not contain scripts, event handlers, `<foreignObject>`, or links to other files.
+  - Each image is at most 300 KB.
+  - `at` is where it shows: `"stem"` (the default, under the stem and any table) or `"rationale"` (with the rationale, after she checks her answer). `caption` is optional.
+- She can tap an image to see it full screen.
+
+### Import rules
+
+**Errors (block the import), same wording as the runner:**
+
+- Not valid JSON (a fenced code block around it is tolerated). A bare list of questions is accepted as a set titled "Imported questions".
+- No non-empty `questions` list.
+- A question that is not an object, or has an unknown `type`.
+- Missing `stem`, `ask`, `rationale`, or `takeaway`.
+- `single` and `priority`: at least 3 options, every option has text `t`, exactly one option with `"ok": true`.
+- `sata` (select all): at least 3 options with text, some but not all `ok`.
+- `order`: 3 or more items with text, listed in the correct order.
+- `match`: 2 or more pairs, each with `l` and `r`.
+- `matrix`: 2 or more columns, at least one row, and every row's `ans` names a column.
+- `highlight`: 3 or more segments, some `ok` and some not.
+- `cloze` (drop-down): one `{0}`, `{1}`, ... placeholder per blank, and every blank has 2 or more `opts` and a valid `ans` index.
+- `table`, when present: a `rows` list of rows, each a list of cell texts; `head`, when present, a list of cell texts; `caption`, when present, text.
+- `images`, when present: a list of at most 4, each with `alt` and one of `src` (a base64 PNG, JPEG, WebP, or SVG data URL of at most 300 KB whose bytes match its type) or `svg` (SVG markup of at most 300 KB with no scripts, event handlers, or links to other files), and an `at` of `"stem"` or `"rationale"` if set.
+- `kind`, when present: `"practice"` or `"exam"`. `twinOf`, when present: the id of a practice question.
+
+Each error names the question by position and id, for example `Question 4 (X04): missing takeaway` or `Question 7 (Q7): image 1 needs "alt": a short description of what it shows`.
+
+**Warnings (import anyway):** a term used by a question but not defined in `terms` (it is skipped); a missing `cj`, `need`, `diff`, or `src`; a `twinOf` in a practice set (only exam sets read it).
+
+The whole question body is stored as JSON, so a format the runner gains later needs no schema change. Tables and images are stored in that body too, images included as their data URLs, so they are in every backup and come back with a restored set.
+
+### The two existing banks
+
+The two banks built before the app (NURS 402 Fundamentals, 146 questions, and NURS 406 Mental Health, 86 questions, from her first semester) are exported once from their build kits into this JSON, one file per practice set, and imported all at once by the owner's `import-sets` command, which runs each file through the same importer as the Import screen, so the importer has exactly one input format.
+
+## Screens and flows
+
+The clickable wireframes from the planning phase are the reference for every state below, especially Import, replace and restore, and the exam draw by folder. For the course, exam page, and folder screens, the reference is the "C, files style" board from the folders design. Screens are listed in the order she meets them.
+
+### Sign in
+
+- Email and password, "Sign in with a passkey", "Forgot password?", and "Sign up".
+- **Forgot password?** explains that the owner resets it from his admin account. The app sends no email.
+- **Passkey offer:** right after the first password sign-in on each device, a sheet offers "Save a passkey" / "Not now".
+- **Staying signed in:** the app stays signed in on each device until she signs out.
+- **Where she lands:** the course she used last. Home is one tap back.
+
+### Sign up
+
+- Email and password, then the same passkey offer as after a first password sign-in. She lands on Home, signed in.
+- **Only emails on the owner's sign-up list** can sign up, one account per email. Any other email, or one that already has an account, gets the same plain message: "This email can't sign up here. If you already have an account, sign in. Otherwise, ask the owner to add your email." The message does not tell a stranger which emails are on the list.
+- Five refused tries for one email lock that email's sign-up for 15 minutes, like sign-in.
+- Every account made here is a student. The app sends no email, so there is no verification email.
+
+### Home
+
+- Semesters 1 to 3 as groups; each lists its courses.
+- A course card shows its question count, folder count, "N to review", and a progress bar.
+- An empty semester says a course appears there when its first file is imported.
+- Navigation: Home, Import, Settings (bottom tabs on iPhone, sidebar on iPad and Mac; see [Platforms and layouts](#platforms-and-layouts)). The owner also gets Admin (see [The owner's admin account](#the-owners-admin-account)).
+
+### Course
+
+Laid out like the iPhone's Files app: two inset lists, one row per item, each opening its own screen.
+
+- Three tiles: **Exam**, **N to review**, **N terms**.
+- **Exam pages:** one row per exam page (for example "Exam 2", "5 folders · 217 questions") with how far she is over its folders, and **New**, which opens the exam page editor and then the new page. With none: "No exam pages yet. Tap New to make Exam 1."
+- **Folders:** the course's folders that are on no exam page, in her order. A row shows the folder, its set count, and how far she is ("2 sets · 22 of 27 answered", "Done", or "Not started"); a folder with only an exam bank says "Exam twins only · 14 questions".
+- **Edit** (with two or more folders) puts up and down buttons and a grip on each row; she drags a folder by its grip, or moves it a row at a time, and the order is saved at once and kept on every device. Up and down are there because dragging alone is unreliable on touch screens and with VoiceOver.
+- **Day one** looks like before: every week she had is a folder with the same name, sets, and progress, in the same order, and no folder is on an exam page. The change itself never moves, renames, or deletes anything; only she does.
+- A set imported without a folder goes to **Unsorted**, made at the top of the Folders list the first time it is needed.
+- **Recently deleted:** once she has deleted something in the course, a last row ("2 items · Undo for 30 days") opens it (see [Delete and Undo](#delete-and-undo)).
+
+### Exam page
+
+- The course code goes back to the course. Under the title: "5 folders · 16 practice sets · 217 questions".
+- **Start exam** opens Exam setup with the page's folders ticked and the page named ("Exam 2 · 5 folders ticked for you"); she can still change them. Under it, what the exam would draw ("40 questions from the 217 in these 5 folders, or Wrong questions only."). When a folder on the page has exam twins, one line under that names them ("Exam twins: 14 in Week 5 · exams draw from these first", or "Exam twins: 41 in Week 4, Week 5 and Week 6 · exams draw from these first" when several do). It is absent when none do.
+- **Study material:** the page's folders, in her order, as rows that open the folder. **Edit** reorders them as on the course page and shows **Name and folders**, the exam page editor.
+- **Past exams:** every finished exam whose folders are all on this page, with its score, including ones taken before the page existed. The admin's read-only view says **Her past exams**. **Edit** puts **Delete** on each (see [Delete and Undo](#delete-and-undo)).
+- An empty page says so, with **Add folders**.
+- **Exam page editor** (a sheet, a centred dialog on iPad and Mac): the page's name, the course's folders as chips she taps to put a folder on the page or take it off, and a live line ("3 folders · 83 questions"). A folder is on one exam page at most: a chip another page holds is greyed and names that page. **Done** saves; when the server refuses (for example "Week 6 is in Exam 2." after a change on another device), the sheet stays open with the message and her edits. **Cancel** changes nothing. **Remove this exam page** asks first; its folders go back to the course's Folders list, and no set moves.
+- Two folders may have the same name on different exam pages, never in the same list. Where a folder's name shows outside its list and another folder shares it (Review, Terms), it reads "First Pass · Exam 3".
+
+### Folder
+
+- Goes back to its exam page, or to the course. Under the title: "On Exam 2 · 3 sets · 36 of 45 fully right".
+- **Rename:** only the name changes; its sets, their progress, its exam page, and her past exams stay with it. A name another folder of the same list has is refused.
+- **Exam page:** a sheet to put the folder on an exam page, on none, or on a new one.
+- **Import here:** opens Import with this course and folder picked.
+- **Delete:** deletes the folder and every set in it, after a warning that names them (see [Delete and Undo](#delete-and-undo)).
+- **Sets:** each set row shows its status: "Done Sep 24 · 13 of 17 fully right", "7 of 12 answered", or "Imported today". Tapping a set opens it in the practice runner, which goes back to the folder.
+- **Select** puts a check circle on each set; a bar at the bottom then offers **Delete** and **Move N sets**, which opens **Move to**: the course's folders grouped by exam page, the current one marked "Here now", or a **New folder**. A set moves with every older version of it, and her answers and progress move with it.
+- A set that was replaced by a re-import shows a **Restore** button; Restore asks before bringing the previous version back.
+- A folder with an exam bank says so in one line under its sets: "Exam twins: 14 questions, exams only". Exam sets are not listed.
+
+### Delete and Undo
+
+Sets, folders, and past exams can be deleted, and each comes back with Undo for 30 days. Nothing is ever deleted except by her confirmed Delete.
+
+- **What she can delete:** a practice set (Select on its folder, then **Delete**; several at once), a folder with every set in it (**Delete** on the folder), and a past exam (**Edit** on Exam setup's Past exams or an exam page's Past exams, then **Delete** on its row).
+- **The warning** comes from the server, in its words: the question is the title ("Delete Week 4?"), and the rest says everything that goes with it: a folder's sets by name and their questions ("Its 3 sets go with it: Anxiety disorders, Anxiolytics and Panic and phobias, 15 questions in all."), her answers that stop counting and the questions that leave her Review list, the exam page the folder comes off, her past exams that stay, and "You can undo this for 30 days." A past exam's warning says how her answers, Review list, and Wrong questions change. Several sets show each set's warning under "Delete 2 sets?". **Delete** and **Cancel**; Cancel changes nothing.
+- **Exactly what she read goes.** The delete sends back the warning's confirmation; if what goes changed since (another device filed a set into the folder), it is refused with the server's sentence ("Week 4 changed since you were warned. Look again before deleting it."), the new warning shows, and she confirms again.
+- **A refusal** shows its sentence in place of Delete, with **OK**: "An exam in progress asks questions from Week 5. Finish or leave that exam first.", or a QBank job still using a set.
+- **Undo, right away:** after a delete, a card at the bottom of the screen says what went ("Deleted Week 4 and its 3 sets.") with **Undo**, for a few seconds and while she points at it; then "Brought back Week 4 and its 3 sets.", or the server's sentence when Undo is refused. A deleted folder's screen goes back to its exam page or the course.
+- **Recently deleted** (one per course, from the course page): the folders she deleted, with the sets that went with them; the sets she deleted on their own; and her deleted past exams, newest first, each with **Undo** until its 30 days run out. When Undo would be refused now, the row says why ("Its folder Week 4 is deleted. Bring the folder back first."). After 30 days an item stays deleted and is no longer listed.
+- **What a delete changes:** a deleted set or folder is hidden everywhere (its folder, Review, exams, the course's counts); her answers to it stay saved and stop counting until Undo. A deleted past exam stops counting: her progress, Review list, and Wrong questions are as if she had not taken it. Undo brings each back exactly as it was, a folder onto its exam page if that page is still there.
+
+### Practice (the runner)
+
+- One question at a time: stem, ask, the answer area for its format, and an "I'm guessing (flag for review)" checkbox.
+- Options, order items, match choices, and drop-down choices are shuffled on every attempt; the layout she saw is saved with the attempt.
+- "Check answer" shows feedback at once: Correct / Partly correct / Not correct with points for multi-part formats, the reason for every option, the rationale, the key takeaway, and "Terms in this question" with plain definitions.
+- A set ends on a results screen: points, fully-right count, time used, a breakdown by clinical judgment step, and each question with its mark.
+
+### Terms
+
+- One list per course: every term defined in the course's practice sets, with its plain meaning. Exam sets' terms show only with their questions.
+- **Same term, two definitions:** when two sets in the course define a term differently, the list shows the definition from the most recently imported set.
+- Each question's feedback shows the definitions from its own set.
+
+### Review
+
+- Per course only (no cross-course Review).
+- Filter chips with counts: **All / Missed / Partly right / Guessed**.
+- "Practice these N (shuffled)" runs the filtered list in the runner.
+- One row per question: topic, folder, format, status, and where it happened (which set or which exam, with the date). Tapping a row practices that one question.
+- A question enters Review when her latest answer is not fully right, or is flagged "I'm guessing".
+- A question leaves Review the next time she answers it fully right without "I'm guessing", or when she clears the list.
+- Exam-bank questions never enter Review; the ones she gets wrong come back in a wrong-questions exam instead.
+- **Clear the review list:** one button per course empties that course's Review list. It asks first, "Clear all N questions from this course's Review list?", with **Clear** and **Cancel**; Cancel changes nothing. Her answers and scores are kept; only the list is emptied.
+
+### Exam setup
+
+- **Folders this exam covers:** a checkbox per folder with a question, grouped by exam page and then the folders on no exam page, each with its question count. From the Exam tile nothing is ticked; from an exam page's Start exam that page's folders arrive ticked, with a line naming it ("Exam 2 · 5 folders ticked for you"), and she can still change them.
+- A live summary: how many questions, how many from each ticked folder, and the time.
+- **Length:** 40 questions in 60 minutes. When the ticked folders hold fewer than 40, the exam is all of them at 1.5 minutes each (for example 22 questions in 33 minutes).
+- **Draw:** only from the sets in the ticked folders, in proportion to each folder's size, so every folder stays represented (for example Weeks 1 to 3 holding 22, 27, and 37 questions give 10 + 13 + 17 = 40).
+- **Exam bank first:** a folder with an exam bank draws only its exam questions. A folder without one draws its practice questions; once the course has an exam bank, the exam says so ("Week 3 has no exam bank yet, so it uses its practice questions").
+- **Wrong questions only:** a switch above the folders. With it on, each folder shows how many of its questions she got wrong ("7 wrong of 20") and the exam draws only those, with the same length rule and proportions. Wrong means her last answer was not fully right; a question leaves the pool as soon as she answers it fully right. In a folder with an exam bank, the pool is the exam twins of her wrong practice questions plus the exam questions she got wrong, until she answers that exam question fully right. A folder with no wrong questions cannot be ticked, and the server refuses it by name.
+- **Twin (exam twins):** shown only to an account that may make questions now (`GET /api/question-maker` answers `available: true`; today only hers). Under Start exam, **Write exam twins** sends the same course, ticked folders, and pool to QBank, which writes a new exam twin of each of those practice questions (one already twinned keeps its twin), files them as exam sets beside their practice sets, and never changes her questions, sets, folder names, or answers. A refusal shows as the server's sentence ("Week 5 has no wrong questions, so there is nothing to twin.") until she changes the folders or pool. Its page, **Exam twins**, shows the job's note, its three steps (Read your questions, Exam twins, File the twins) with how far each is, **Stop** (it asks first), a failure's reason, and the sets it filed; once done, **Start exam on the twins** starts the exam the job names. A twin job counts once against her daily limit.
+- **Exam twins:** her twin jobs over the course, newest first, with their folders, date, count, pool, and state (Writing, Ready, Failed, Cancelled); each opens its page.
+- A list of past exams with their scores, marked "Wrong questions only" when they were. **Edit** puts **Delete** on each (see [Delete and Undo](#delete-and-undo)).
+
+### Exam
+
+- The runner's timed mode: a countdown, "Submit and continue", "Skip for now", and feedback only at the end.
+- At the last question with skipped ones left, she is taken back to the first skipped one and told how many remain; "Finish exam" again ends it.
+- When time runs out, the exam ends automatically.
+- **Leaving midway ends the exam** (after a confirming second tap, as the runner does): what she answered is scored, the exam goes into her history, and the misses and guesses among what she answered go to Review.
+- **Unanswered questions stay out of Review:** when an exam ends early (left or timed out), the questions she skipped or never reached score 0 and are listed on the exam result, but they do not go to Review.
+
+### Exam result
+
+- Fully right, points, minutes used, partly right, missed, guessed.
+- A by-folder breakdown (for example 7 of 10, 11 of 13, 13 of 17) and a by-clinical-judgment-step breakdown.
+- Each question with its mark ("Not answered" for ones she skipped or never reached) and an expandable answer and explanation.
+- "Open Review · N from this exam" for the practice questions she missed or guessed. Exam-bank questions she got wrong are counted on their own line: they stay out of Review and come back with Wrong questions only.
+
+### Import
+
+- Paste the JSON or choose the file.
+- Course: an existing one, or **"+ New course"** (code, name, semester).
+- Folder: **Unsorted**, picked every time unless she picks another; her folders, grouped by exam page; or **New folder** with a name. **Import here** on a folder arrives with that folder picked.
+- Set name: filled from the file's `title`, editable.
+- **Check file:** shows "Ready: N questions, M terms" with the format breakdown, or the errors with a **"Copy these for Codex"** button, plus any warnings. An exam set says so: its questions are asked only on exams over its folder.
+- **Replace warning:** if the set name matches an existing set of the same kind (practice or exam), it asks first, naming the course, the folder the set is in (a replaced set stays in its folder, whatever folder she picked), and how many questions would be replaced. Choices: **Replace**, **Import as a separate set**, **Cancel**. Cancel changes nothing.
+- **Replace keeps what it can:** answers on questions that did not change are kept, and the replaced version is kept and restorable from its folder with one tap.
+- **Done:** "Imported" or "Replaced", naming the folder and its exam page, with **Open** the folder and **Import another file**, which keeps the course and goes back to Unsorted.
+
+### Settings
+
+- Account; change password.
+- Passkeys: list, add, remove.
+- **Semesters and courses:** add a semester; add a course; rename, move between semesters, archive, and unarchive a course. (Courses and semesters can also be made from Import.)
+- **Look:** Match device / Light / Dark. This is the only appearance control.
+- **Export my progress:** downloads her answers and progress as a JSON file.
+- Sign out.
+
+### The owner's admin account
+
+He signs in the same way, with his own login, and lands on her Home. His navigation is Home, Import, Admin, and Settings.
+
+- **Her progress, read-only:** her Home, courses, sets, completion, scores, Review list, and exam history, as she sees them. Nothing here can be answered, and her scores, progress, and Review list have no edit controls.
+- **Import:** the same Import screen as hers, with "+ New course", the replace warning, and Cancel. Files go into her courses.
+- **Restore:** the Restore button on a replaced set works for him too, with the same confirmation.
+- **Admin > Semesters and courses:** the same controls as her Settings (add a semester; add, rename, move between semesters, archive, and unarchive a course).
+- **Her folders and exam pages, read-only:** he sees her course page, exam pages, and folders as she does, with "Her past exams" and without New, Edit, Rename, Exam page, Import here, Select, Delete, or Start exam. She arranges her folders herself; the API lets him fix one when she asks. He sees her Recently deleted read-only, without Undo.
+- **Admin > Student:** when there is more than one student, a picker chooses whose progress he sees read-only; the read-only banner then names her email. The temporary password and Repair act on the picked student too. Until he picks, it is the oldest student account.
+- **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
+- **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
+- **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
+- **His Settings:** account, change password, passkeys, Look, sign out.
+
+## Platforms and layouts
+
+- **One installable web app** on iPhone, iPad, and Mac, running full-screen from the home screen or Dock, so it should feel native: no browser chrome, safe areas respected, touch targets sized for a thumb on iPhone and iPad, keyboard and pointer friendly on the Mac.
+- **iPhone:** a single column with bottom tabs (Home, Import, Settings, plus Admin for the owner). The question runner fills the screen.
+- **iPad and Mac:** their own layout with a **sidebar** (navigation and the semester and course tree), fitted to their screens rather than a stretched iPhone layout. The exact shape comes from the Claude Design system.
+- **Light and dark mode:** both first-class. Settings offers Match device / Light / Dark; there is no theme picker or palette choice. Correct, partly correct, and wrong states, and the timer's low-time state, read clearly in both modes and do not rely on color alone.
+
+## Design direction
+
+The look is generated in Claude Design from this PRD before the build's first screens; until then no colors or fonts are fixed. The app's display name and home-screen icon are chosen there too.
+
+- **Tone: calm and focused.** A place to practice hard questions, not a game: no streaks, confetti, or badges.
+- **Clear and clinical.** Long stems and rationales are comfortable to read on a phone; the hierarchy keeps the ask, the answer area, and the feedback easy to tell apart.
+- **Encouraging but honest.** Scores and misses are stated plainly; Review feels like a to-do list, not a penalty.
+- **Personal and private.** One student's own study tool, not a school portal or a product with marketing.
+- **Plain language** in all copy.
+- **Shared building blocks** the screens reuse: course card with progress bar, set row with status, tile, filter chip with count, folder checkbox row, inset list row with its progress word and chevron, answer option (unselected, selected, correct, wrong, missed), ordering row, matching and matrix controls, highlightable passage segments, drop-down blank, feedback banner (correct, partly correct, not correct), rationale and takeaway blocks, term definition, countdown timer with a low-time state, confirmation sheet, error and warning lists, empty states.
+
+## Question formats and scoring
+
+The app ports the existing runner's formats and scoring unchanged into the server's question package (`packages/questions` in D-E-A-G/qbank-server). The server scores every answer and returns the status and points it saved with the feedback text to show ("Partly correct", "2 of 3 points", and the format's scoring rule); no client scores an answer, so the web screens and a native app both show the server's result instead of re-implementing the rules.
+
+| Type | Name in the app | She does | Points | Fully right when |
+|---|---|---|---|---|
+| `single` | Single answer | Picks one option | 1 | She picks the one correct option |
+| `priority` | Priority / first action | Picks one option | 1 | She picks the one correct option |
+| `sata` | Select all that apply | Ticks several options | +1 per correct pick, -1 per wrong pick, never below 0; max = number of correct options | Every correct option and no wrong one |
+| `highlight` | Highlight | Taps segments of a passage | Same +1 / -1 rule as select-all | Every correct segment and no wrong one |
+| `order` | Ordering | Puts items in order | 1 per item in the right position | Every item in the right position |
+| `match` | Matching | Pairs each left item with a right item (with optional extra distractors) | 1 per correct pair | Every pair right |
+| `matrix` | Matrix | Picks a column for each row | 1 per correct row | Every row right |
+| `cloze` | Drop-down | Picks a choice in each blank | 1 per correct blank | Every blank right |
+
+- **Status:** `correct` when points equal the maximum, `partial` when above 0 but below the maximum, `incorrect` at 0.
+- **Guessing:** "I'm guessing" is saved with the attempt. A guessed answer stays in Review even when it was right.
+- **Exam scoring:** points and fully-right counts over every question in the exam; an unanswered question earns 0.
+- **Feedback text:** the multi-part banner explains the rule, for example "+1 for each correct choice, -1 for each wrong one" for select-all and highlight, and "items in the right position; full credit needs all of them" for ordering.
+
+## Data the app stores
+
+Postgres. Question bodies stay JSON because the eight formats have different shapes. The content side is what she imports; the answer side is hers.
+
+| Table | Holds |
+|---|---|
+| `user`, `session`, `account`, `verification` | Better Auth's tables. Each user also has a role: **student** (full access to her own studying) or **admin** (the owner: imports, course, semester, and folder fixes, restores, her password reset, and repairs; never answers as her). |
+| `sign_up_email` | The emails the owner allows to sign up, with the date each was added. |
+| `admin_student` | The student the admin is looking at, when he has picked one. |
+| `semester` | Number (1, 2, 3), name, start and end dates. The program is the app's name, not a table. |
+| `course` | Semester, code ("NURS 101"), title, sort order, archived date. |
+| `folder` | Course, her name for it, the exam page it is on (one at most), and its place in its list (an exam page's folders, or the course's Folders list). A name is unique within its list. |
+| `practice_set` | Course, folder (every version of a set is in the same one), title, description, the week label it was imported with, sort order, imported at and by, a hash of the imported file, stats (counts by type, step, need, difficulty), and its kind: practice, or exam for its folder's exam bank. Replaced versions are kept so they can be restored. |
+| `question` | Set, public id ("Q1"), position, type, topic, clinical judgment step, client need, difficulty, week, stem, ask, body (JSON: the type-specific fields with each option's reason, and any table and images), rationale, takeaway, term keys, source citation, and for an exam question the public id of its practice twin. |
+| `term` | Set, key, term, plain meaning. The course's Terms list is built from these. |
+| `course_exam` | A course's exam pages ("Exam 1"): name and order. Its folders are the ones that name it. A past exam belongs to the page holding every folder it was over. The older `course_exam_week` (an exam's weeks by label) was read once to put folders on their pages and is no longer written. |
+| `study_session` | User, course, mode (practice, exam, or review), set (practice only), the question ids in the order served, the chosen folders, pool (all or wrong questions), the folders drawn from practice questions for lack of an exam bank, and the time limit (exam only), start and finish times, score. |
+| `attempt` | A client-generated id (so a retry never double-counts), session, user, question, her response, the shuffle she saw, status, points, max points, guessed, answered at. |
+| `question_progress` | Per user and question: attempts, correct attempts, last status, last guessed, last answered at, and whether it is in Review. Written in the same transaction as each attempt; Review is read from here. "Clear the review list" takes the course's questions out of Review without touching her attempts. |
+
+- Her attempts are the only irreplaceable data. The question banks are files she already keeps (the skill's output).
+- A delete hides rows and never removes one: a deleted folder, set, or past exam keeps its rows, stamped with when it was deleted and which delete it was, and Undo clears that delete's stamps.
+- Her progress can be exported as JSON at any time from Settings.
+
+## Stack and hosting
+
+| Piece | Choice |
+|---|---|
+| Screens | React + TypeScript (Vite), installable web app (manifest and icons, no service worker in the first release); one client of the API, with types generated from its OpenAPI description. In D-E-A-G/qbank-web |
+| API | Hono + TypeScript on Node, zod validation on every request; an OpenAPI description generated from the typed routes and published with the API. In D-E-A-G/qbank-server |
+| Question package | Question types, scoring, exam planning, and import validation, used by the API. In D-E-A-G/qbank-server |
+| Database | Postgres 16 in a Docker container on the app's own server, through Drizzle |
+| Login | Better Auth: email + password, optional passkeys; works for a native client as well as the browser. No email is sent. |
+| Hosting | One self-managed DigitalOcean droplet declared in OpenTofu, running Caddy, the built screens, the API, and Postgres in Docker Compose (see [The server](#the-server)) |
+| Deploy | Merging to `main` builds the web image and deploys it to the droplet; the API is deployed the same way from D-E-A-G/qbank-server (see [Deploy path](#deploy-path)) |
+| Backups | DigitalOcean's weekly droplet backups, plus a nightly `pg_dump` off the box to a private Cloudflare R2 bucket, with a tested restore (see [Backups](#backups)) |
+| Address | A subdomain of one root domain (one subdomain per app), DNS on Cloudflare, HTTPS through Caddy |
+| Tests | Vitest for scoring, validation, and the screens; Playwright for flows, against the web image and the API image; GitHub Actions CI |
+| Cost | About $14.40 a month: the $12 droplet plus $2.40 for weekly backups. R2 stays on its free tier. The domain, when bought, is about $10-15 a year. |
+
+**API-first.** The API is the product boundary; the web app is one client of it, and a SwiftUI iOS app may be added later as a second client of the same API, accounts, and data.
+
+- **Every rule lives behind the API:** scoring, question formats, import validation, Review behavior, and the admin's powers and limits are enforced by the server, never only inside the web screens.
+- **A language-neutral contract:** Swift cannot share the TypeScript types, so the API's contract is also published as an OpenAPI description generated from the typed routes and their zod schemas. CI fails when it is out of date, so a Swift client can be generated from it or checked against it. The web screens use it the same way: they pin a copy, generate their types from it, and run their end-to-end tests against the API image built from the same commit (see "The API" in the README).
+- **Sign-in for any client:** password and passkey sign-in, sessions, and sign-out work over the API for a native client as well as the browser. The passkey relying party is the app's web domain, so a native app tied to that domain can use the same passkeys, and a native client can hold its session as a token rather than a browser cookie.
+
+### The server
+
+One machine the owner rents and runs himself, in the shape of Kun's Eddie's Wallet server ([kunchenguid/eddies-wallet PR #2](https://github.com/kunchenguid/eddies-wallet/pull/2), MIT-licensed), moved from Hetzner to DigitalOcean. There are no managed app or database services.
+
+- **The droplet:** DigitalOcean Basic Regular, 1 vCPU, 2 GB RAM, 50 GB disk, in New York, Ubuntu 24.04 LTS, weekly backups on.
+- **Declared in OpenTofu:** the droplet, its cloud firewall, and its SSH key are files in the `tofu/` folder of the owner's private [D-E-A-G/deag-infra](https://github.com/D-E-A-G/deag-infra) repository, which holds the server's whole setup, so the server can be read, reviewed, and rebuilt from git. The firewall lets in ports 80 and 443 from anyone and SSH (port 22) only from the owner's address; everything else is closed. The owner can also reach SSH from anywhere over his private Tailscale network, which only he uses.
+- **Set up on first boot** by a script that mirrors Kun's `deploy/bootstrap.sh`: a non-root deploy user, no root or password SSH login, `ufw` repeating the cloud firewall, `fail2ban`, automatic security updates, and Docker with a log size limit.
+- **Four containers in Docker Compose** (`server/` in deag-infra): Caddy, the only one reachable from the internet, which gets and renews the HTTPS certificate from Let's Encrypt and passes `/api/*`, `/health` and `/openapi.json` to the API and everything else to the web container; the web container, which serves the built screens; the API; and Postgres 16 on an internal network with no port outside Docker and its data in a volume.
+- **One production environment.** No staging, no preview environment per PR, one region.
+- **Address:** until the root domain exists, the droplet answers on its IP address. The domain goes on Cloudflare DNS, with the app on its own subdomain, before login (milestone 2), because passkeys and installing the app need a real HTTPS name.
+
+### Deploy path
+
+1. A pull request runs CI on GitHub Actions: install, lint, typecheck, test, and build, on Linux, then the end-to-end tests against the web image and the pinned API image.
+2. Merging to `main` runs CI again, then builds the web image (the built screens, served by Caddy), tags it with the commit, and pushes it to a private container registry.
+3. The deploy job connects to the droplet over SSH as the deploy user, switches the web container to the new image, and checks its `/version.txt` from the container and the site through Caddy. If a check fails, it switches back to the previous image.
+
+The API is built and deployed from D-E-A-G/qbank-server the same way: its deploy runs the database migrations, switches the API container to the new image, and checks `/health`, switching back if the check fails.
+
+The deploy job reaches the droplet inside the owner's Tailscale network, for the length of the job only, with an SSH key that can run the deploy and nothing else; see [Deploys from GitHub Actions](https://github.com/D-E-A-G/deag-infra/blob/main/server/apps/qbank/README.md#deploys-from-github-actions) in deag-infra.
+
+### Backups
+
+- **Weekly droplet backups** by DigitalOcean: a copy of the whole machine, for rebuilding the server.
+- **Nightly dump off the box:** a timer on the droplet runs `pg_dump`, compresses it, and uploads it to a private Cloudflare R2 bucket, keeping 30. The dumps are not encrypted; reading one takes the bucket's key or the owner's Cloudflare login. The job refuses to fall back to saving on the same disk.
+- **A tested restore:** a dump is restored into a fresh database in milestone 1, and again with her real data before she depends on the app.
+
+## Privacy and security
+
+- **Private repo.** This repository stays private.
+- **No open sign-up.** Only an email on the owner's sign-up list can make an account, and only a student account; the admin account comes from the setup command. A refused sign-up says nothing about which emails are on the list, and repeated tries are rate-limited like sign-in.
+- **Workers never hold production secrets.** The owner creates the DigitalOcean and Cloudflare accounts and keeps their API tokens, the server's SSH keys, the database password, and the backup bucket's key himself. He runs or approves every OpenTofu change to the real server, and he puts the deploy's secrets into GitHub Actions himself. Workers are told variable names, never values, and deploy by merging, not by holding credentials.
+- **Tests never touch her account.** Tests and local development run against seeded fake users and a throwaway database.
+- **No real course content in the repo.** Question banks are imported into the running app, not committed. Fixtures use invented questions.
+- **Where her data goes:** the Postgres database on the droplet in DigitalOcean's New York region, DigitalOcean's weekly backups of that droplet, and the nightly dumps in a private R2 bucket. No email, analytics, or other outside service receives her data.
+- **The server is locked down:** only ports 80 and 443 answer the internet, and only Caddy listens there; SSH takes keys only, from the owner's address or his Tailscale network only, with no root login; Postgres has no port outside Docker's internal network; security updates install automatically; `fail2ban` blocks repeated failed logins.
+- **Login safety:** hashed passwords, secure HttpOnly SameSite cookies over HTTPS in the browser, rate-limited sign-in, and password resets only through the owner's admin account, with a temporary password she replaces at her next sign-in.
+- **Server authority:** every rule is enforced by the API, so every client gets the same behavior (see [API-first](#stack-and-hosting)); every request is validated; the server scores every answer; the admin's limits are enforced on the server, not only hidden in the screens: the admin cannot record answers as her or edit her scores, progress, or Review list outside a repair.
+- **Backups proven:** a restore from a nightly dump is tested when backups start (milestone 1) and again before she depends on the app (see [Backups](#backups)).
+
+## Milestones
+
+Each milestone has an acceptance check a reviewer can run.
+
+**Delivery:** each piece of work is a direct PR. Until the MVP works, a PR is merged once its CI is green; after that, the owner merges.
+
+The design system's tokens come from the owner's Claude Design export and arrive before the first screens (milestone 2).
+
+| # | Milestone | Delivers | Accepted when |
+|---|---|---|---|
+| 0 | Accounts (owner) | A DigitalOcean account and API token; a Cloudflare account with a private R2 bucket and a token scoped to it; the SSH keys; the `age` key pair for backups; mise on his Mac (it installs the pinned OpenTofu from deag-infra's `mise.toml`); the deploy's secrets set in GitHub Actions. Before milestone 2: the root domain, with its DNS on Cloudflare. | A worker can deploy without holding any credential. |
+| 1 | Scaffold, server, CI, first deploy, backups | pnpm workspace with `apps/web`, `apps/api`, `packages/questions`; strict TypeScript, ESLint, Vitest, Playwright; GitHub Actions; a health endpoint serving the built shell; the OpenAPI description generated from the routes, checked in CI; the API's Docker image. The droplet and its firewall in OpenTofu, the first-boot setup, Caddy, the API, and Postgres in Docker Compose, the deploy on merge to `main`, and the nightly encrypted dump to R2. | Merging to `main` deploys, and the droplet's `/health` answers from the merged commit; the published OpenAPI description matches the routes; a nightly dump is restored into a fresh database; CI green. |
+| 2 | Login | The app's HTTPS address on its subdomain; password sign-in, passkey offer after the first sign-in on each device, sessions that last until sign-out, the student and admin accounts from a setup command, the admin's reset of her password with a temporary password, rate limits. | She signs in on two browsers over HTTPS; wrong passwords lock after N tries; the admin resets her password and she chooses her own at the next sign-in; the admin cannot record an answer as her. |
+| 3 | Questions in | Schema and migrations; the Import screen with the runner's rules and messages; courses and semesters made from Import and Settings; replace with a warning, Cancel, and one-tap restore; the Terms list, with the newest set's definition winning; the admin's Import, Restore, Semesters and courses, and Weeks; the one-time import of the two existing banks. | Both banks import with 146 questions (NURS 402) and 86 questions (NURS 406); every malformed shape the runner rejects is rejected with the same message; she imports from a phone browser; a matching name asks first, Cancel changes nothing, and Restore brings the old set back; the admin imports a file, renames a week, and moves a set to another week. |
+| 4 | Runner and scoring | The shared scoring package for all eight formats with tests; practice screens with shuffle, "I'm guessing", per-option reasons, rationale, takeaway, and term definitions. | Vitest reproduces every scoring rule above; Playwright answers all 232 questions correctly through the real screens. |
+| 5 | Progress sync and Review | Attempts with idempotent ids, server re-scoring, `question_progress`, course completion and scores, Review with its filters, leave rule, and Clear the review list; landing on the last course; the admin's read-only view of her progress and the Repair that rebuilds it from her answers. | Answer on browser A, see the same Review on browser B; drop the network mid-answer and reconnect, exactly one attempt is recorded; Clear asks first and Cancel changes nothing; the admin sees her Review but cannot change it outside a repair. |
+| 6 | Exam, installable app, look, backups, launch | Exam over ticked weeks (40 in 60 minutes, or all at 1.5 minutes each) drawn in proportion, leave-ends-exam, unanswered questions kept out of Review, results with by-week breakdown and history; manifest and icons; light/dark mode; JSON export; a restore drill with her real data; iPhone layout and iPad/Mac sidebar layout; her three devices set up. | An exam over Weeks 1-3 draws only from those weeks, in proportion, times out, and sends only the misses and guesses among what she answered to Review; it installs on an iPhone and a Mac and opens full-screen; a restore from last night's dump brings back a fresh attempt. |
+
+Nothing else is planned after launch. In-app question generation (uploads plus a generator) is not planned; the questions come from the skill in Codex.
+
+Future work, not scheduled: a SwiftUI iOS app as a second client of the same API.
+
+## Settled decisions
+
+Made by the owner on 2026-09-27, except where a later date is given. Later workers should not re-ask these.
+
+### Plan
+
+1. **Build a small custom app** (not a bought product, not the offline pages plus a sync service, not "no app").
+2. **Hosting (2026-09-28, replacing Railway + Neon):** one self-managed DigitalOcean droplet (Basic Regular, 1 vCPU / 2 GB / 50 GB, $12 a month, New York, Ubuntu 24.04 LTS, weekly backups) declared in OpenTofu, running Caddy, the API, and Postgres 16 in Docker Compose, mirroring Kun's Hetzner setup. No Railway, Neon, or Resend. One production environment. Backups are DigitalOcean's weekly backups plus a nightly encrypted `pg_dump` off the box to Cloudflare R2, with a tested restore, starting in milestone 1. Later, one root domain with a subdomain per app, DNS on Cloudflare. (2026-10-01: the nightly dump is no longer encrypted. The owner chose not to keep a separate decryption key; the bucket stays private.)
+3. **Questions get in** through an Import screen in the app, where she imports the weekly question skill's JSON.
+4. **Questions are made** by running the `nclex-questions` skill in Codex, on the one ChatGPT plan shared by her machine and the owner's. The app does not generate questions.
+5. **Login** is a password with an optional passkey (Face ID / Touch ID).
+6. **Each week's slides and transcripts stay in her iCloud folder**, not in the app. The app holds questions only.
+7. **Replacing a week's questions warns first** (naming the course, the week, and the number of questions), Cancel does nothing, and the previous version is kept and restorable.
+8. **The theme is built fresh in Claude Design** later, from this document.
+9. **API-first:** every rule lives on the server behind the API, never only inside the web screens, so a native iOS app built in SwiftUI can be added later as a second client of the same API, accounts, and data. The contract is published as OpenAPI for the Swift side, and sign-in, including passkeys, works for a native client. The iOS app itself is not part of this plan.
+10. **Password reset (2026-09-28):** the owner resets her password from his admin account with a temporary password he gives her. There is no email service.
+11. **Sign-up (2026-10-01, replacing "no signup screen"):** a Sign up screen like a regular app's, limited to the emails on a sign-up list the owner keeps in Admin; the list starts with the first student's email, set when the app is set up, and he can add more at any time. Strangers cannot get in or see the questions. Each email makes one student account; the admin account is never made by sign-up. The question bank is shared, and each student's progress is her own. With more than one student, the owner picks in Admin whose progress he sees, resets, and repairs, starting with the oldest student account.
+
+### Screens and flows
+
+1. **Sets within a week:** a week lists every set imported for it, as long as each week's important parts are covered.
+2. **Terms:** keep a Terms list per course.
+3. **Exam length:** 40 questions in 60 minutes, or all of them when the chosen weeks hold fewer, at 1.5 minutes each, drawn from the weeks she ticks.
+4. **Leaving an exam** ends it, scores what she answered, and sends the misses and guesses among them to Review.
+5. **Leaving Review:** a question leaves Review the next time she answers it fully right without "I'm guessing".
+6. **Courses and semesters** can be made in both Import and Settings.
+7. **The owner has an admin account**, not a read-only login. He can import question files; create or fix courses, semesters, and weeks; restore a replaced set; reset her password; and repair her account data if something breaks. He cannot answer questions as her or change her scores, progress, or Review list in normal use. He sees her progress read-only.
+8. **Passkey offer:** right after the first password sign-in on each device; the app stays signed in until she signs out.
+9. **Review scope:** missed-and-guessed Review is per course only.
+10. **Landing:** she lands on the course she used last.
+11. **iPad and Mac** get a sidebar layout fitted to their screens (not the iPhone layout), shaped by the Claude Design system.
+12. **Appearance:** the theme control is light/dark mode, not a theme picker.
+13. **Unanswered exam questions:** when an exam ends early (left or timed out), only the questions she answered go to Review; the ones she skipped or never reached score 0 and are listed on the exam result.
+14. **Clearing Review by hand:** keep a "Clear the review list" button per course. It asks "Clear all N questions from this course's Review list?" with Clear and Cancel; Cancel changes nothing.
+15. **Same term, two definitions:** the course's Terms list shows the definition from the most recently imported set.
+16. **Name and icon:** the app's display name and home-screen icon are decided during the Claude Design work.
+17. **Wrong-questions exams (2026-10-12):** exam setup can limit an exam to the questions she got wrong, inside the weeks she ticks. Wrong means her last answer was not fully right.
+18. **Exam banks (2026-10-12):** exams use their own questions, written as one exam twin per practice question (same topic, different format and wording), imported as exam sets. A week without an exam bank falls back to its practice questions. Exam questions she gets wrong stay exam-only: they do not enter Review.
+19. **Folders and exam pages (2026-10-14):** weeks become folders she renames, fills, and orders herself; a folder can hold many sets and is on one exam page at most; each exam gets a page holding its folders. The course page lists Exam pages and Folders, each opening its own screen, as in the Files app; editing is Select, then Move. An exam page lists only its own folders. Import goes to Unsorted unless she picks a folder. The same folder name may be on different exam pages. Day one looks exactly like before, and the change itself never deletes, moves, or renames her sets, folder names, or progress.
+
+20. **Delete and Undo (2026-10-18):** sets, folders, and past exams can be deleted. Deleting a folder deletes its sets, after a warning that names them; every delete warns exactly what else goes. Undo brings anything back for 30 days, and nothing is deleted except by her explicit, confirmed action.
+
+## Open questions
+
+Genuinely undecided. Do not decide these in a build PR; ask the owner.
+
+None right now.

@@ -1,0 +1,47 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Study" subtitle="CourseCard, SetRow, Tile, FilterChip, WeekCheckboxRow" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0}</style>
+</head><body>
+<div id="root"></div>
+<script type="text/babel">
+const { CourseCard, SetRow, Tile, FilterChip, WeekCheckboxRow, ListGroup } = window.QbankDesignSystem_4be789;
+function Card() {
+  const [f, setF] = React.useState('all');
+  const [w, setW] = React.useState({ 1: true, 2: true, 3: false });
+  return (
+    <div style={{ background: 'var(--bg)', padding: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <CourseCard code="NURS 214" title="Adult Health I" questions={147} weeks={6} toReview={12} progress={0.58} onClick={() => {}} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Tile icon="timer" label="Exam" detail="40 in 60 min" emphasis onClick={() => {}} />
+          <Tile icon="inbox" value={12} label="to review" onClick={() => {}} />
+          <Tile icon="book-open" value={58} label="terms" onClick={() => {}} />
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[['all', 'All', 19], ['missed', 'Missed', 7], ['partial', 'Partly right', 5], ['guessed', 'Guessed', 7]].map(([id, l, n]) => <FilterChip key={id} label={l} count={n} selected={f === id} onClick={() => setF(id)} />)}
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <ListGroup header="Week 4">
+          <SetRow title="Set 1: Heart failure" status="done" detail="Done Sep 24 · 13 of 17 fully right" onClick={() => {}} />
+          <SetRow title="Set 2: Diuretics" status="progress" detail="7 of 12 answered" onClick={() => {}} />
+          <SetRow title="Set 3: Anticoagulants" status="replaced" onRestore={() => {}} />
+        </ListGroup>
+        <ListGroup header="Weeks in this exam">
+          <WeekCheckboxRow label="Week 1" count={22} drawn={10} checked={w[1]} onChange={(v) => setW({ ...w, 1: v })} />
+          <WeekCheckboxRow label="Week 2" count={27} drawn={13} checked={w[2]} onChange={(v) => setW({ ...w, 2: v })} />
+          <WeekCheckboxRow label="Week 3" count={37} checked={w[3]} onChange={(v) => setW({ ...w, 3: v })} />
+        </ListGroup>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+</script>
+</body></html>

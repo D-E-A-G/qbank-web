@@ -1,0 +1,274 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      # Includes the contract test: the screens' types are what the pinned
+      # contract (apps/web/contract) generates.
+      - run: pnpm test
+      - run: pnpm build
+
+  # The Playwright tests, on iPhone and desktop browsers, against the site as
+  # the server runs it (e2e/stack.sh): this commit's web image, the API image
+  # pinned in apps/web/contract/pin.json (built from the qbank-server commit
+  # the contract was pinned from), Postgres, and Caddy in front. This is the
+  # only job that touches the API image, and it only pulls it, so the
+  # repository needs only Read access to the nclex-qbank-api package.
+  e2e:
+    name: End-to-end tests
+    # A pull request from a fork gets a token that cannot pull the private API
+    # image, so this job runs only for pushes and this repository's own branches.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - run: pnpm install --frozen-lockfile
+      - name: Sign in to the registry to pull the API image
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Start the site with the pinned API image, its migrations applied
+        run: e2e/stack.sh up
+      - name: Check the API serves the pinned contract
+        run: |
+          curl -fsS http://localhost:4318/health
+          echo
+          curl -fsS http://localhost:4318/openapi.json | jq --sort-keys . >"$RUNNER_TEMP/served.json"
+          jq --sort-keys . apps/web/contract/openapi.json | diff - "$RUNNER_TEMP/served.json"
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm test:e2e
+      - if: always()
+        run: e2e/stack.sh logs || true
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # A change must not add a secret or one of the owner's personal values (his
+  # home IP, the server's IP, the tailnet name, the Cloudflare account ID, his
+  # email addresses). The list of those values is the PERSONAL_VALUES secret,
+  # so it is never written into the repository; see .github/scripts/leak-check.sh.
+  leaks:
+    name: Secrets and personal values
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install gitleaks
+        run: |
+          version=8.30.1
+          sha256=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v$version/gitleaks_${version}_linux_x64.tar.gz"
+          echo "$sha256  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+      - name: Check the change and the files for secrets and personal values
+        env:
+          GITLEAKS: ${{ runner.temp }}/gitleaks
+          PERSONAL_VALUES: ${{ secrets.PERSONAL_VALUES }}
+          # A pull request from a fork, or from Dependabot, gets no secrets, so
+          # it is checked for secrets only; everything else must have the list.
+          REQUIRE_PERSONAL_VALUES: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
+          BASE: ${{ github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
+        run: .github/scripts/leak-check.sh "$BASE" "$HEAD"
+
+  web-image:
+    name: Web image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the image
+        run: |
+          docker build -f apps/web/Dockerfile --build-arg APP_VERSION=${{ github.sha }} \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            -t qbank-web:ci .
+      # Read-only with tmpfs for /tmp, /config and /data, as the server's
+      # compose.yaml runs it, and the checks its ci-deploy.sh makes.
+      - name: Run it the way the server does and check the screens, their caching, /version.txt and the passkey file
+        run: |
+          docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' qbank-web:ci |
+            grep -qxF "APP_VERSION=$GITHUB_SHA"
+          docker run -d --name web --read-only --tmpfs /tmp --tmpfs /config --tmpfs /data \
+            -p 8080:8080 qbank-web:ci
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/version.txt && break
+            sleep 1
+          done
+          test "$(curl -fsS http://127.0.0.1:8080/version.txt)" = "$GITHUB_SHA"
+
+          # Prints the status and the Cache-Control header of a path.
+          answer() {
+            curl -sS -o /dev/null -D - "http://127.0.0.1:8080$1" | tr -d '\r' |
+              awk 'NR == 1 { status = $2 } tolower($1) == "cache-control:" { sub(/^[^:]*: */, ""); cache = $0 }
+                END { print status " " cache }'
+          }
+          index="$(curl -fsS http://127.0.0.1:8080/)"
+          grep -q '<div id="root">' <<<"$index"
+          test "$(answer /)" = "200 no-cache"
+          # A screen address gets index.html.
+          test "$(curl -fsS http://127.0.0.1:8080/course/42)" = "$index"
+          test "$(answer /course/42)" = "200 no-cache"
+          # The passkey association file has no extension. It is that file,
+          # as JSON, and not the screen shell a later rewrite would send.
+          aasa_body="$(mktemp)"
+          aasa_headers="$(curl -sS -D - -o "$aasa_body" \
+            "http://127.0.0.1:8080/.well-known/apple-app-site-association" | tr -d '\r')"
+          aasa_status="$(awk 'NR == 1 { print $2 }' <<<"$aasa_headers")"
+          aasa_type="$(awk 'tolower($1) == "content-type:" { sub(/^[^:]*: */, ""); print; exit }' <<<"$aasa_headers")"
+          echo "association: $aasa_status $aasa_type"
+          test "$aasa_status" = "200"
+          if grep -qi '^location:' <<<"$aasa_headers"; then
+            echo "association file was redirected"
+            exit 1
+          fi
+          test "$aasa_type" = "application/json"
+          test "$(answer /.well-known/apple-app-site-association)" = "200 no-cache"
+          if ! cmp -s apps/web/public/.well-known/apple-app-site-association "$aasa_body"; then
+            echo "association file was not served as itself"
+            exit 1
+          fi
+          # A hashed asset is kept for a year; a missing one is a 404 that is not.
+          asset="$(grep -o '/assets/[^"]*\.js' <<<"$index" | head -n 1)"
+          echo "hashed asset: $asset"
+          test -n "$asset"
+          test "$(answer "$asset")" = "200 public, max-age=31536000, immutable"
+          test "$(answer /assets/index-missing.js)" = "404 no-cache"
+          test "$(answer /version.txt)" = "200 no-cache"
+
+          for _ in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' web)
+            [ "$status" = healthy ] && break
+            sleep 2
+          done
+          echo "container health: $status"
+          test "$status" = healthy
+          # Caddy logs an error when it cannot write where it needs to.
+          if docker logs web 2>&1 | grep -F '"level":"error"'; then
+            exit 1
+          fi
+      - if: always()
+        run: docker logs web || true
+      # On main, publish the image just checked, under its commit; the web
+      # deploy below runs it by digest. The server's ci-deploy.sh accepts only
+      # this name for the web container.
+      - name: Push it to the registry
+        id: push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          tag="ghcr.io/d-e-a-g/qbank-web:$GITHUB_SHA"
+          docker tag qbank-web:ci "$tag"
+          docker push --quiet "$tag"
+          echo "image=$(docker inspect --format '{{index .RepoDigests 0}}' "$tag")" >>"$GITHUB_OUTPUT"
+
+  # Merging to main: switch the server's web container to the image above,
+  # over SSH inside Tailscale (the only way GitHub can reach it), with a key
+  # that can run the server's ci-deploy.sh and nothing else. That script picks
+  # the container from the image's name, checks its /version.txt from the
+  # container and the site through Caddy, and switches back if a check fails.
+  # It and the server's setup live in D-E-A-G/deag-infra; see
+  # server/apps/qbank/README.md there. The API is deployed from
+  # D-E-A-G/qbank-server, not from here.
+  deploy-web:
+    name: Deploy web
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, e2e, leaks, web-image]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: deploy-web
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+      # Tailscale's workload identity federation: GitHub vouches for this run,
+      # so no Tailscale key is stored anywhere.
+      id-token: write
+    env:
+      # The server's name on the tailnet. It names the tailnet, so it is an
+      # Actions secret rather than part of this file, and logs show it masked.
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      # The server's SSH host key, as a known_hosts line under the name
+      # nclex-qbank, so this repository holds nothing about the server.
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Check the deploy host and its host key are set
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_KNOWN_HOSTS" ]; then
+            echo "::error::Set the DEPLOY_HOST Actions secret to the server's tailnet name and DEPLOY_KNOWN_HOSTS to its SSH host key (see server/apps/qbank/README.md in D-E-A-G/deag-infra)"
+            exit 1
+          fi
+      - name: Join the tailnet as tag:ci, for this job only
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+          ping: ${{ env.DEPLOY_HOST }}
+      - name: Deploy the image on the server
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.web-image.outputs.image }}
+        run: |
+          key="$RUNNER_TEMP/deploy_key"
+          (umask 077 && printf '%s\n' "$DEPLOY_SSH_KEY" >"$key")
+          known_hosts="$RUNNER_TEMP/known_hosts"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >"$known_hosts"
+          # The registry token goes on standard input, so the server can pull
+          # the private image without keeping any credential.
+          printf '%s\n' "$GITHUB_TOKEN" |
+            ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$known_hosts" \
+              -o HostKeyAlias=nclex-qbank \
+              "nclex@$DEPLOY_HOST" deploy "$GITHUB_SHA" "$IMAGE"
+          rm -f "$key" "$known_hosts"

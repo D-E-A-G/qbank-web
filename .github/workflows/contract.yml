@@ -1,0 +1,36 @@
+name: Contract
+
+# Once a day, and by hand: is the API's contract pinned in apps/web/contract
+# still the one the live API serves? A failure means D-E-A-G/qbank-server has
+# deployed a different contract since the pin: pin the new one (see "The API" in
+# README.md). Adding fields keeps the screens working, so this does not block
+# anything; it says the pin is behind.
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    name: Pinned contract matches the live API
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      SITE_URL: https://qbank.dimitrygallego.com
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compare the pinned openapi.json with the live /openapi.json
+        run: |
+          curl --fail --silent --show-error --proto '=https' --max-time 30 --retry 3 \
+            "$SITE_URL/openapi.json" | jq --sort-keys . >"$RUNNER_TEMP/live.json"
+          jq --sort-keys . apps/web/contract/openapi.json >"$RUNNER_TEMP/pinned.json"
+          if ! diff -u "$RUNNER_TEMP/pinned.json" "$RUNNER_TEMP/live.json"; then
+            echo "::error::The live API serves a different contract than the one pinned in apps/web/contract (pinned from $(jq -r .commit apps/web/contract/pin.json)). Pin the new one; see \"The API\" in README.md."
+            exit 1
+          fi
+          echo "The live API serves the pinned contract."

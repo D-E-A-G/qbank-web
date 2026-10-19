@@ -1,0 +1,68 @@
+# The site as the server runs it, for the end-to-end tests: Postgres, the API
+# image pinned in apps/web/contract/pin.json, this repository's web image, and
+# a Caddy in front that sends each path where the server's Caddy does. Start and
+# stop it with e2e/stack.sh, which also applies the API's migrations first.
+name: qbank-e2e
+
+services:
+  db:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_USER: e2e
+      POSTGRES_PASSWORD: e2e
+      POSTGRES_DB: e2e
+    # A throwaway database: the tests start from an empty one.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      # Over TCP: on first boot the image runs a temporary server on its unix
+      # socket only, then restarts, so a socket check passes too early.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "e2e", "-d", "e2e"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Read-only with tmpfs for /tmp, as the server runs it. Its own healthcheck
+  # reads /health.
+  api:
+    image: ${API_IMAGE:?set API_IMAGE, as e2e/stack.sh does}
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      DATABASE_URL: postgres://e2e:e2e@db:5432/e2e
+      BETTER_AUTH_SECRET: e2e-secret-at-least-32-characters-long
+      BETTER_AUTH_URL: http://localhost:4318
+      # The sample student and admin the tests sign in as (e2e/sign-in.ts).
+      SEED_ACCOUNTS: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Read-only with tmpfs for /tmp, /config and /data, as the server runs it.
+  # Its own healthcheck reads /version.txt.
+  web:
+    image: qbank-web:e2e
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /config
+      - /data
+
+  proxy:
+    image: caddy:2.11.4-alpine
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      # WebAuthn needs a hostname, so the tests open http://localhost:4318.
+      - "127.0.0.1:4318:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy

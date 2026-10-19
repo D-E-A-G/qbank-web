@@ -1,0 +1,250 @@
+/* Exam setup, the timed runner's controls, and the countdown. */
+
+.tick-row {
+  cursor: pointer;
+  min-height: 52px;
+}
+
+div.tick-row {
+  cursor: default;
+}
+
+/* A folder with no wrong questions while Wrong questions only is on: shown, not tickable. */
+.tick-row-off {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.switch-row {
+  min-height: 52px;
+}
+
+.tick-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  accent-color: var(--tint);
+}
+
+.tick-drawn,
+.exam-score,
+.exam-resume {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.tick-drawn,
+.exam-resume {
+  color: var(--tint);
+}
+
+.exam-score {
+  color: var(--text-1);
+}
+
+.exam-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+}
+
+.exam-summary p {
+  margin: 0;
+}
+
+.exam-summary-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.exam-summary-count {
+  font: var(--text-title-2);
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.exam-summary-time {
+  font: var(--text-callout);
+  color: var(--text-2);
+}
+
+.exam-summary-split {
+  font: var(--text-footnote);
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+
+/* The plan for the folders just ticked is still on its way (ExamSetupScreen). */
+.group[aria-busy="true"] .tick-drawn,
+.exam-summary[aria-busy="true"] .exam-summary-head,
+.exam-summary[aria-busy="true"] .exam-summary-split {
+  opacity: 0.4;
+}
+
+.tick-drawn,
+.exam-summary-head,
+.exam-summary-split {
+  transition: opacity var(--dur-quick) var(--ease-standard);
+}
+
+.exam-summary-note {
+  font: var(--text-footnote);
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+/* The exam header puts End exam and the timer at its ends instead of a close button. */
+.runner-header-ends {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.runner-leading,
+.runner-trailing {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.runner-trailing {
+  justify-content: flex-end;
+}
+
+.runner-header-ends .runner-heading {
+  max-width: 180px;
+}
+
+.runner-wide .runner-header-ends .runner-heading {
+  max-width: 420px;
+}
+
+.runner-end.btn {
+  width: auto;
+  padding: 0 8px;
+  font: var(--weight-semibold) var(--size-callout) / var(--lh-callout) var(--font-ui);
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  margin-right: 4px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--timer-normal);
+  font: var(--weight-semibold) var(--size-subhead) / 1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition:
+    background var(--dur-standard) var(--ease-standard),
+    color var(--dur-standard) var(--ease-standard);
+}
+
+.timer-low {
+  background: var(--timer-low-soft);
+  color: var(--timer-low);
+  box-shadow: inset 0 0 0 1px var(--wrong-border);
+}
+
+.timer-left {
+  font-weight: var(--weight-medium);
+}
+
+.exam-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.exam-actions .btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.exam-actions .exam-skip {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.exam-notice {
+  align-items: center;
+}
+
+.exam-notice-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.exam-notice .exam-finish {
+  flex-shrink: 0;
+  width: auto;
+  min-height: 32px;
+  height: 32px;
+  margin: -6px -6px -6px 0;
+  padding: 0 8px;
+  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+}
+
+.exam-skipped {
+  color: var(--partial);
+}
+
+.result-mark-unanswered {
+  color: var(--text-3);
+}
+
+/* Four stats sit two by two on a phone and in one row on wider screens, never three and one. */
+.exam-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.runner-wide .exam-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* A twin job's state on Exam setup's Exam twins list, set like an exam's score. */
+.twin-state {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+  color: var(--tint);
+}
+
+.twin-state-failed {
+  color: var(--wrong);
+}
+
+.twin-state-cancelled {
+  color: var(--text-3);
+}
+
+/* A twin job's steps: done in green, the one running in the tint, the ones not reached quiet. */
+.twin-step-done .row-icon {
+  color: var(--correct);
+}
+
+.twin-step-failed .row-icon,
+.twin-step-failed .folder-state {
+  color: var(--wrong);
+}
+
+.twin-step-todo .row-icon,
+.twin-step-cancelled .row-icon,
+.twin-step-cancelled .folder-state {
+  color: var(--text-4);
+}
+
+.twin-step-todo .review-topic {
+  color: var(--text-3);
+}

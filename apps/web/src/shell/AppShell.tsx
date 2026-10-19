@@ -1,0 +1,109 @@
+import { useEffect, useMemo } from "react";
+import { api } from "../api";
+import { refreshCatalog } from "../catalog";
+import { ExamScreen } from "../exam/ExamScreen";
+import { readExamPreset } from "../course/pages";
+import { ExamSetupScreen } from "../exam/ExamSetupScreen";
+import { TwinJobScreen } from "../exam/TwinJobScreen";
+import { PracticeScreen } from "../practice/PracticeScreen";
+import { practiceSource } from "../practice/source";
+import { matchDetail, matchExam, matchPractice, navigate, normalizePath, usePathname, useSearch } from "../router";
+import { matchRoute, navigationFor } from "../routes";
+import { UndoToast } from "../components/UndoToast";
+import { CourseScreen } from "../screens/CourseScreen";
+import { DeletedScreen } from "../screens/DeletedScreen";
+import { ExamPageScreen } from "../screens/ExamPageScreen";
+import { FolderScreen } from "../screens/FolderScreen";
+import { NotFoundScreen } from "../screens/NotFoundScreen";
+import { ReviewScreen } from "../screens/ReviewScreen";
+import { TermsScreen } from "../screens/TermsScreen";
+import type { Role } from "../session";
+import { Sidebar } from "./Sidebar";
+import { TabBar } from "./TabBar";
+import { useMediaQuery, WIDE_LAYOUT_QUERY } from "./useMediaQuery";
+
+export function AppShell({ role }: { role: Role }) {
+  const pathname = usePathname();
+  const wide = useMediaQuery(WIDE_LAYOUT_QUERY);
+  const items = navigationFor(role);
+  const route = matchRoute(pathname);
+  const detail = useMemo(() => matchDetail(pathname), [pathname]);
+  const search = useSearch();
+  const practice = useMemo(() => matchPractice(pathname), [pathname]);
+  const source = useMemo(() => (practice ? practiceSource(practice, search) : null), [practice, search]);
+  const exam = useMemo(() => matchExam(pathname), [pathname]);
+  const preset = useMemo(() => readExamPreset(search), [search]);
+  // The runner fills the screen: no tab bar, and the screen does not scroll behind it.
+  const runner = practice !== null || exam !== null;
+  const ScreenBody = route?.Screen ?? NotFoundScreen;
+  const width = detail?.width ?? route?.width;
+
+  useEffect(() => {
+    void refreshCatalog();
+  }, []);
+
+  // She lands on the course she used last. Home stays one tap back.
+  useEffect(() => {
+    if (role !== "student") return;
+    let cancel = false;
+    void api<{ courseId: string | null }>("/api/me/place")
+      .then((place) => {
+        if (cancel || place.courseId === null) return;
+        if (normalizePath(window.location.pathname) !== "/") return;
+        navigate(`/course/${place.courseId}`);
+      })
+      .catch((caught: unknown) => {
+        console.error(caught);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [role]);
+
+  useEffect(() => {
+    if (runner) return;
+    document.title = `${detail?.label ?? route?.label ?? "Not found"} · Qbank`;
+  }, [detail, route, runner]);
+
+  return (
+    <div className={wide ? "shell shell-wide" : "shell shell-phone"}>
+      {wide ? <Sidebar items={items} pathname={pathname} /> : null}
+      <div className="shell-main">
+        <main className={runner ? "screen screen-practice" : "screen"}>
+          {exam ? (
+            <ExamScreen key={exam.examId} courseId={exam.courseId} examId={exam.examId} role={role} wide={wide} />
+          ) : practice && source ? (
+            <PracticeScreen key={source.key} courseId={practice.courseId} source={source} role={role} wide={wide} />
+          ) : (
+            <div className={width === "reading" ? "screen-body screen-body-narrow" : "screen-body"}>
+              {/* Keyed, so another course, exam page, or folder starts fresh: out of Edit and Select. */}
+              {detail?.kind === "course" ? (
+                <CourseScreen key={detail.courseId} courseId={detail.courseId} />
+              ) : detail?.kind === "exam-page" ? (
+                <ExamPageScreen key={detail.examPageId} courseId={detail.courseId} examPageId={detail.examPageId} />
+              ) : detail?.kind === "folder" ? (
+                <FolderScreen key={detail.folderId} courseId={detail.courseId} folderId={detail.folderId} />
+              ) : detail?.kind === "terms" ? (
+                <TermsScreen courseId={detail.courseId} />
+              ) : detail?.kind === "deleted" ? (
+                <DeletedScreen key={detail.courseId} courseId={detail.courseId} />
+              ) : detail?.kind === "review" ? (
+                <ReviewScreen courseId={detail.courseId} />
+              ) : detail?.kind === "exam" ? (
+                <ExamSetupScreen key={search} courseId={detail.courseId} preset={preset} />
+              ) : detail?.kind === "twins" ? (
+                <TwinJobScreen key={detail.jobId} courseId={detail.courseId} jobId={detail.jobId} />
+              ) : (
+                // Keyed by the query, so Import opened from a folder ("Import here") starts with that folder picked.
+                <ScreenBody key={search} />
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+      {/* Undo after a delete stays while the screen changes, as a deleted folder's screen goes back. */}
+      {runner ? null : <UndoToast />}
+      {wide || runner ? null : <TabBar items={items} pathname={pathname} />}
+    </div>
+  );
+}

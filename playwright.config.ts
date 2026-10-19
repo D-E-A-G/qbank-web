@@ -1,0 +1,22 @@
+import { defineConfig, devices } from "@playwright/test";
+
+const ci = process.env.CI !== undefined;
+
+// Runs against the site as the server runs it: the web image and the pinned API image behind
+// Caddy, with Postgres. Start it first with `e2e/stack.sh up`, on an empty database. WebAuthn
+// needs a hostname, so the page is localhost rather than 127.0.0.1.
+// One worker: sign-in tests share the sample student password.
+export default defineConfig({
+  testDir: "e2e",
+  forbidOnly: ci,
+  workers: 1,
+  reporter: ci ? [["list"], ["html", { open: "never" }]] : "list",
+  use: {
+    baseURL: "http://localhost:4318",
+    trace: "retain-on-failure",
+  },
+  projects: [
+    { name: "iphone-safari", use: { ...devices["iPhone 15"] } },
+    { name: "desktop-chrome", use: { ...devices["Desktop Chrome"] } },
+  ],
+});

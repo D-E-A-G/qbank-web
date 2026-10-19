@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-palette="dusk" data-theme="auto">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F7F4EE" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Qbank" />
+    <title>Qbank</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <style>
+      html {
+        background: #f7f4ee;
+      }
+      html[data-theme="dark"] {
+        background: #0c0c0b;
+      }
+      @media (prefers-color-scheme: dark) {
+        html[data-theme="auto"] {
+          background: #0c0c0b;
+        }
+      }
+    </style>
+    <script>
+      (function () {
+        var look = "auto";
+        try {
+          var stored = localStorage.getItem("qbank-look");
+          if (stored === "light" || stored === "dark" || stored === "auto") look = stored;
+        } catch (error) {
+          look = "auto";
+        }
+        document.documentElement.setAttribute("data-theme", look);
+        var dark =
+          look === "dark" || (look === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", dark ? "#0C0C0B" : "#F7F4EE");
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

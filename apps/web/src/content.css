@@ -1,0 +1,1460 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-label {
+  font: var(--weight-semibold) var(--size-footnote) / var(--lh-footnote) var(--font-mono);
+  color: var(--text-2);
+}
+
+.field-hint {
+  font: var(--text-caption);
+  color: var(--text-3);
+}
+
+.control {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 0.5px var(--separator-strong);
+  font: var(--text-body);
+  font-size: 16px;
+}
+
+.control-mono {
+  min-height: 160px;
+  resize: vertical;
+  font: var(--text-mono);
+  font-size: 16px;
+}
+
+.btn {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--weight-semibold) var(--size-body) / var(--lh-body) var(--font-ui);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-primary {
+  background: var(--tint);
+  color: var(--text-on-tint);
+}
+
+.btn-primary:hover {
+  background: var(--tint-pressed);
+  color: var(--text-on-tint);
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text-1);
+  box-shadow: inset 0 0 0 0.5px var(--separator-strong);
+}
+
+.btn-secondary:hover {
+  background: var(--surface-pressed);
+  color: var(--text-1);
+  text-decoration: none;
+}
+
+.btn-plain {
+  background: transparent;
+  color: var(--tint);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.file-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--separator-strong);
+  background: var(--surface);
+  color: var(--tint);
+  cursor: pointer;
+}
+
+.file-pick-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.file-pick-name {
+  font: var(--text-body);
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+  font: var(--weight-medium) var(--size-caption-1) / var(--lh-caption-1) var(--font-mono);
+  color: var(--text-2);
+}
+
+.ready {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--correct-soft);
+  box-shadow: inset 0 0 0 1px var(--correct-border);
+}
+
+.ready-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--text-headline);
+  color: var(--correct);
+}
+
+.ready-note {
+  margin: 0;
+  font: var(--text-subhead);
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+
+.issues {
+  margin: 0;
+  padding: 12px 12px 12px 28px;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font: var(--text-footnote);
+}
+
+.issues ul {
+  margin: 0;
+  padding-left: 4px;
+}
+
+.issues-error {
+  background: var(--wrong-soft);
+  box-shadow: inset 0 0 0 1px var(--wrong-border);
+  color: var(--text-1);
+}
+
+.issues-warning {
+  background: var(--partial-soft);
+  box-shadow: inset 0 0 0 1px var(--partial-border);
+  color: var(--text-1);
+}
+
+.form-error {
+  margin: 0;
+  font: var(--text-subhead);
+  color: var(--wrong);
+}
+
+.course-card,
+.terms-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+  text-decoration: none;
+  color: inherit;
+}
+
+.course-card:hover,
+.terms-tile:hover {
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface-pressed);
+}
+
+.course-card-title {
+  font: var(--text-headline);
+  color: var(--text-1);
+}
+
+.course-meta,
+.term-meaning {
+  margin: 0;
+  font: var(--text-subhead);
+  color: var(--text-2);
+}
+
+/* An inset list whose rows open a screen, as in the iPhone's Files app: Exam pages, Folders, and a folder's sets. */
+.list-group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+}
+
+.list-group > li {
+  position: relative;
+}
+
+/* 50px starts a separator at the text, iOS style: 16px of padding, the 22px icon, and a 12px gap. */
+.list-group > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50px;
+  right: 0;
+  z-index: 1;
+  border-top: 0.5px solid var(--separator);
+}
+
+/* A folder's sets have no icon, so their separators start at the padding; in Select, after the check circle. */
+.list-group-sets > li + li::before {
+  left: 16px;
+}
+
+.list-group-picking > li + li::before {
+  left: 52px;
+}
+
+.list-row {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 16px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  transition: background var(--dur-instant) var(--ease-standard);
+}
+
+a.list-row:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.list-row:active,
+label.list-row:active {
+  background: var(--surface-pressed);
+}
+
+.list-row:focus-visible {
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.list-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--tint);
+}
+
+.list-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.list-title {
+  font: var(--text-body);
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.list-title-strong {
+  font-weight: var(--weight-semibold);
+}
+
+.list-meta {
+  font: var(--text-footnote);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.list-chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-4);
+}
+
+.folder-state {
+  flex-shrink: 0;
+  font: var(--weight-semibold) var(--size-footnote) / var(--lh-footnote) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.folder-state-done {
+  color: var(--correct);
+}
+
+.folder-state-fresh {
+  font-weight: var(--weight-medium);
+  color: var(--text-3);
+}
+
+/* Edit: up, down, and the grip take the place of the state and the chevron. */
+.list-row-edit {
+  padding-right: 4px;
+}
+
+.list-tools {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.icon-button.list-move[aria-disabled="true"] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.list-grip {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  cursor: grab;
+  touch-action: none;
+}
+
+/* While a folder is dragged it follows the pointer, raised, and the rows it passes slide out of its way. */
+.list-group.list-dragging {
+  overflow: visible;
+}
+
+.list-dragging > li {
+  transition: transform var(--dur-quick) var(--ease-standard);
+}
+
+.list-dragging > li.list-row-lifted {
+  z-index: 2;
+  transition: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-raised), inset 0 0 0 0.5px var(--separator);
+}
+
+.list-dragging .list-grip {
+  cursor: grabbing;
+}
+
+.list-row-lifted::before,
+.list-row-lifted + li::before {
+  visibility: hidden;
+}
+
+/* A restorable set's Restore button, under its title. */
+.list-row-extra {
+  margin-top: -4px;
+  padding: 0 16px 12px;
+}
+
+/* Select: a check circle on each set; the real checkbox stays for the keyboard and VoiceOver. */
+.list-row-pick {
+  cursor: pointer;
+}
+
+.pick-input,
+.radio-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.pick-circle {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--separator-strong);
+  color: transparent;
+  transition: background var(--dur-quick) var(--ease-standard), border-color var(--dur-quick) var(--ease-standard);
+}
+
+.pick-input:checked + .pick-circle {
+  border-color: var(--tint);
+  background: var(--tint);
+  color: var(--text-on-tint);
+}
+
+.pick-input:focus-visible + .pick-circle,
+.radio-input:focus-visible + .radio-dot {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* A folder's exam bank, one line under its sets. Centered on the first line, so a wrap keeps the icon at the top. */
+.folder-bank {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 16px 0;
+  font: var(--text-footnote);
+  color: var(--text-3);
+}
+
+.folder-bank svg {
+  flex-shrink: 0;
+  margin-top: calc((var(--lh-footnote) - 16px) / 2);
+  color: var(--tint);
+}
+
+/* A folder's own buttons, as pills: Rename, Exam page, and Import here. */
+.folder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.folder-action {
+  box-sizing: border-box;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-1);
+  font: var(--weight-medium) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur-instant) var(--ease-standard);
+}
+
+.folder-action svg {
+  color: var(--tint);
+}
+
+.folder-action:hover {
+  color: var(--text-1);
+  text-decoration: none;
+}
+
+.folder-action:active {
+  background: var(--surface-pressed);
+}
+
+.folder-action-danger,
+.folder-action-danger svg {
+  color: var(--wrong);
+}
+
+.folder-action-danger:hover {
+  color: var(--wrong);
+}
+
+/* Select's Move bar: pinned above the tab bar on a phone, and to the bottom beside the sidebar. */
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  z-index: 19;
+  padding: 10px var(--gutter-phone);
+  background: var(--material);
+  backdrop-filter: var(--blur-material);
+  -webkit-backdrop-filter: var(--blur-material);
+  border-top: 0.5px solid var(--separator-strong);
+}
+
+.shell-wide .action-bar {
+  left: var(--sidebar-width);
+  bottom: 0;
+  padding: 12px var(--gutter-tablet) calc(12px + env(safe-area-inset-bottom));
+}
+
+/* As wide as the screen's column: the narrow screen body is --content-max including its gutters. */
+.action-bar-inner {
+  width: min(100%, calc(var(--content-max) - 2 * var(--gutter-tablet)));
+  margin: 0 auto;
+}
+
+/* Room under the last set, so the Move bar never covers it. */
+.screen-body:has(.action-bar) {
+  padding-bottom: 104px;
+}
+
+.term-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.term-row,
+.course-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 0 8px;
+}
+
+.done-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--correct-soft);
+  color: var(--correct);
+}
+
+.done-title {
+  margin: 0;
+  font: var(--text-title-1);
+  color: var(--text-1);
+}
+
+.done-copy {
+  margin: 0;
+  max-width: 340px;
+  font: var(--text-callout);
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--overlay);
+  padding: 0;
+}
+
+.sheet {
+  box-sizing: border-box;
+  width: min(100%, 480px);
+  max-height: min(90dvh, 640px);
+  overflow-y: auto;
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+/* The sheet takes focus only so Escape and VoiceOver start inside it; it is not a control, so no ring. */
+.sheet:focus-visible {
+  outline: none;
+}
+
+.sheet-title {
+  margin: 0;
+  font: var(--text-title-3);
+  color: var(--text-1);
+  text-wrap: balance;
+}
+
+.course-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.course-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.course-progress .progress-track {
+  flex: 1;
+}
+
+.progress-pct {
+  min-width: 32px;
+  text-align: right;
+  font: var(--weight-medium) var(--size-caption-1) / var(--lh-caption-1) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.review-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: var(--text-footnote);
+  font-weight: 600;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.progress-track {
+  display: block;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--progress-track);
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--progress-fill);
+}
+
+.tile-row {
+  display: flex;
+  gap: 10px;
+}
+
+.study-tile {
+  flex: 1;
+  min-width: 0;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+  text-decoration: none;
+  color: var(--tint);
+}
+
+.study-tile:hover {
+  text-decoration: none;
+  color: var(--tint);
+  background: var(--surface-pressed);
+}
+
+.tile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  color: var(--text-1);
+}
+
+.tile-value {
+  font: var(--weight-bold) var(--size-title-2) / var(--lh-title-2) var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-label {
+  font: var(--text-footnote);
+  color: var(--text-2);
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -4px;
+  padding: 0 4px 2px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--separator-strong);
+  background: var(--surface);
+  color: var(--text-1);
+  font: var(--weight-medium) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+  cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--text-1);
+  border-color: var(--text-1);
+  color: var(--bg);
+}
+
+.chip-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.chip[aria-pressed="true"] .chip-count {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+}
+
+.review-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 0.5px solid var(--separator);
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+li:last-child .review-row,
+.review-list > .review-row:last-child {
+  border-bottom: none;
+}
+
+.review-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.review-topic {
+  font: var(--text-body);
+  color: var(--text-1);
+}
+
+.review-meta {
+  font: var(--text-footnote);
+  color: var(--text-3);
+}
+
+.status-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font: var(--weight-semibold) var(--size-caption-1) / var(--lh-caption-1) var(--font-ui);
+}
+
+.status-label {
+  white-space: nowrap;
+}
+
+.mark-missed {
+  color: var(--wrong);
+}
+
+.mark-partial {
+  color: var(--partial);
+}
+
+.mark-guessed {
+  color: var(--tint);
+}
+
+div.review-row,
+button.review-row:disabled {
+  cursor: default;
+}
+
+.row-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--tint);
+}
+
+.review-chevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-4);
+}
+
+.readonly-banner,
+.status-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--tint-soft);
+  color: var(--text-1);
+  font: var(--text-subhead);
+}
+
+.readonly-banner svg,
+.status-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--tint);
+}
+
+.readonly-banner span,
+.signup-email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.text-danger {
+  color: var(--wrong);
+}
+
+.sheet-message {
+  margin: 8px 0 0;
+  font: var(--text-callout);
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.group-head .group-header {
+  padding: 0;
+}
+
+/* A 44px target that does not push the header taller than its text. */
+.group-action {
+  min-height: 44px;
+  margin: -13px 0;
+  padding: 0 0 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--tint);
+  font: var(--weight-medium) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+  cursor: pointer;
+}
+
+.group-action:hover {
+  color: var(--tint-pressed);
+}
+
+/* Exam setup's folders, under the name of the exam page they are on. */
+.exam-folder-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.folder-subhead {
+  margin: 8px 0 0;
+  padding: 0 16px;
+  font: var(--weight-semibold) var(--size-caption-1) / var(--lh-caption-1) var(--font-mono);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.folder-empty {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card), inset 0 0 0 0.5px var(--separator);
+  font: var(--text-subhead);
+  color: var(--text-2);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.start-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* The same timer line as a folder's exam twins, aligned with the draw sentence above it. */
+.start-block .folder-bank {
+  padding: 0 6px;
+}
+
+.folder-note {
+  margin: 0;
+  padding: 0 6px;
+  font: var(--text-footnote);
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+
+.exam-preset {
+  color: var(--tint);
+  font-weight: var(--weight-semibold);
+}
+
+/* A sheet with a form: Cancel, the title, and Done stay put while the cards scroll. */
+.sheet.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: min(90dvh, 720px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.sheet-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 6px 8px 0;
+}
+
+.sheet-head-title {
+  margin: 0;
+  font: var(--text-headline);
+  color: var(--text-1);
+}
+
+.sheet-head-action {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--tint);
+  font: var(--text-body);
+  cursor: pointer;
+}
+
+.sheet-head-done {
+  justify-self: end;
+  font-weight: var(--weight-semibold);
+}
+
+.sheet-head-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 2px 16px calc(16px + env(safe-area-inset-bottom));
+}
+
+/* A sentence, so the UI face at footnote size rather than the mono of small labels. */
+.sheet-hint {
+  margin: 0;
+  font: var(--weight-regular) var(--size-footnote) / var(--lh-footnote) var(--font-ui);
+  color: var(--text-3);
+  text-wrap: pretty;
+}
+
+/* The exam page editor: its name, the course's folders as chips, and what it covers. */
+.exam-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+}
+
+.control.exam-edit-input {
+  background: var(--surface-sunken);
+  box-shadow: none;
+  font: var(--text-headline);
+}
+
+.icon-button {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.icon-button:active {
+  background: var(--surface-pressed);
+}
+
+/* Folder chips: the exam page editor's (pressed) and Import's folder picker (checked). */
+.folder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.folder-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-1);
+  font: var(--weight-medium) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.folder-chip[aria-pressed="true"],
+.folder-chip:has(> .radio-input:checked) {
+  border-color: var(--tint-soft-border);
+  background: var(--tint-soft);
+  color: var(--tint);
+  font-weight: var(--weight-semibold);
+}
+
+.folder-chip:has(> .radio-input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* A folder another exam page holds: greyed, with that page's name, so no folder is on two. */
+.folder-chip:disabled {
+  color: var(--text-4);
+  cursor: not-allowed;
+}
+
+.folder-chip-owner {
+  font: var(--weight-medium) var(--size-caption-2) / var(--lh-caption-2) var(--font-mono);
+}
+
+.exam-edit-summary {
+  margin: 0;
+  font: var(--weight-regular) var(--size-caption-1) / var(--lh-caption-1) var(--font-mono);
+  color: var(--text-3);
+}
+
+/* Import's folder picker: Unsorted, her folders by exam page, then New folder. */
+.folder-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folder-picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.folder-picker-title {
+  font: var(--weight-semibold) var(--size-caption-1) / var(--lh-caption-1) var(--font-mono);
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+/* The radio lists of the Exam page and Move to sheets. */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.radio-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 0.5px var(--separator);
+}
+
+.radio-list > li {
+  position: relative;
+}
+
+/* 50px starts a separator at the text: 16px of padding, the 22px dot, and a 12px gap. */
+.radio-list > li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50px;
+  right: 0;
+  border-top: 0.5px solid var(--separator);
+}
+
+.radio-row {
+  box-sizing: border-box;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background var(--dur-instant) var(--ease-standard);
+}
+
+.radio-row:active {
+  background: var(--surface-pressed);
+}
+
+.radio-row.radio-row-off {
+  cursor: default;
+  background: transparent;
+}
+
+.radio-row-off .radio-title,
+.radio-row-off .radio-dot {
+  opacity: 0.45;
+}
+
+.radio-dot {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--separator-strong);
+}
+
+.radio-input:checked + .radio-dot {
+  border-color: var(--tint);
+}
+
+.radio-input:checked + .radio-dot::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+
+.radio-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.radio-title {
+  font: var(--text-callout);
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.radio-meta {
+  font: var(--text-caption);
+  color: var(--text-3);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) and (min-height: 600px) {
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-grid .field:last-child,
+  .form-grid .folder-field,
+  .form-grid .ready {
+    grid-column: 1 / -1;
+  }
+
+  .sheet-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+
+  .sheet {
+    border-radius: var(--radius-lg);
+    padding: 24px;
+  }
+
+  .sheet-head {
+    padding: 10px 16px 0;
+  }
+
+  .sheet-body {
+    padding: 2px 24px 24px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a.list-row:hover,
+  label.list-row:hover,
+  .radio-row:hover,
+  .folder-action:hover,
+  .icon-button:hover {
+    background: var(--surface-pressed);
+  }
+
+  .radio-row.radio-row-off:hover,
+  .icon-button:disabled:hover,
+  .icon-button[aria-disabled="true"]:hover {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+
+  .list-row,
+  .list-dragging > li,
+  .pick-circle,
+  .radio-row,
+  .folder-action {
+    transition: none;
+  }
+}
+
+/* A refusal inside a sheet, under its title or its warning. */
+.sheet-error {
+  margin-top: 8px;
+}
+
+/* Select's bar with two actions: Delete at its own width, and Move taking the rest. */
+.action-bar-pair {
+  display: flex;
+  gap: 10px;
+}
+
+.action-bar-pair .btn-destructive {
+  flex-shrink: 0;
+  width: auto;
+}
+
+/* A row's own small action: Delete on a past exam in Edit, Undo on a deleted item. */
+.row-delete,
+.row-undo {
+  flex-shrink: 0;
+  width: auto;
+  gap: 6px;
+  padding: 0 14px;
+  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+}
+
+/* Why a deleted item cannot come back yet, as the server says it, under its row. */
+.list-row-note {
+  margin: -4px 0 0;
+  padding: 0 16px 12px;
+  font: var(--text-footnote);
+  color: var(--wrong);
+  text-wrap: pretty;
+}
+
+/*
+ * Undo, right after a delete: a card pinned above the tab bar on a phone, and to the bottom of the
+ * screen's column beside the sidebar. Above Select's bar, under a sheet.
+ */
+.undo-toast-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 12px);
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--gutter-phone);
+  pointer-events: none;
+}
+
+.shell-wide .undo-toast-wrap {
+  left: var(--sidebar-width);
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  padding: 0 var(--gutter-tablet);
+}
+
+/* Above Select's bar while it is up, so its buttons stay reachable: the bar is a 44px button and its padding. */
+.shell:has(.action-bar) .undo-toast-wrap {
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 76px);
+}
+
+.shell-wide:has(.action-bar) .undo-toast-wrap {
+  bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+.undo-toast {
+  box-sizing: border-box;
+  width: min(100%, 480px);
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 4px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-popover), inset 0 0 0 0.5px var(--separator);
+  color: var(--text-1);
+  font: var(--text-subhead);
+  pointer-events: auto;
+}
+
+.undo-toast-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--tint);
+}
+
+.undo-toast-icon-failed {
+  color: var(--wrong);
+}
+
+.undo-toast-text {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.undo-toast-action,
+.undo-toast-close {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+}
+
+.undo-toast-action {
+  color: var(--tint);
+  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+}
+
+.undo-toast-close {
+  padding: 0;
+  color: var(--text-3);
+}
+
+.undo-toast-action:active,
+.undo-toast-close:active {
+  background: var(--surface-pressed);
+}

@@ -1,0 +1,50 @@
+<!-- @dsCard group="Components" viewport="700x760" name="Answers" subtitle="AnswerOption states, OrderingRow, MatchRow, MatrixGrid, HighlightPassage, ClozeBlank" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0}</style>
+</head><body>
+<div id="root"></div>
+<script type="text/babel">
+const { AnswerOption, OrderingRow, MatchRow, MatrixGrid, HighlightPassage, ClozeBlank } = window.QbankDesignSystem_4be789;
+function Options({ theme }) {
+  return (
+    <div data-theme={theme} style={{ flex: 1, background: 'var(--bg)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <AnswerOption text="Unselected" onClick={() => {}} />
+      <AnswerOption text="Selected" state="selected" onClick={() => {}} />
+      <AnswerOption text="Weigh the client daily" state="correct" reason="Weight is the best measure of fluid status." />
+      <AnswerOption text="Restrict all fluids" state="wrong" reason="Total restriction risks dehydration; a limit is ordered, not zero." />
+      <AnswerOption text="Elevate the head of the bed" state="missed" reason="Orthopnea eases when upright." />
+    </div>
+  );
+}
+function Card() {
+  const [m, setM] = React.useState({ 0: 0 });
+  const [sel, setSel] = React.useState([1]);
+  const [cz, setCz] = React.useState({ 0: 0 });
+  const segs = [{ t: 'BP 92/58,' }, { t: 'HR 118,' }, { t: 'lungs clear,' }, { t: 'urine output 15 mL/hr.', ok: true }];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex' }}><Options theme="light" /><Options theme="dark" /></div>
+      <div style={{ background: 'var(--bg)', padding: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, borderTop: '0.5px solid var(--separator)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <OrderingRow position={1} text="Assess airway" onMoveDown={() => {}} />
+          <OrderingRow position={2} text="Give oxygen" state="wrong" correctPosition={3} />
+          <MatchRow left="Furosemide" options={['Loop diuretic', 'ACE inhibitor', 'Beta blocker']} value={m[0]} onChange={(v) => setM({ 0: v })} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <MatrixGrid layout="table" columns={['Indicated', 'Not indicated']} rows={[{ label: 'Daily weight', ans: 0 }, { label: 'Low-sodium diet', ans: 0 }]} value={{ 0: 0, 1: 1 }} revealed />
+          <HighlightPassage segments={segs} selected={sel} onToggle={(i) => setSel(sel.includes(i) ? sel.filter((x) => x !== i) : [...sel, i])} />
+          <ClozeBlank template="Priority: prevent {0}." blanks={[{ opts: ['hypokalemia', 'hyperkalemia'], ans: 0 }]} value={cz} onChange={setCz} />
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Card />);
+</script>
+</body></html>

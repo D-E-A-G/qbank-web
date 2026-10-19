@@ -1,0 +1,116 @@
+import { useSyncExternalStore } from "react";
+
+export function normalizePath(pathname: string): string {
+  if (pathname.length > 1 && pathname.endsWith("/")) return pathname.slice(0, -1);
+  return pathname;
+}
+
+export function navigate(to: string): void {
+  const next = normalizePath(to);
+  if (window.location.pathname !== next) {
+    window.history.pushState(null, "", next);
+  }
+  window.dispatchEvent(new PopStateEvent("popstate"));
+  document.querySelector("main")?.scrollTo(0, 0);
+}
+
+export function usePathname(): string {
+  return useSyncExternalStore(subscribePath, pathnameSnapshot, serverPath);
+}
+
+function subscribePath(onStoreChange: () => void): () => void {
+  window.addEventListener("popstate", onStoreChange);
+  return () => {
+    window.removeEventListener("popstate", onStoreChange);
+  };
+}
+
+function pathnameSnapshot(): string {
+  return normalizePath(window.location.pathname);
+}
+
+function serverPath(): string {
+  return "/";
+}
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+const COURSE_PATH = new RegExp(`^\\/course\\/(${UUID})(\\/terms|\\/review|\\/exam|\\/deleted)?$`, "i");
+const PAGE_PATH = new RegExp(`^\\/course\\/(${UUID})\\/(exam-page|folder|twins)\\/(${UUID})$`, "i");
+const EXAM_PATH = new RegExp(`^\\/course\\/(${UUID})\\/exam\\/(${UUID})$`, "i");
+const PRACTICE_PATH = new RegExp(`^\\/course\\/(${UUID})\\/practice\\/(${UUID})$`, "i");
+const REVIEW_PRACTICE_PATH = new RegExp(`^\\/course\\/(${UUID})\\/review\\/practice$`, "i");
+
+export type DetailMatch =
+  | { courseId: string; label: "Course" | "Terms" | "Review" | "Exam"; width: "reading"; kind: "course" | "terms" | "review" | "exam" }
+  | { courseId: string; label: "Recently deleted"; width: "reading"; kind: "deleted" }
+  | { courseId: string; label: "Exam page"; width: "reading"; kind: "exam-page"; examPageId: string }
+  | { courseId: string; label: "Folder"; width: "reading"; kind: "folder"; folderId: string }
+  | { courseId: string; label: "Exam twins"; width: "reading"; kind: "twins"; jobId: string };
+
+/** The address of a course's exam page, or of one of its folders. */
+export function examPagePath(courseId: string, examPageId: string): string {
+  return `/course/${courseId}/exam-page/${examPageId}`;
+}
+
+export function folderPath(courseId: string, folderId: string): string {
+  return `/course/${courseId}/folder/${folderId}`;
+}
+
+/** A course's Recently deleted: what Undo can still bring back. */
+export function deletedPath(courseId: string): string {
+  return `/course/${courseId}/deleted`;
+}
+
+export interface ExamMatch {
+  courseId: string;
+  examId: string;
+}
+
+/** A running exam, or an ended one's result. */
+export function matchExam(pathname: string): ExamMatch | null {
+  const match = EXAM_PATH.exec(normalizePath(pathname));
+  if (match?.[1] === undefined || match[2] === undefined) return null;
+  return { courseId: match[1], examId: match[2] };
+}
+
+/** What the runner practices: one set, or the course's Review list (filtered, or one question from it). */
+export type PracticeMatch = { courseId: string; kind: "set"; setId: string } | { courseId: string; kind: "review" };
+
+/** A set or the Review list open in the practice runner. */
+export function matchPractice(pathname: string): PracticeMatch | null {
+  const path = normalizePath(pathname);
+  const set = PRACTICE_PATH.exec(path);
+  if (set?.[1] !== undefined && set[2] !== undefined) return { courseId: set[1], kind: "set", setId: set[2] };
+  const review = REVIEW_PRACTICE_PATH.exec(path);
+  if (review?.[1] !== undefined) return { courseId: review[1], kind: "review" };
+  return null;
+}
+
+/** Course, exam page, folder, terms, Review, exam setup, Recently deleted, and twin job addresses. Anything else, including /course/42, is not a screen. */
+export function matchDetail(pathname: string): DetailMatch | null {
+  const path = normalizePath(pathname);
+  const page = PAGE_PATH.exec(path);
+  if (page?.[1] !== undefined && page[3] !== undefined) {
+    const courseId = page[1];
+    const kind = page[2]?.toLowerCase();
+    if (kind === "folder") return { courseId, label: "Folder", width: "reading", kind: "folder", folderId: page[3] };
+    if (kind === "twins") return { courseId, label: "Exam twins", width: "reading", kind: "twins", jobId: page[3] };
+    return { courseId, label: "Exam page", width: "reading", kind: "exam-page", examPageId: page[3] };
+  }
+  const match = COURSE_PATH.exec(path);
+  const courseId = match?.[1];
+  if (courseId === undefined) return null;
+  if (match?.[2] === "/terms") return { courseId, label: "Terms", width: "reading", kind: "terms" };
+  if (match?.[2] === "/review") return { courseId, label: "Review", width: "reading", kind: "review" };
+  if (match?.[2] === "/exam") return { courseId, label: "Exam", width: "reading", kind: "exam" };
+  if (match?.[2] === "/deleted") return { courseId, label: "Recently deleted", width: "reading", kind: "deleted" };
+  return { courseId, label: "Course", width: "reading", kind: "course" };
+}
+
+export function useSearch(): string {
+  return useSyncExternalStore(subscribePath, searchSnapshot, () => "");
+}
+
+function searchSnapshot(): string {
+  return window.location.search;
+}

@@ -1,0 +1,48 @@
+<!-- @dsCard group="Components" viewport="700x560" name="Core" subtitle="Button, TextField, Checkbox, SegmentedControl, ProgressBar, ListGroup, StatusMark" -->
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0}</style>
+</head><body>
+<div id="root"></div>
+<script type="text/babel">
+const { Button, TextField, Checkbox, SegmentedControl, ProgressBar, ListGroup, ListRow, StatusMark } = window.QbankDesignSystem_4be789;
+function Col({ theme }) {
+  const [look, setLook] = React.useState('auto');
+  const [g, setG] = React.useState(true);
+  return (
+    <div data-theme={theme} style={{ flex: 1, background: 'var(--bg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Button>Check answer</Button>
+        <Button variant="secondary" icon="rotate-ccw">Restore</Button>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Button variant="quiet" size="sm">Cancel</Button>
+        <Button variant="plain" size="sm">Skip for now</Button>
+        <Button variant="destructive" size="sm">Clear</Button>
+        <Button disabled size="sm">Import</Button>
+      </div>
+      <TextField label="Set name" defaultValue="Week 4 - Set 1: Heart failure" />
+      <SegmentedControl value={look} onChange={setLook} options={[{ value: 'auto', label: 'Match device' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]} />
+      <Checkbox tone="guess" checked={g} onChange={setG} label="I'm guessing" detail="Flag for review" />
+      <ProgressBar value={0.58} />
+      <ListGroup header="Account">
+        <ListRow icon="key-round" title="Passkeys" value="2" chevron onClick={() => {}} />
+        <ListRow icon="log-out" title="Sign out" destructive onClick={() => {}} />
+      </ListGroup>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <StatusMark status="correct" variant="pill" size="sm" />
+        <StatusMark status="partial" variant="pill" size="sm" />
+        <StatusMark status="wrong" variant="pill" size="sm" />
+        <StatusMark status="guessed" variant="pill" size="sm" />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<div style={{ display: 'flex' }}><Col theme="light" /><Col theme="dark" /></div>);
+</script>
+</body></html>

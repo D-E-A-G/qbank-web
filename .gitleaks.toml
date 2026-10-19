@@ -1,0 +1,13 @@
+# gitleaks settings for this repository: gitleaks' own rules, minus a value
+# that looks like a key but is not a secret. The CI job "Secrets and personal
+# values" (.github/workflows/ci.yml) adds the owner's personal values to these
+# rules from an Actions secret, so they are never written into the repository.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Not secrets"
+regexes = [
+  # The end-to-end tests' throwaway sign-in secret (e2e/compose.yaml).
+  '''^e2e-secret-at-least-32-characters-long$''',
+]
