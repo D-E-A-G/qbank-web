@@ -171,6 +171,13 @@ body,
   padding: 12px;
 }
 
+/* A card holding several labeled controls, one under the other. */
+.group-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .group-footer {
   margin: 0;
   padding: 0 16px;

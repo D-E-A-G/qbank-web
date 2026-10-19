@@ -46,7 +46,7 @@ Each of these was cut on purpose. Anything the student asks for later is a new d
 | Open sign-up, classmates, sharing | Only emails the owner adds can sign up (see [Sign up](#sign-up)). |
 | Email of any kind (reset links, notices) | No email service. The owner resets her password from his admin account. |
 | Native iOS or macOS apps | The installable web app covers all three devices. A SwiftUI iOS app may come later as a second client of the same API (see [Settled decisions](#settled-decisions)). |
-| A theme picker | Only a light/dark mode control. |
+| A theme picker | Only Look (light or dark) and a choice of two color schemes, Dusk and Slate. |
 
 ## Users
 
@@ -283,7 +283,8 @@ Sets, folders, and past exams can be deleted, and each comes back with Undo for 
 - Account; change password.
 - Passkeys: list, add, remove.
 - **Semesters and courses:** add a semester; add a course; rename, move between semesters, archive, and unarchive a course. (Courses and semesters can also be made from Import.)
-- **Look:** Match device / Light / Dark. This is the only appearance control.
+- **Look:** Match device / Light / Dark, per device.
+- **Color:** Dusk / Slate, saved to the account so it follows it to every device. Every account starts on Dusk.
 - **Export my progress:** downloads her answers and progress as a JSON file.
 - Sign out.
 
@@ -300,14 +301,14 @@ He signs in the same way, with his own login, and lands on her Home. His navigat
 - **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
 - **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
 - **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
-- **His Settings:** account, change password, passkeys, Look, sign out.
+- **His Settings:** account, change password, passkeys, Look, Color, sign out.
 
 ## Platforms and layouts
 
 - **One installable web app** on iPhone, iPad, and Mac, running full-screen from the home screen or Dock, so it should feel native: no browser chrome, safe areas respected, touch targets sized for a thumb on iPhone and iPad, keyboard and pointer friendly on the Mac.
 - **iPhone:** a single column with bottom tabs (Home, Import, Settings, plus Admin for the owner). The question runner fills the screen.
 - **iPad and Mac:** their own layout with a **sidebar** (navigation and the semester and course tree), fitted to their screens rather than a stretched iPhone layout. The exact shape comes from the Claude Design system.
-- **Light and dark mode:** both first-class. Settings offers Match device / Light / Dark; there is no theme picker or palette choice. Correct, partly correct, and wrong states, and the timer's low-time state, read clearly in both modes and do not rely on color alone.
+- **Light and dark mode:** both first-class. Settings offers Match device / Light / Dark, and Color picks Dusk or Slate, each with a light and a dark half; there is no other theme or palette choice. Correct, partly correct, and wrong states, and the timer's low-time state, read clearly in both modes and do not rely on color alone.
 
 ## Design direction
 
@@ -479,7 +480,7 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 9. **Review scope:** missed-and-guessed Review is per course only.
 10. **Landing:** she lands on the course she used last.
 11. **iPad and Mac** get a sidebar layout fitted to their screens (not the iPhone layout), shaped by the Claude Design system.
-12. **Appearance:** the theme control is light/dark mode, not a theme picker.
+12. **Appearance:** the theme control is light/dark mode, not a theme picker. Since 2026-10-19 each account also picks its color scheme, Dusk (the default) or Slate.
 13. **Unanswered exam questions:** when an exam ends early (left or timed out), only the questions she answered go to Review; the ones she skipped or never reached score 0 and are listed on the exam result.
 14. **Clearing Review by hand:** keep a "Clear the review list" button per course. It asks "Clear all N questions from this course's Review list?" with Clear and Cancel; Cancel changes nothing.
 15. **Same term, two definitions:** the course's Terms list shows the definition from the most recently imported set.
