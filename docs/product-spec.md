@@ -1,6 +1,6 @@
 # nclex-qbank
 
-A small, private web app that holds NCLEX-style practice questions for one nursing student in an accelerated BSN (ABSN) program, and her answers to them, synced across her iPhone, iPad, and Mac.
+A small, private web app. Each user account holds its own practice questions and its own answers, synced across that person's iPhone, iPad, and Mac. It started as NCLEX-style questions for a nursing student in an accelerated BSN (ABSN) program. A study topic is the same kind of place for any subject.
 
 This document is the product spec (PRD). Every worker reads it before building anything, and it is the source Claude Design uses to generate the app's design system. The app is built one milestone at a time (see [Milestones](#milestones)).
 
@@ -25,25 +25,25 @@ For study use only; not clinical advice.
 
 ## What the app is
 
-- **A question bank and runner, nothing more.** Her courses, the practice sets in their folders, a timed exam over the folders she picks, a Review list of what she missed or guessed, and a Terms list per course.
-- **Organized the way her program is, and the way she likes:** Semester (1, 2, 3) > Course (for example "NURS 101") > Folder (Week 1, First Pass, ABG Practice, ... named by her) > Practice set > Questions. Her folders can sit on an exam page (Exam 1, Exam 2), one page at most each, so each exam gathers the folders it covers.
+- **A question bank and runner, nothing more.** Her courses and study topics, the practice sets in their folders, a timed exam over the folders she picks, a Review list of what she missed or guessed, and a Terms list per course or topic.
+- **Organized the way her program is, and the way she likes:** Semester (1, 2, 3) > Course (for example "NURS 101") > Folder (Week 1, First Pass, ABG Practice, ... named by her) > Practice set > Questions. Her folders can sit on an exam page (Exam 1, Exam 2), one page at most each, so each exam gathers the folders it covers. A study topic is not inside a semester: Topic > Folder > Practice set > Questions, and its folders sit on a study page the same way (see [Study topics](#study-topics)).
 - **The same everywhere.** Every answer is saved on the server, so her progress, Review list, and exam history are identical on her iPhone, iPad, and Mac. Sync is the reason the app exists; without it, the existing offline practice pages would be enough.
 - **Installable.** A web app (PWA) with a manifest and icons: on iPhone and iPad it is added from Share > Add to Home Screen, on the Mac from Safari > File > Add to Dock, and it opens full-screen without browser chrome, like a native app.
 - **The existing runner, kept.** The question screens, the eight question formats, the scoring with partial credit, "I'm guessing", and the per-option rationale all come from the offline practice pages she already uses (see [Question formats and scoring](#question-formats-and-scoring)).
 
 ## What the app is not
 
-Each of these was cut on purpose. Anything the student asks for later is a new decision, not a planned phase.
+Each of these was cut on purpose. Anything a user asks for later is a new decision, not a planned phase.
 
 | Not in the app | Why |
 |---|---|
 | Question generation | Questions are made outside the app by the weekly question skill in Codex and imported. |
-| Slides, transcripts, notes, or any course files | They stay in her iCloud course folder. The app holds questions only. |
-| Study plans, high-yield sheets, flashcards, day-by-day exam plans | Study-planning territory, deliberately out of scope. |
-| Spaced repetition, streaks, reminders, a weakness dashboard | Same reason. Review is only "what I missed or guessed". |
-| Analytics beyond per-set and per-exam scores | Not needed for one student. |
+| Slides, transcripts, notes, or any course files | They stay in her iCloud course folder. The app holds questions only. A study page may link to a primer; the primer stays where it was written. |
+| Study plans, high-yield sheets, flashcards, day-by-day exam plans | Study-planning territory, deliberately out of scope. Anki cards are not imported. |
+| Spaced repetition, streaks, reminders, a weakness dashboard | Same reason. Review is only "what I missed or guessed". A review schedule stays outside the app. |
+| Analytics beyond per-set and per-exam scores | Not needed. Each account already sees its own scores. |
 | Offline answering (cached sets, queued answers) | Deferred. The app is online-only; the home-screen icon still works. |
-| Open sign-up, classmates, sharing | Only emails the owner adds can sign up (see [Sign up](#sign-up)). |
+| Open sign-up, classmates, sharing | Only emails the owner adds can sign up, and one account cannot see another's questions (see [Users](#users) and [Study topics](#study-topics)). |
 | Email of any kind (reset links, notices) | No email service. The owner resets her password from his admin account. |
 | Native iOS or macOS apps | The installable web app covers all three devices. A SwiftUI iOS app may come later as a second client of the same API (see [Settled decisions](#settled-decisions)). |
 | A theme picker | Only Look (light or dark) and a choice of two color schemes, Dusk and Slate. |
@@ -52,11 +52,11 @@ Each of these was cut on purpose. Anything the student asks for later is a new d
 
 | User | Can do | Cannot do |
 |---|---|---|
-| **The student** | Everything: import question files, make and edit semesters and courses, practice, take exams, use Review and Terms, export her progress, manage her password and passkeys. | Let anyone else sign up. |
-| **The owner** (who set the app up) | Sign in with his own **admin** login to fix things in the app and in her account: import question files; create or fix semesters and courses; restore a replaced set; reset her password; repair her account data if something breaks; keep the sign-up list of emails that may make an account. See **her** progress read-only: her courses, sets, completion, scores, Review list, and exam history. | Answer questions as her, or change her scores, progress, or Review list in normal use. In his words: "this is for her, I'm just creating the app for her to help her study in her program." |
+| **A user** | Everything in her own account: import question files, make and edit semesters, courses, and study topics, practice, take exams, use Review and Terms, export her progress, manage her password and passkeys. | See or change another account's questions, or let anyone else sign up. |
+| **The owner** (who set the app up) | Sign in with his own **admin** login to fix things in the app and in the user account he is looking at: import question files; create or fix semesters, courses, and topics; restore a replaced set; reset her password; repair her account data if something breaks; keep the sign-up list of emails that may make an account. See **that account's** progress read-only: courses, topics, sets, completion, scores, Review list, and exam history. | Answer questions as her, or change her scores, progress, or Review list in normal use. He does not see any other account. In his words: "this is for her, I'm just creating the app for her to help her study in her program." |
 
-- **Sign-up only for emails the owner adds (2026-10-01).** A student makes her own account from the Sign up screen, but only with an email on the owner's sign-up list. The admin account is never made there; a setup command run by the owner creates it, and can also create a student account and put emails on the sign-up list.
-- **More than one student is possible.** The question bank, courses, folders, and exam pages are shared. Each student's answers, progress, Review list, and exams are her own. The owner picks which student he is looking at in Admin.
+- **Sign-up only for emails the owner adds (2026-10-01).** A user makes her own account from the Sign up screen, but only with an email on the owner's sign-up list. The admin account is never made there; a setup command run by the owner creates it, and can also create a user account and put emails on the sign-up list.
+- **Each account's material is its own (2026-10-21).** Semesters, courses, topics, exam pages, study pages, folders, sets, questions, and terms belong to one account. Every list, detail, and edit is limited to that account, and another account's id is answered as if it were not there. Answers, progress, the Review list, and exams were already per account. The owner picks which user account he is looking at in Admin. There is no shared question bank.
 - Every login uses a password with an optional passkey (Face ID / Touch ID).
 
 ## How questions get into the app
@@ -142,7 +142,7 @@ The whole question body is stored as JSON, so a format the runner gains later ne
 
 ### The two existing banks
 
-The two banks built before the app (NURS 402 Fundamentals, 146 questions, and NURS 406 Mental Health, 86 questions, from her first semester) are exported once from their build kits into this JSON, one file per practice set, and imported all at once by the owner's `import-sets` command, which runs each file through the same importer as the Import screen, so the importer has exactly one input format.
+The two banks built before the app (NURS 402 Fundamentals, 146 questions, and NURS 406 Mental Health, 86 questions, from her first semester) are exported once from their build kits into this JSON, one file per practice set, and imported all at once by the owner's `import-sets` command into her user account. The command runs each file through the same importer as the Import screen, so the importer has exactly one input format.
 
 ## Screens and flows
 
@@ -161,18 +161,20 @@ The clickable wireframes from the planning phase are the reference for every sta
 - Email and password, then the same passkey offer as after a first password sign-in. She lands on Home, signed in.
 - **Only emails on the owner's sign-up list** can sign up, one account per email. Any other email, or one that already has an account, gets the same plain message: "This email can't sign up here. If you already have an account, sign in. Otherwise, ask the owner to add your email." The message does not tell a stranger which emails are on the list.
 - Five refused tries for one email lock that email's sign-up for 15 minutes, like sign-in.
-- Every account made here is a student. The app sends no email, so there is no verification email.
+- Every account made here is a user account. The stored role value is still `student`. The app sends no email, so there is no verification email.
 
 ### Home
 
-- Semesters 1 to 3 as groups; each lists its courses.
-- A course card shows its question count, folder count, "N to review", and a progress bar.
-- An empty semester says a course appears there when its first file is imported.
+- Semesters as groups; each lists its courses. The numbers are 1, 2, and 3, and they belong to her account. Once the server has answered, an account with no semesters sees none. Until the list loads, and when it cannot be loaded, three empty semesters still show.
+- **Study topics**, after the semesters: the same cards, called by the topic's name, and **New** (see [Study topics](#study-topics)).
+- A course card shows its question count, folder count, "N to review", and a progress bar. A topic card is the same, without a code.
+- An empty semester says a course appears there when its first file is imported. An empty Study topics group says: "A topic is a place for questions that are not a course: a certification, a language, your own notes."
+- **Archived**, last on the page and closed until she opens it, only when a semester, course, or topic is archived. The sidebar does not list archived items.
 - Navigation: Home, Import, Settings (bottom tabs on iPhone, sidebar on iPad and Mac; see [Platforms and layouts](#platforms-and-layouts)). The owner also gets Admin (see [The owner's admin account](#the-owners-admin-account)).
 
 ### Course
 
-Laid out like the iPhone's Files app: two inset lists, one row per item, each opening its own screen.
+Laid out like the iPhone's Files app: two inset lists, one row per item, each opening its own screen. A topic uses this same screen; the words that differ are in [Study topics](#study-topics). A course's screen is unchanged.
 
 - Three tiles: **Exam**, **N to review**, **N terms**.
 - **Exam pages:** one row per exam page (for example "Exam 2", "5 folders · 217 questions") with how far she is over its folders, and **New**, which opens the exam page editor and then the new page. With none: "No exam pages yet. Tap New to make Exam 1."
@@ -182,8 +184,24 @@ Laid out like the iPhone's Files app: two inset lists, one row per item, each op
 - A set imported without a folder goes to **Unsorted**, made at the top of the Folders list the first time it is needed.
 - **Recently deleted:** once she has deleted something in the course, a last row ("2 items · Undo for 30 days") opens it (see [Delete and Undo](#delete-and-undo)).
 
+### Study topics
+
+A study topic is a course with no semester, for questions that are not one of her program's courses. Home calls the group **Study topics**. Its **New** button is named New topic, and the back link from the topic is **Topics**. The topic itself is called by its name. Courses and topics stay in separate groups. The screens inside are the course's screens, with the topic's own words, and a course's screen is unchanged.
+
+- **On Home and in the sidebar:** after the semesters, the same cards. **New** on Home asks for a name and then opens the topic. An empty name is refused ("Give the topic a name."). A name she already has, in any case, is refused, and her typing stays. The sidebar lists the same group and leaves archived topics out.
+- **The topic** opens at `/course/{id}`, like a course. The title is the name. The note line has no code. The first list is **Study pages**. **New** makes "Page 1". With none: "No study pages yet. Tap New to make Page 1." The second list is **Folders**. The Exam, Review, and Terms tiles stay. Study pages are one level; they do not nest.
+- **A study page** is the exam page screen. **Start exam**, the timer, twins, and past exams are the same button and the same path. The header reads the page's name. Under the note, a page with a primer shows one row, **Open the primer**, with the link's host, and the row opens the link in a new tab. The editor's **Primer link** field takes an http or https address of at most 2,000 characters. Anything else stays in the sheet with the server's sentence ("A link has to be a web address, such as https://example.com/primer."). Clearing the field takes the row off. A course's exam page has no primer field. The primer is not stored in the app.
+- **Folders** follow the course's rules. A set imported with no folder goes to **Unsorted**, made the first time it is needed.
+- **Import** can file into a topic, or into a new one: **New topic** asks only for a name. The done line and the replace warning name the topic by its name.
+- **Make questions** files a job into a topic the same way it files one into a course, by that topic's id, into a folder she names or into Unsorted. The job does not create the topic; Import's **New topic** does.
+- **Settings** has a **Study topics** card: rename, reorder, archive, unarchive, and add a topic. Archived topics are listed after the ones in use. The order sent to the server names every topic. A semester is archived by hand from **Semesters and courses**, the same way. Nothing is archived because a date passed.
+- **Archived** on Home is a closed group at the bottom. Opening it shows archived semesters, with their courses, and archived topics under Study topics.
+- **Who sees it:** the account that owns it, and the admin while he is looking at that account. There is no sharing. A shared bank of general questions is a possible later choice, not built. Anki cards are not imported. Review stays the missed-and-guessed list; there is no review schedule.
+- **What already existed** kept its id, its name, and its place. Courses still say **Exam pages**. Giving each semester and course an owner did not delete, move, or rename a course, folder, set, question, attempt, or progress row. A second account sees none of that material.
+
 ### Exam page
 
+- This is a course's page. A topic's page is a study page: the words and the primer link are in [Study topics](#study-topics). The exam itself is the same.
 - The course code goes back to the course. Under the title: "5 folders · 16 practice sets · 217 questions".
 - **Start exam** opens Exam setup with the page's folders ticked and the page named ("Exam 2 · 5 folders ticked for you"); she can still change them. Under it, what the exam would draw ("40 questions from the 217 in these 5 folders, or Wrong questions only."). When a folder on the page has exam twins, one line under that names them ("Exam twins: 14 in Week 5 · exams draw from these first", or "Exam twins: 41 in Week 4, Week 5 and Week 6 · exams draw from these first" when several do). It is absent when none do.
 - **Study material:** the page's folders, in her order, as rows that open the folder. **Edit** reorders them as on the course page and shows **Name and folders**, the exam page editor.
@@ -270,7 +288,7 @@ Sets, folders, and past exams can be deleted, and each comes back with Undo for 
 ### Import
 
 - Paste the JSON or choose the file.
-- Course: an existing one, or **"+ New course"** (code, name, semester).
+- Course: an existing course, an existing study topic (under **Study topics**, once she has one), **New course** (code, name, semester), or **New topic** (a name only: no code, no semester). With no topics yet, the menu is her courses, as before, plus those two new choices. A set with no folder goes to **Unsorted** in a topic the same way it does in a course. The done line and the replace warning name a topic by its name.
 - Folder: **Unsorted**, picked every time unless she picks another; her folders, grouped by exam page; or **New folder** with a name. **Import here** on a folder arrives with that folder picked.
 - Set name: filled from the file's `title`, editable.
 - **Check file:** shows "Ready: N questions, M terms" with the format breakdown, or the errors with a **"Copy these for Codex"** button, plus any warnings. An exam set says so: its questions are asked only on exams over its folder.
@@ -282,7 +300,8 @@ Sets, folders, and past exams can be deleted, and each comes back with Undo for 
 
 - Account; change password.
 - Passkeys: list, add, remove.
-- **Semesters and courses:** add a semester; add a course; rename, move between semesters, archive, and unarchive a course. (Courses and semesters can also be made from Import.)
+- **Semesters and courses:** add a semester; add a course; rename, move between semesters, archive, and unarchive a course; archive and unarchive a semester by hand. (Courses and semesters can also be made from Import.) Nothing archives a semester because its end date has passed.
+- **Study topics:** rename, reorder, archive, unarchive, and add a topic. Archived topics are listed after the others. Topics can also be made from Home and Import.
 - **Look:** Match device / Light / Dark, per device.
 - **Color:** Dusk / Slate, saved to the account so it follows it to every device. Every account starts on Dusk.
 - **Export my progress:** downloads her answers and progress as a JSON file.
@@ -290,14 +309,14 @@ Sets, folders, and past exams can be deleted, and each comes back with Undo for 
 
 ### The owner's admin account
 
-He signs in the same way, with his own login, and lands on her Home. His navigation is Home, Import, Admin, and Settings.
+He signs in the same way, with his own login, and lands on the Home of the user account he is looking at. His navigation is Home, Import, Admin, and Settings. He sees that account only.
 
-- **Her progress, read-only:** her Home, courses, sets, completion, scores, Review list, and exam history, as she sees them. Nothing here can be answered, and her scores, progress, and Review list have no edit controls.
-- **Import:** the same Import screen as hers, with "+ New course", the replace warning, and Cancel. Files go into her courses.
+- **Her progress, read-only:** that account's Home, courses, topics, sets, completion, scores, Review list, and exam history, as she sees them. Nothing here can be answered, and her scores, progress, and Review list have no edit controls. On Home he has no **New topic**.
+- **Import:** the same Import screen as hers, with New course, New topic, the replace warning, and Cancel. Files go into that account's courses and topics.
 - **Restore:** the Restore button on a replaced set works for him too, with the same confirmation.
-- **Admin > Semesters and courses:** the same controls as her Settings (add a semester; add, rename, move between semesters, archive, and unarchive a course).
-- **Her folders and exam pages, read-only:** he sees her course page, exam pages, and folders as she does, with "Her past exams" and without New, Edit, Rename, Exam page, Import here, Select, Delete, or Start exam. She arranges her folders herself; the API lets him fix one when she asks. He sees her Recently deleted read-only, without Undo.
-- **Admin > Student:** when there is more than one student, a picker chooses whose progress he sees read-only; the read-only banner then names her email. The temporary password and Repair act on the picked student too. Until he picks, it is the oldest student account.
+- **Admin > Semesters and courses:** the same controls as her Settings (add a semester; add, rename, move between semesters, archive, and unarchive a course; archive a semester), and the same **Study topics** card.
+- **Her folders, exam pages, and study pages, read-only:** he sees her course or topic page, its pages, and its folders as she does, with "Her past exams" and without New, Edit, Rename, Exam page, Study page, Import here, Select, Delete, or Start exam. She arranges her folders herself; the API lets him fix one when she asks. He sees her Recently deleted read-only, without Undo.
+- **Admin > Student:** the picker of the user account he is looking at. The heading on the screen is still Student. When there is more than one user account, the picker chooses whose progress he sees read-only; the read-only banner then names her email. The temporary password and Repair act on the picked account too. Until he picks, it is the oldest user account.
 - **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
 - **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
 - **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
@@ -307,7 +326,7 @@ He signs in the same way, with his own login, and lands on her Home. His navigat
 
 - **One installable web app** on iPhone, iPad, and Mac, running full-screen from the home screen or Dock, so it should feel native: no browser chrome, safe areas respected, touch targets sized for a thumb on iPhone and iPad, keyboard and pointer friendly on the Mac.
 - **iPhone:** a single column with bottom tabs (Home, Import, Settings, plus Admin for the owner). The question runner fills the screen.
-- **iPad and Mac:** their own layout with a **sidebar** (navigation and the semester and course tree), fitted to their screens rather than a stretched iPhone layout. The exact shape comes from the Claude Design system.
+- **iPad and Mac:** their own layout with a **sidebar** (navigation and the semester, course, and study topic tree), fitted to their screens rather than a stretched iPhone layout. Archived semesters, courses, and topics are left out of the sidebar. The exact shape comes from the Claude Design system.
 - **Light and dark mode:** both first-class. Settings offers Match device / Light / Dark, and Color picks Dusk or Slate, each with a light and a dark half; there is no other theme or palette choice. Correct, partly correct, and wrong states, and the timer's low-time state, read clearly in both modes and do not rely on color alone.
 
 ## Design direction
@@ -317,7 +336,7 @@ The look is generated in Claude Design from this PRD before the build's first sc
 - **Tone: calm and focused.** A place to practice hard questions, not a game: no streaks, confetti, or badges.
 - **Clear and clinical.** Long stems and rationales are comfortable to read on a phone; the hierarchy keeps the ask, the answer area, and the feedback easy to tell apart.
 - **Encouraging but honest.** Scores and misses are stated plainly; Review feels like a to-do list, not a penalty.
-- **Personal and private.** One student's own study tool, not a school portal or a product with marketing.
+- **Personal and private.** One account's own study tool, not a school portal or a product with marketing. Other accounts do not see it.
 - **Plain language** in all copy.
 - **Shared building blocks** the screens reuse: course card with progress bar, set row with status, tile, filter chip with count, folder checkbox row, inset list row with its progress word and chevron, answer option (unselected, selected, correct, wrong, missed), ordering row, matching and matrix controls, highlightable passage segments, drop-down blank, feedback banner (correct, partly correct, not correct), rationale and takeaway blocks, term definition, countdown timer with a low-time state, confirmation sheet, error and warning lists, empty states.
 
@@ -343,20 +362,20 @@ The app ports the existing runner's formats and scoring unchanged into the serve
 
 ## Data the app stores
 
-Postgres. Question bodies stay JSON because the eight formats have different shapes. The content side is what she imports; the answer side is hers.
+Postgres. Question bodies stay JSON because the eight formats have different shapes. Questions and answers both belong to one account. She imports the questions; the answers are hers. Ownership of the questions lives on the semester and the course. Folders, pages, sets, questions, and terms are that account's because their course is.
 
 | Table | Holds |
 |---|---|
-| `user`, `session`, `account`, `verification` | Better Auth's tables. Each user also has a role: **student** (full access to her own studying) or **admin** (the owner: imports, course, semester, and folder fixes, restores, her password reset, and repairs; never answers as her). |
+| `user`, `session`, `account`, `verification` | Better Auth's tables. Each account has a role. A user account's role value is **student** (full access to her own studying). **admin** is the owner: imports, course, semester, topic, and folder fixes, restores, her password reset, and repairs; never answers as her. The product calls the first a user account. The stored role value stays `student`. |
 | `sign_up_email` | The emails the owner allows to sign up, with the date each was added. |
-| `admin_student` | The student the admin is looking at, when he has picked one. |
-| `semester` | Number (1, 2, 3), name, start and end dates. The program is the app's name, not a table. |
-| `course` | Semester, code ("NURS 101"), title, sort order, archived date. |
+| `admin_student` | The user account the admin is looking at, when he has picked one. |
+| `semester` | The owning account, number (1, 2, or 3, unique for that account), name, start and end dates, and the date she archived it by hand. The program is the app's name, not a table. |
+| `course` | The owning account, kind (`course` or `topic`), semester (none for a topic), code ("NURS 101", empty for a topic), title, sort order, archived date. A topic is this row with no semester. Its name is unique among that account's topics, ignoring case. |
 | `folder` | Course, her name for it, the exam page it is on (one at most), and its place in its list (an exam page's folders, or the course's Folders list). A name is unique within its list. |
 | `practice_set` | Course, folder (every version of a set is in the same one), title, description, the week label it was imported with, sort order, imported at and by, a hash of the imported file, stats (counts by type, step, need, difficulty), and its kind: practice, or exam for its folder's exam bank. Replaced versions are kept so they can be restored. |
 | `question` | Set, public id ("Q1"), position, type, topic, clinical judgment step, client need, difficulty, week, stem, ask, body (JSON: the type-specific fields with each option's reason, and any table and images), rationale, takeaway, term keys, source citation, and for an exam question the public id of its practice twin. |
 | `term` | Set, key, term, plain meaning. The course's Terms list is built from these. |
-| `course_exam` | A course's exam pages ("Exam 1"): name and order. Its folders are the ones that name it. A past exam belongs to the page holding every folder it was over. The older `course_exam_week` (an exam's weeks by label) was read once to put folders on their pages and is no longer written. |
+| `course_exam` | A course's exam pages ("Exam 1"), or a topic's study pages ("Page 1"): name, order, and an optional primer link. The link is an http or https address, or empty. A course's exam page leaves it empty. Its folders are the ones that name it. A past exam belongs to the page holding every folder it was over. The older `course_exam_week` (an exam's weeks by label) was read once to put folders on their pages and is no longer written. |
 | `study_session` | User, course, mode (practice, exam, or review), set (practice only), the question ids in the order served, the chosen folders, pool (all or wrong questions), the folders drawn from practice questions for lack of an exam bank, and the time limit (exam only), start and finish times, score. |
 | `attempt` | A client-generated id (so a retry never double-counts), session, user, question, her response, the shuffle she saw, status, points, max points, guessed, answered at. |
 | `question_progress` | Per user and question: attempts, correct attempts, last status, last guessed, last answered at, and whether it is in Review. Written in the same transaction as each attempt; Review is read from here. "Clear the review list" takes the course's questions out of Review without touching her attempts. |
@@ -417,7 +436,7 @@ The deploy job reaches the droplet inside the owner's Tailscale network, for the
 ## Privacy and security
 
 - **Private repo.** This repository stays private.
-- **No open sign-up.** Only an email on the owner's sign-up list can make an account, and only a student account; the admin account comes from the setup command. A refused sign-up says nothing about which emails are on the list, and repeated tries are rate-limited like sign-in.
+- **No open sign-up.** Only an email on the owner's sign-up list can make an account, and only a user account; the admin account comes from the setup command. A refused sign-up says nothing about which emails are on the list, and repeated tries are rate-limited like sign-in. Each account sees only its own questions (see [Users](#users)).
 - **Workers never hold production secrets.** The owner creates the DigitalOcean and Cloudflare accounts and keeps their API tokens, the server's SSH keys, the database password, and the backup bucket's key himself. He runs or approves every OpenTofu change to the real server, and he puts the deploy's secrets into GitHub Actions himself. Workers are told variable names, never values, and deploy by merging, not by holding credentials.
 - **Tests never touch her account.** Tests and local development run against seeded fake users and a throwaway database.
 - **No real course content in the repo.** Question banks are imported into the running app, not committed. Fixtures use invented questions.
@@ -439,7 +458,7 @@ The design system's tokens come from the owner's Claude Design export and arrive
 |---|---|---|---|
 | 0 | Accounts (owner) | A DigitalOcean account and API token; a Cloudflare account with a private R2 bucket and a token scoped to it; the SSH keys; the `age` key pair for backups; mise on his Mac (it installs the pinned OpenTofu from deag-infra's `mise.toml`); the deploy's secrets set in GitHub Actions. Before milestone 2: the root domain, with its DNS on Cloudflare. | A worker can deploy without holding any credential. |
 | 1 | Scaffold, server, CI, first deploy, backups | pnpm workspace with `apps/web`, `apps/api`, `packages/questions`; strict TypeScript, ESLint, Vitest, Playwright; GitHub Actions; a health endpoint serving the built shell; the OpenAPI description generated from the routes, checked in CI; the API's Docker image. The droplet and its firewall in OpenTofu, the first-boot setup, Caddy, the API, and Postgres in Docker Compose, the deploy on merge to `main`, and the nightly encrypted dump to R2. | Merging to `main` deploys, and the droplet's `/health` answers from the merged commit; the published OpenAPI description matches the routes; a nightly dump is restored into a fresh database; CI green. |
-| 2 | Login | The app's HTTPS address on its subdomain; password sign-in, passkey offer after the first sign-in on each device, sessions that last until sign-out, the student and admin accounts from a setup command, the admin's reset of her password with a temporary password, rate limits. | She signs in on two browsers over HTTPS; wrong passwords lock after N tries; the admin resets her password and she chooses her own at the next sign-in; the admin cannot record an answer as her. |
+| 2 | Login | The app's HTTPS address on its subdomain; password sign-in, passkey offer after the first sign-in on each device, sessions that last until sign-out, the user and admin accounts from a setup command, the admin's reset of her password with a temporary password, rate limits. | She signs in on two browsers over HTTPS; wrong passwords lock after N tries; the admin resets her password and she chooses her own at the next sign-in; the admin cannot record an answer as her. |
 | 3 | Questions in | Schema and migrations; the Import screen with the runner's rules and messages; courses and semesters made from Import and Settings; replace with a warning, Cancel, and one-tap restore; the Terms list, with the newest set's definition winning; the admin's Import, Restore, Semesters and courses, and Weeks; the one-time import of the two existing banks. | Both banks import with 146 questions (NURS 402) and 86 questions (NURS 406); every malformed shape the runner rejects is rejected with the same message; she imports from a phone browser; a matching name asks first, Cancel changes nothing, and Restore brings the old set back; the admin imports a file, renames a week, and moves a set to another week. |
 | 4 | Runner and scoring | The shared scoring package for all eight formats with tests; practice screens with shuffle, "I'm guessing", per-option reasons, rationale, takeaway, and term definitions. | Vitest reproduces every scoring rule above; Playwright answers all 232 questions correctly through the real screens. |
 | 5 | Progress sync and Review | Attempts with idempotent ids, server re-scoring, `question_progress`, course completion and scores, Review with its filters, leave rule, and Clear the review list; landing on the last course; the admin's read-only view of her progress and the Repair that rebuilds it from her answers. | Answer on browser A, see the same Review on browser B; drop the network mid-answer and reconnect, exactly one attempt is recorded; Clear asks first and Cancel changes nothing; the admin sees her Review but cannot change it outside a repair. |
@@ -465,7 +484,7 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 8. **The theme is built fresh in Claude Design** later, from this document.
 9. **API-first:** every rule lives on the server behind the API, never only inside the web screens, so a native iOS app built in SwiftUI can be added later as a second client of the same API, accounts, and data. The contract is published as OpenAPI for the Swift side, and sign-in, including passkeys, works for a native client. The iOS app itself is not part of this plan.
 10. **Password reset (2026-09-28):** the owner resets her password from his admin account with a temporary password he gives her. There is no email service.
-11. **Sign-up (2026-10-01, replacing "no signup screen"):** a Sign up screen like a regular app's, limited to the emails on a sign-up list the owner keeps in Admin; the list starts with the first student's email, set when the app is set up, and he can add more at any time. Strangers cannot get in or see the questions. Each email makes one student account; the admin account is never made by sign-up. The question bank is shared, and each student's progress is her own. With more than one student, the owner picks in Admin whose progress he sees, resets, and repairs, starting with the oldest student account.
+11. **Sign-up (2026-10-01, replacing "no signup screen"):** a Sign up screen like a regular app's, limited to the emails on a sign-up list the owner keeps in Admin; the list starts with the first user's email, set when the app is set up, and he can add more at any time. Strangers cannot get in or see the questions. Each email makes one user account; the admin account is never made by sign-up. (On this date the decision said each email makes one student account and the question bank is shared. 2026-10-21: accounts are user accounts, and nothing is shared; see decision 21.) With more than one user account, the owner picks in Admin whose account he sees, resets, and repairs, starting with the oldest user account.
 
 ### Screens and flows
 
@@ -490,6 +509,8 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 19. **Folders and exam pages (2026-10-14):** weeks become folders she renames, fills, and orders herself; a folder can hold many sets and is on one exam page at most; each exam gets a page holding its folders. The course page lists Exam pages and Folders, each opening its own screen, as in the Files app; editing is Select, then Move. An exam page lists only its own folders. Import goes to Unsorted unless she picks a folder. The same folder name may be on different exam pages. Day one looks exactly like before, and the change itself never deletes, moves, or renames her sets, folder names, or progress.
 
 20. **Delete and Undo (2026-10-18):** sets, folders, and past exams can be deleted. Deleting a folder deletes its sets, after a warning that names them; every delete warns exactly what else goes. Undo brings anything back for 30 days, and nothing is deleted except by her explicit, confirmed action.
+
+21. **Study topics and private accounts (2026-10-19, ownership 2026-10-20):** a topic is a course with no semester, shown by its name, with study pages one level deep. Courses and topics stay in separate groups and use the same screens inside. A course keeps "Exam pages"; a topic says "Study pages". Folders stay, and the first import that needs a folder makes Unsorted. The timed exam is unchanged. A primer is a link on the study page, not a page stored in the app. Anki cards are not imported, and there is no review schedule. Archive is by hand, into a closed Archived group at the bottom of Home; nothing is archived from a date. Every semester, course, topic, page, folder, set, question, and term belongs to one user account. Every list, detail, and edit is that account's, and another account's id is answered as if it were not there. Sign-up makes a user account. The stored role value stays `student`, and the admin picker's heading stays Student. The admin's read-only view of one user account stays, and his existing edits apply only to the account he is looking at. There is no shared question bank, no class, and no invite. A shared bank can be a later choice, and is not built. Rows that already existed kept their ids, names, and places, and were given to the one user account that already held the answers. A second account sees none of them.
 
 ## Open questions
 
