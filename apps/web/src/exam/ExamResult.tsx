@@ -1,6 +1,8 @@
 import type { ExamBreakdownRow, ExamItemResult } from "../api";
+import { useCatalogCourse } from "../catalog";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
+import { kindWords } from "../course/pages";
 import { navigate } from "../router";
 import type { Role } from "../session";
 import { AnswerArea } from "../practice/Answers";
@@ -12,6 +14,7 @@ import { foldersText, practiceFoldersText } from "./names";
 /** An ended exam: the score, the breakdowns, and each question with its mark and explanation. */
 export function ExamResultView({ exam, role, wide }: { exam: LoadedExam; role: Role; wide: boolean }) {
   const view = exam.view;
+  const words = kindWords(useCatalogCourse(view.courseId)?.kind ?? "course");
   const result = view.result;
   if (result === null) return null;
   const itemById = new Map(result.items.map((item) => [item.questionId, item]));
@@ -103,7 +106,7 @@ export function ExamResultView({ exam, role, wide }: { exam: LoadedExam; role: R
               navigate(`/course/${view.courseId}`);
             }}
           >
-            Back to course
+            Back to {words.container}
           </Button>
         </div>
       </div>

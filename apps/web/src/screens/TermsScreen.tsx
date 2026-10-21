@@ -4,7 +4,7 @@ import { EmptyState } from "../components/EmptyState";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { folderLabel } from "../course/folders";
 import { useCourseVersion } from "../course/deletion";
-import { useCourse } from "../course/useCourse";
+import { useCourse, useCourseNaming } from "../course/useCourse";
 import { useSession } from "../login/session-context";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
@@ -14,6 +14,7 @@ export function TermsScreen({ courseId }: { courseId: string }) {
   const [terms, setTerms] = useState<CourseTerm[] | null>(null);
   // Her folders, so a folder name two exam pages share says which page.
   const { course } = useCourse(courseId);
+  const { words } = useCourseNaming(courseId, course);
   // A delete or an Undo changes which sets define terms.
   const version = useCourseVersion(courseId);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function TermsScreen({ courseId }: { courseId: string }) {
     <Screen title="Terms">
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
-        Course
+        {words.Container}
       </ShellLink>
       <p className="note">When a term is defined in more than one set, the newest set’s definition is the one shown here.</p>
       {error ? <p className="form-error">{error}</p> : null}

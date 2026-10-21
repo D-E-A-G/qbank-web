@@ -1,4 +1,4 @@
-import { api, type CourseExam, type CourseFolder } from "../api";
+import { api, type CourseExam, type CourseFolder, type SemesterCourse } from "../api";
 
 /** Only the name changes: its sets, their progress, its exam page and her past exams stay with it. */
 export async function renameFolder(folderId: string, name: string): Promise<void> {
@@ -25,15 +25,27 @@ export async function saveFolderOrder(courseId: string, examPageId: string | nul
   await api(`/api/courses/${courseId}/folder-order`, { method: "PUT", json: { examPageId, folderIds } });
 }
 
-export async function createExamPage(courseId: string, name: string, folderIds: readonly string[]): Promise<CourseExam> {
-  return api<CourseExam>(`/api/courses/${courseId}/course-exams`, { method: "POST", json: { name, folderIds } });
+/** `linkUrl` is a study page's primer link; left out, the page has none. */
+export async function createExamPage(courseId: string, name: string, folderIds: readonly string[], linkUrl?: string | null): Promise<CourseExam> {
+  return api<CourseExam>(`/api/courses/${courseId}/course-exams`, { method: "POST", json: { name, folderIds, linkUrl } });
 }
 
-export async function updateExamPage(examPageId: string, name: string, folderIds: readonly string[]): Promise<CourseExam> {
-  return api<CourseExam>(`/api/course-exams/${examPageId}`, { method: "PUT", json: { name, folderIds } });
+/** `linkUrl` null takes the primer link off; left out, the page keeps it. */
+export async function updateExamPage(examPageId: string, name: string, folderIds: readonly string[], linkUrl?: string | null): Promise<CourseExam> {
+  return api<CourseExam>(`/api/course-exams/${examPageId}`, { method: "PUT", json: { name, folderIds, linkUrl } });
 }
 
 /** Its folders go back to the course's Folders list. No set moves. */
 export async function deleteExamPage(examPageId: string): Promise<void> {
   await api(`/api/course-exams/${examPageId}`, { method: "DELETE" });
+}
+
+/** A study topic of hers, after her other topics. A name another of her topics has is refused. */
+export async function createTopic(title: string): Promise<SemesterCourse> {
+  return api<SemesterCourse>("/api/topics", { method: "POST", json: { title } });
+}
+
+/** Her topics in this order. It must name every one of them, archived ones included. */
+export async function saveTopicOrder(topicIds: readonly string[]): Promise<void> {
+  await api("/api/topic-order", { method: "PUT", json: { topicIds } });
 }

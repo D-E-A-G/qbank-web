@@ -1,4 +1,4 @@
-import type { components } from "./api-schema";
+import type { components, paths } from "./api-schema";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -21,7 +21,11 @@ export type ImportConflict = Schemas["ImportConflict"];
 export type ImportedSet = Schemas["ImportedSet"];
 export type SemesterRecord = Schemas["Semester"];
 export type SemesterCourse = SemesterRecord["courses"][number];
+/** Her semesters, each with its courses, and her study topics: GET /api/semesters. */
+export type CatalogRecord = paths["/api/semesters"]["get"]["responses"][200]["content"]["application/json"];
 export type CourseDetail = Schemas["CourseDetail"];
+/** A study topic is a course with no semester, which the screens call by its title; "course" for every course. */
+export type CourseKind = CourseDetail["kind"];
 export type SetSummary = Schemas["SetSummary"];
 /** A folder of a course: her name for it, the exam page it is on, its place in its list, and its sets. */
 export type CourseFolder = Schemas["Folder"];

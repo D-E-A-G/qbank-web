@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CourseDetail, CourseExam, CourseFolder, SetSummary } from "../api";
+import type { CourseDetail, CourseExam, CourseFolder, CourseKind, SetSummary } from "../api";
 import {
   folderGroups,
   folderLabel,
@@ -34,12 +34,12 @@ function folder(name: string, sets: SetSummary[], options: { examPageId?: string
 }
 
 function page(id: string, name: string): CourseExam {
-  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [] };
+  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [], linkUrl: null };
 }
 
 /** Only the fields the folder helpers read. */
-function course(folders: CourseFolder[], exams: CourseExam[] = []): CourseDetail {
-  return { folders, exams } as unknown as CourseDetail;
+function course(folders: CourseFolder[], exams: CourseExam[] = [], kind: CourseKind = "course"): CourseDetail {
+  return { kind, folders, exams } as unknown as CourseDetail;
 }
 
 describe("folderProgress", () => {
@@ -107,6 +107,11 @@ describe("her lists", () => {
     ]);
   });
 
+  it("calls a topic's pages study pages", () => {
+    const topic = course(folders, [page("p2", "Page 1")], "topic");
+    expect(folderGroups(topic).map((group) => group.title)).toEqual(["Page 1", "On no study page"]);
+  });
+
   it("moves one folder and keeps the rest in order", () => {
     expect(reordered(["a", "b", "c", "d"], 0, 2)).toEqual(["b", "c", "a", "d"]);
     expect(reordered(["a", "b", "c", "d"], 3, 0)).toEqual(["d", "a", "b", "c"]);
@@ -138,5 +143,12 @@ describe("folderLabel", () => {
     expect(folderLabel(detail, onExam3.id, "first pass")).toBe("first pass · Exam 3");
     expect(folderLabel(detail, loose.id, "Week 1")).toBe("Week 1");
     expect(folderLabel(detail, "gone", "Week 9")).toBe("Week 9");
+  });
+
+  it("says No exam page for a course's loose folder, and No study page for a topic's", () => {
+    const onPage = folder("Unsorted", [], { examPageId: "p1" });
+    const loose = folder("unsorted", []);
+    expect(folderLabel(course([onPage, loose], [page("p1", "Exam 1")]), loose.id, "unsorted")).toBe("unsorted · No exam page");
+    expect(folderLabel(course([onPage, loose], [page("p1", "Page 1")], "topic"), loose.id, "unsorted")).toBe("unsorted · No study page");
   });
 });

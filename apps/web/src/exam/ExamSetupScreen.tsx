@@ -10,7 +10,7 @@ import {
   type QuestionMakerStatus,
   type TwinJob,
 } from "../api";
-import { useCatalog } from "../catalog";
+import { useCatalogCourse } from "../catalog";
 import { Button } from "../components/Button";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { EmptyState } from "../components/EmptyState";
@@ -22,9 +22,9 @@ import { navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 import { folderLabel } from "../course/folders";
-import type { ExamPreset } from "../course/pages";
+import { courseLine, courseName, kindWords, type ExamPreset } from "../course/pages";
 import { useCourseVersion } from "../course/deletion";
-import { useCourse } from "../course/useCourse";
+import { useCourse, useCourseNaming } from "../course/useCourse";
 import { when } from "../when";
 import { PastExamList } from "./PastExamList";
 import { foldersText, minutesText, practiceFoldersText } from "./names";
@@ -37,10 +37,10 @@ const SLOW_PLAN_MS = 300;
 export function ExamSetupScreen({ courseId, preset }: { courseId: string; preset: ExamPreset | null }) {
   const session = useSession();
   const admin = session.user.role === "admin";
-  const { semesters } = useCatalog();
-  const course = semesters.flatMap((semester) => semester.courses).find((item) => item.id === courseId);
+  const course = useCatalogCourse(courseId);
   // Her exam pages and folder order, to group the folders as she sees them.
   const { course: detail, error: detailError } = useCourse(courseId);
+  const { words } = useCourseNaming(courseId, detail);
   const [loaded, setLoaded] = useState<{ path: string; setup: ExamSetup; at: number } | null>(null);
   const [slowPath, setSlowPath] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -67,8 +67,8 @@ export function ExamSetupScreen({ courseId, preset }: { courseId: string; preset
   const updating = slowPath === path && loaded?.path !== path;
 
   useEffect(() => {
-    document.title = course ? `${course.code} Exam · Qbank` : "Exam · Qbank";
-  }, [course]);
+    document.title = detail ? `${courseName(detail)} Exam · Qbank` : "Exam · Qbank";
+  }, [detail]);
 
   useEffect(() => {
     let cancel = false;
@@ -165,15 +165,15 @@ export function ExamSetupScreen({ courseId, preset }: { courseId: string; preset
     <Screen title="Exam">
       {admin ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
-        Course
+        {words.Container}
       </ShellLink>
-      <p className="note">{course ? `${course.code} · ${course.title}` : "A timed exam over the folders you pick"}</p>
+      <p className="note">{course ? courseLine(course) : "A timed exam over the folders you pick"}</p>
       {error ? <p className="form-error">{error}</p> : null}
       {setup === null && error === null ? <p className="note">Loading the exam setup.</p> : null}
       {setup?.inProgress ? <RunningExam exam={setup.inProgress} admin={admin} loadedAt={loaded?.at ?? 0} /> : null}
       {setup !== null && folders.length === 0 ? (
         <div className="empty-card">
-          <EmptyState icon="timer" message="This course has no questions yet. An exam draws from the folders your sets are in." />
+          <EmptyState icon="timer" message={`This ${words.container} has no questions yet. An exam draws from the folders your sets are in.`} />
         </div>
       ) : null}
       {folders.length > 0 ? (
@@ -267,7 +267,7 @@ export function ExamSetupScreen({ courseId, preset }: { courseId: string; preset
             {picked.length === 0
               ? wrongOnly
                 ? noneWrong
-                  ? "No wrong questions in this course right now."
+                  ? `No wrong questions in this ${words.container} right now.`
                   : "Tick at least one folder with wrong questions."
                 : "Tick at least one folder."
               : (preview?.folders ?? []).map((folder) => `${String(folder.drawn)} from ${label(folder.id, folder.name)}`).join(" · ")}
@@ -438,7 +438,7 @@ function groupByPage(folders: readonly ExamSetupFolder[], course: CourseDetail |
   const known = new Set(pages.map((page) => page.id));
   groups.push({
     key: "loose",
-    title: "On no exam page",
+    title: `On no ${kindWords(course.kind).page}`,
     folders: folders.filter((folder) => folder.examPageId === null || !known.has(folder.examPageId)),
   });
   return groups.filter((group) => group.folders.length > 0);

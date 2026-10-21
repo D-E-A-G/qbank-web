@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { CourseDetail, CourseExam, CourseFolder, ExamSummary, SetSummary } from "../api";
-import { chipState, examSetupPath, examTwinsLine, nextPageName, pageMeta, pageRowMeta, pageSittings, pickedSummary, readExamPreset } from "./pages";
+import {
+  chipState,
+  courseLine,
+  courseName,
+  examSetupPath,
+  examTwinsLine,
+  kindWords,
+  nextPageName,
+  pageMeta,
+  pageRowMeta,
+  pageSittings,
+  pickedSummary,
+  readExamPreset,
+} from "./pages";
 
 function set(questionCount: number, answeredCount = 0): SetSummary {
   return {
@@ -24,12 +37,13 @@ function folder(id: string, name: string, sets: SetSummary[], examPageId: string
 }
 
 function page(id: string, name: string): CourseExam {
-  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [] };
+  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [], linkUrl: null };
 }
 
 const exam1 = page("p1", "Exam 1");
 const exam2 = page("p2", "Exam 2");
 const detail = {
+  kind: "course",
   folders: [
     folder("w1", "Week 1", [set(14, 14), set(13, 2)], "p1"),
     folder("w2", "Week 2", [set(12)], "p1"),
@@ -70,9 +84,52 @@ describe("pageSittings", () => {
 
 describe("nextPageName", () => {
   it("counts on from the pages she has, skipping a name in use", () => {
-    expect(nextPageName([])).toBe("Exam 1");
-    expect(nextPageName([{ name: "Exam 1" }])).toBe("Exam 2");
-    expect(nextPageName([{ name: "Midterm" }, { name: "exam 3" }])).toBe("Exam 4");
+    expect(nextPageName([], "course")).toBe("Exam 1");
+    expect(nextPageName([{ name: "Exam 1" }], "course")).toBe("Exam 2");
+    expect(nextPageName([{ name: "Midterm" }, { name: "exam 3" }], "course")).toBe("Exam 4");
+  });
+
+  it("names a topic's study pages Page 1, Page 2", () => {
+    expect(nextPageName([], "topic")).toBe("Page 1");
+    expect(nextPageName([{ name: "Systems design" }], "topic")).toBe("Page 2");
+    expect(nextPageName([{ name: "Intro" }, { name: "page 3" }], "topic")).toBe("Page 4");
+  });
+});
+
+describe("a course's and a topic's words", () => {
+  it("keeps every word her courses say", () => {
+    expect(kindWords("course")).toEqual({
+      container: "course",
+      Container: "Course",
+      home: "Courses",
+      page: "exam page",
+      Page: "Exam page",
+      pages: "Exam pages",
+      numbered: "Exam",
+      addFolders: "Add the folders this exam covers.",
+    });
+  });
+
+  it("calls a topic's exam pages study pages, and goes back to Topics", () => {
+    expect(kindWords("topic")).toEqual({
+      container: "topic",
+      Container: "Topic",
+      home: "Topics",
+      page: "study page",
+      Page: "Study page",
+      pages: "Study pages",
+      numbered: "Page",
+      addFolders: "Add the folders this page covers.",
+    });
+  });
+
+  it("names a course by its code and a topic by its name", () => {
+    const course = { kind: "course", code: "NURS 420", title: "Health assessment" } as const;
+    const topic = { kind: "topic", code: "", title: "SWE Hire" } as const;
+    expect(courseName(course)).toBe("NURS 420");
+    expect(courseLine(course)).toBe("NURS 420 · Health assessment");
+    expect(courseName(topic)).toBe("SWE Hire");
+    expect(courseLine(topic)).toBe("SWE Hire");
   });
 });
 
@@ -98,6 +155,12 @@ describe("the exam page editor's chips", () => {
     expect(chipState(detail, "p1", ["w1"], "w1")).toEqual({ kind: "on" });
     expect(chipState(detail, "p2", ["fp"], "fp")).toEqual({ kind: "on" });
     expect(chipState(detail, "p2", [], "fp")).toEqual({ kind: "off" });
+  });
+
+  it("names a page it no longer has by its kind", () => {
+    const stray = { ...detail, folders: [folder("w9", "Week 9", [], "gone")] };
+    expect(chipState(stray, null, [], "w9")).toEqual({ kind: "taken", pageName: "another exam page" });
+    expect(chipState({ ...stray, kind: "topic" }, null, [], "w9")).toEqual({ kind: "taken", pageName: "another study page" });
   });
 
   it("sums what is ticked", () => {

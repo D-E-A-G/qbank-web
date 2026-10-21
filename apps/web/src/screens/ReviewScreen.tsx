@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, type CourseDetail, type ReviewList, type ReviewQuestion } from "../api";
-import { useCatalog, refreshCatalog } from "../catalog";
+import { refreshCatalog } from "../catalog";
 import { Button } from "../components/Button";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { EmptyState } from "../components/EmptyState";
@@ -8,7 +8,8 @@ import { Icon, type IconName } from "../components/Icon";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { folderLabel } from "../course/folders";
 import { useCourseVersion } from "../course/deletion";
-import { useCourse } from "../course/useCourse";
+import { courseName } from "../course/pages";
+import { useCourse, useCourseNaming } from "../course/useCourse";
 import { useSession } from "../login/session-context";
 import { navigate } from "../router";
 import { Screen } from "../shell/Screen";
@@ -27,10 +28,9 @@ const FILTERS: readonly { id: ReviewFilter; label: string }[] = [
 export function ReviewScreen({ courseId }: { courseId: string }) {
   const session = useSession();
   const admin = session.user.role === "admin";
-  const { semesters } = useCatalog();
-  const course = semesters.flatMap((semester) => semester.courses).find((item) => item.id === courseId);
   // Her folders, so a folder name two exam pages share says which page.
   const { course: detail } = useCourse(courseId);
+  const { name, words } = useCourseNaming(courseId, detail);
   // A delete or an Undo changes what Review holds.
   const version = useCourseVersion(courseId);
   const [filter, setFilter] = useState<ReviewFilter>("all");
@@ -40,8 +40,8 @@ export function ReviewScreen({ courseId }: { courseId: string }) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    document.title = course ? `${course.code} Review · Qbank` : "Review · Qbank";
-  }, [course]);
+    document.title = detail ? `${courseName(detail)} Review · Qbank` : "Review · Qbank";
+  }, [detail]);
 
   useEffect(() => {
     let cancel = false;
@@ -83,9 +83,9 @@ export function ReviewScreen({ courseId }: { courseId: string }) {
     <Screen title="Review">
       {admin ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
-        Course
+        {words.Container}
       </ShellLink>
-      <p className="note">{course ? `${course.code} · what you missed or guessed` : "What you missed or guessed"}</p>
+      <p className="note">{name !== null ? `${name} · what you missed or guessed` : "What you missed or guessed"}</p>
       {error ? <p className="form-error">{error}</p> : null}
       <div className="chip-row" role="group" aria-label="Review filters">
         {FILTERS.map((item) => (
@@ -164,7 +164,7 @@ export function ReviewScreen({ courseId }: { courseId: string }) {
       ) : null}
       {confirming ? (
         <ConfirmSheet
-          title={clearTitle(allCount)}
+          title={clearTitle(allCount, words.container)}
           message="Your answers and scores are kept. Only the list is emptied."
           confirmLabel="Clear"
           confirmVariant="destructive"
@@ -176,9 +176,9 @@ export function ReviewScreen({ courseId }: { courseId: string }) {
   );
 }
 
-function clearTitle(count: number): string {
+function clearTitle(count: number, container: string): string {
   const noun = count === 1 ? "question" : "questions";
-  return `Clear all ${String(count)} ${noun} from this course's Review list?`;
+  return `Clear all ${String(count)} ${noun} from this ${container}'s Review list?`;
 }
 
 function QuestionCopy({ question, course }: { question: ReviewQuestion; course: CourseDetail | null }) {
