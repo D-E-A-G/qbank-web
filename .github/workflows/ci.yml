@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Run workflow in the Actions tab. On main it is a push to main: it publishes
+  # the web image and deploys it, for when a merge started no run. On any other
+  # branch it only checks.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -42,8 +46,9 @@ jobs:
   e2e:
     name: End-to-end tests
     # A pull request from a fork gets a token that cannot pull the private API
-    # image, so this job runs only for pushes and this repository's own branches.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # image, so this job runs only for pushes, manual runs, and this
+    # repository's own branches.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -108,9 +113,11 @@ jobs:
           PERSONAL_VALUES: ${{ secrets.PERSONAL_VALUES }}
           # A pull request from a fork, or from Dependabot, gets no secrets, so
           # it is checked for secrets only; everything else must have the list.
-          REQUIRE_PERSONAL_VALUES: ${{ github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
-          BASE: ${{ github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha }}
+          REQUIRE_PERSONAL_VALUES: ${{ github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]') }}
+          # A manual run has no change before it, so it checks the commit it
+          # runs on against that commit's parent.
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'push' && github.event.before || format('{0}~1', github.sha) }}
+          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: .github/scripts/leak-check.sh "$BASE" "$HEAD"
 
   web-image:
@@ -200,7 +207,7 @@ jobs:
       # this name for the web container.
       - name: Push it to the registry
         id: push
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
@@ -210,17 +217,18 @@ jobs:
           docker push --quiet "$tag"
           echo "image=$(docker inspect --format '{{index .RepoDigests 0}}' "$tag")" >>"$GITHUB_OUTPUT"
 
-  # Merging to main: switch the server's web container to the image above,
-  # over SSH inside Tailscale (the only way GitHub can reach it), with a key
-  # that can run the server's ci-deploy.sh and nothing else. That script picks
-  # the container from the image's name, checks its /version.txt from the
-  # container and the site through Caddy, and switches back if a check fails.
+  # Merging to main, or a manual run on main: switch the server's web
+  # container to the image above, over SSH inside Tailscale (the only way
+  # GitHub can reach it), with a key that can run the server's ci-deploy.sh and
+  # nothing else. That script picks the container from the image's name, checks
+  # its /version.txt from the container and the site through Caddy, and switches
+  # back if a check fails.
   # It and the server's setup live in D-E-A-G/deag-infra; see
   # server/apps/qbank/README.md there. The API is deployed from
   # D-E-A-G/qbank-server, not from here.
   deploy-web:
     name: Deploy web
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     needs: [check, e2e, leaks, web-image]
     runs-on: ubuntu-24.04
     timeout-minutes: 15

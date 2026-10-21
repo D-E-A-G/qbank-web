@@ -423,6 +423,8 @@ One machine the owner rents and runs himself, in the shape of Kun's Eddie's Wall
 2. Merging to `main` runs CI again, then builds the web image (the built screens, served by Caddy), tags it with the commit, and pushes it to a private container registry.
 3. The deploy job connects to the droplet over SSH as the deploy user, switches the web container to the new image, and checks its `/version.txt` from the container and the site through Caddy. If a check fails, it switches back to the previous image.
 
+A manual run of the CI workflow on `main` (Run workflow in the Actions tab) does steps 2 and 3 for `main` as it stands, for when a merge started no run. A manual run on any other branch only checks.
+
 The API is built and deployed from D-E-A-G/qbank-server the same way: its deploy runs the database migrations, switches the API container to the new image, and checks `/health`, switching back if the check fails.
 
 The deploy job reaches the droplet inside the owner's Tailscale network, for the length of the job only, with an SSH key that can run the deploy and nothing else; see [Deploys from GitHub Actions](https://github.com/D-E-A-G/deag-infra/blob/main/server/apps/qbank/README.md#deploys-from-github-actions) in deag-infra.
