@@ -585,6 +585,18 @@ label.list-row:active {
   gap: 8px;
 }
 
+/* A topic's name in Settings, with its up and down at the field's right, level with the box. */
+.topic-edit-name {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.topic-edit-name > .field {
+  flex: 1;
+  min-width: 0;
+}
+
 .done {
   display: flex;
   flex-direction: column;

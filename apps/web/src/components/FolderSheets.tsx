@@ -1,12 +1,23 @@
 import { useId, useState } from "react";
-import { ApiError, type CourseDetail, type CourseFolder } from "../api";
+import { ApiError, type CourseDetail, type CourseFolder, type CourseKind } from "../api";
 import { folderGroups, folderMeta } from "../course/folders";
-import { nextPageName, pageMeta } from "../course/pages";
+import { kindWords, nextPageName, pageMeta } from "../course/pages";
 import { createExamPage, createFolder, moveSet, putOnExamPage, renameFolder } from "../course/requests";
 import { FormSheet } from "./FormSheet";
 
 /** Rename folder: only the name changes. A name another folder in the same list has is refused by the server. */
-export function RenameFolderSheet({ folder, onSaved, onClose }: { folder: CourseFolder; onSaved: () => void; onClose: () => void }) {
+export function RenameFolderSheet({
+  kind,
+  folder,
+  onSaved,
+  onClose,
+}: {
+  /** Whether the folder is in a course or a topic, which names its page. */
+  kind: CourseKind;
+  folder: CourseFolder;
+  onSaved: () => void;
+  onClose: () => void;
+}) {
   const [name, setName] = useState(folder.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +55,7 @@ export function RenameFolderSheet({ folder, onSaved, onClose }: { folder: Course
           }}
         />
       </label>
-      <p className="sheet-hint">Only the name changes. Its sets, their progress, its exam page, and your past exams stay with it.</p>
+      <p className="sheet-hint">Only the name changes. Its sets, their progress, its {kindWords(kind).page}, and your past exams stay with it.</p>
     </FormSheet>
   );
 }
@@ -72,7 +83,8 @@ export function FolderPageSheet({
   const [made, setMade] = useState<{ id: string; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const newName = nextPageName(course.exams);
+  const words = kindWords(course.kind);
+  const newName = nextPageName(course.exams, course.kind);
 
   const save = async () => {
     if (picked === current) {
@@ -100,7 +112,7 @@ export function FolderPageSheet({
       }
     } catch (caught: unknown) {
       setBusy(false);
-      setError(refusal(caught, "Could not change the folder's exam page."));
+      setError(refusal(caught, `Could not change the folder's ${words.page}.`));
       return;
     }
     onSaved();
@@ -130,7 +142,7 @@ export function FolderPageSheet({
 
   return (
     <FormSheet
-      title="Exam page"
+      title={words.Page}
       busy={busy}
       error={error}
       onDone={() => {
@@ -138,12 +150,14 @@ export function FolderPageSheet({
       }}
       onClose={onClose}
     >
-      <p className="sheet-hint">{folder.name} can be on one exam page. Its sets and their progress stay in the folder.</p>
-      <ul className="radio-list" aria-label="Exam pages">
+      <p className="sheet-hint">
+        {folder.name} can be on one {words.page}. Its sets and their progress stay in the folder.
+      </p>
+      <ul className="radio-list" aria-label={words.pages}>
         {/* The page an earlier try made is offered once, as the new one, after the course is read again. */}
         {course.exams.filter((page) => page.id !== made?.id).map((page) => option(page.id, page.name, pageMeta(course, page)))}
-        {option("none", "No exam page", "Stays in the course’s Folders list")}
-        {made === null ? option("new", "New exam page", newName) : option("new", made.name, "Made just now")}
+        {option("none", `No ${words.page}`, `Stays in the ${words.container}’s Folders list`)}
+        {made === null ? option("new", `New ${words.page}`, newName) : option("new", made.name, "Made just now")}
       </ul>
     </FormSheet>
   );
@@ -285,7 +299,7 @@ export function MoveSetsSheet({
               <span className="radio-dot" aria-hidden="true" />
               <span className="radio-copy">
                 <span className="radio-title">{made === null ? "New folder" : made.name}</span>
-                <span className="radio-meta">{made === null ? "In the course’s Folders list" : "Made just now"}</span>
+                <span className="radio-meta">{made === null ? `In the ${kindWords(course.kind).container}’s Folders list` : "Made just now"}</span>
               </span>
             </label>
           </li>

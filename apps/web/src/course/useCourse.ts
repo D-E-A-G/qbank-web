@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ApiError, api, type CourseDetail, type ExamSetup } from "../api";
+import { ApiError, api, type CourseDetail, type CourseKind, type ExamSetup } from "../api";
+import { useCatalogCourse } from "../catalog";
 import { useSession } from "../login/session-context";
 import { useCourseVersion } from "./deletion";
+import { courseName, kindWords, type KindWords } from "./pages";
 
 interface Loaded {
   courseId: string;
@@ -69,6 +71,16 @@ export function useCourse(courseId: string, withSetup = false) {
   // What another course left behind is never shown while this one loads.
   const current = loaded.courseId === courseId ? loaded : blank(courseId);
   return { course: current.course, setup: current.setup, error: current.error, setupError: current.setupError, reload, replace };
+}
+
+/**
+ * What a screen under a course or topic calls it: its name ("NURS 420", or a topic's title), or
+ * null until it is known, and the words for its kind. Home's card answers before the course is read.
+ */
+export function useCourseNaming(courseId: string, course: { kind: CourseKind; code: string; title: string } | null): { name: string | null; words: KindWords } {
+  const card = useCatalogCourse(courseId);
+  const known = course ?? card;
+  return { name: known ? courseName(known) : null, words: kindWords(known?.kind ?? "course") };
 }
 
 /** She lands on the course she used last, so opening it, or one of its folders or exam pages, says so. */

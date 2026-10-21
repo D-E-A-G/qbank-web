@@ -98,6 +98,45 @@ body,
   color: var(--text-1);
 }
 
+/* Study topics' header, with New at its right edge. */
+.semester-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* What she archived by hand: last on Home, closed until she opens it. */
+.archived-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: -10px 0;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-3);
+}
+
+.archived-summary::-webkit-details-marker {
+  display: none;
+}
+
+.archived-summary svg {
+  transition: transform 0.2s ease;
+}
+
+.archived[open] > .archived-summary svg {
+  transform: rotate(90deg);
+}
+
+.archived-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  margin-top: 20px;
+}
+
 .course-list {
   margin: 0;
   padding: 0;
@@ -452,7 +491,8 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .segment,
   .switch,
-  .switch::before {
+  .switch::before,
+  .archived-summary svg {
     transition: none;
   }
 }

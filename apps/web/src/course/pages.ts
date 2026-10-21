@@ -1,5 +1,65 @@
-import type { CourseDetail, CourseExam, CourseFolder, ExamSummary } from "../api";
+import type { CourseDetail, CourseExam, CourseFolder, CourseKind, ExamSummary } from "../api";
 import { pageFolders, setsProgress, type FolderProgress } from "./folders";
+
+/**
+ * Every word a study topic says differently from a course, from the kind the server sends. Her
+ * courses keep the words she knows; a topic calls its exam pages study pages. Everything inside
+ * works the same, timed exam included, so nothing else differs.
+ */
+export interface KindWords {
+  /** "course" or "topic", inside a sentence: "This topic has no question sets yet." */
+  container: string;
+  /** "Course" or "Topic": the back link to it from Review, Terms, Exam setup and an exam's result. */
+  Container: string;
+  /** The back link from it to Home: "Courses" or "Topics". */
+  home: string;
+  /** "exam page" or "study page", inside a sentence. */
+  page: string;
+  /** "Exam page" or "Study page", at the start of a line. */
+  Page: string;
+  /** Its list of them: "Exam pages" or "Study pages". */
+  pages: string;
+  /** What New names them, with a number: "Exam" (Exam 1) or "Page" (Page 1). */
+  numbered: string;
+  /** What an empty page asks for. */
+  addFolders: string;
+}
+
+const COURSE_WORDS: KindWords = {
+  container: "course",
+  Container: "Course",
+  home: "Courses",
+  page: "exam page",
+  Page: "Exam page",
+  pages: "Exam pages",
+  numbered: "Exam",
+  addFolders: "Add the folders this exam covers.",
+};
+
+const TOPIC_WORDS: KindWords = {
+  container: "topic",
+  Container: "Topic",
+  home: "Topics",
+  page: "study page",
+  Page: "Study page",
+  pages: "Study pages",
+  numbered: "Page",
+  addFolders: "Add the folders this page covers.",
+};
+
+export function kindWords(kind: CourseKind): KindWords {
+  return kind === "topic" ? TOPIC_WORDS : COURSE_WORDS;
+}
+
+/** What the screens call it: a course by its code ("NURS 420"), a topic by its name (its code is empty). */
+export function courseName(course: { kind: CourseKind; code: string; title: string }): string {
+  return course.kind === "topic" ? course.title : course.code;
+}
+
+/** Its code and name for a course ("NURS 420 · Health assessment"), and a topic's name alone. */
+export function courseLine(course: { kind: CourseKind; code: string; title: string }): string {
+  return course.kind === "topic" ? course.title : `${course.code} · ${course.title}`;
+}
 
 /** How far she is through an exam page's folders, added up from their practice sets. */
 export function pageProgress(course: CourseDetail, page: CourseExam): FolderProgress {
@@ -38,12 +98,13 @@ export function pageSittings(sittings: readonly ExamSummary[], examPageId: strin
   return sittings.filter((sitting) => sitting.courseExamId === examPageId);
 }
 
-/** "Exam 3" for a course with two exam pages, skipping a name already used. */
-export function nextPageName(pages: readonly { name: string }[]): string {
+/** "Exam 3" for a course with two exam pages, or "Page 3" for a topic with two study pages, skipping a name already used. */
+export function nextPageName(pages: readonly { name: string }[], kind: CourseKind): string {
+  const word = kindWords(kind).numbered;
   const used = new Set(pages.map((page) => page.name.trim().toLowerCase()));
   let number = pages.length + 1;
-  while (used.has(`exam ${String(number)}`)) number += 1;
-  return `Exam ${String(number)}`;
+  while (used.has(`${word.toLowerCase()} ${String(number)}`)) number += 1;
+  return `${word} ${String(number)}`;
 }
 
 /** Where an exam page's Start exam goes: Exam setup with its folders ticked and its name shown. */
@@ -74,7 +135,7 @@ export function chipState(course: CourseDetail, editing: string | null, picked: 
   const holder = course.folders.find((item) => item.id === folderId)?.examPageId ?? null;
   if (holder === null || holder === editing) return { kind: "off" };
   const owner = course.exams.find((page) => page.id === holder);
-  return { kind: "taken", pageName: owner?.name ?? "another exam page" };
+  return { kind: "taken", pageName: owner?.name ?? `another ${kindWords(course.kind).page}` };
 }
 
 /** The live line under the chips: "3 folders · 83 questions", or "No folders yet". */

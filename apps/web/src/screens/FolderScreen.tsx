@@ -9,7 +9,8 @@ import { FolderPageSheet, MoveSetsSheet, RenameFolderSheet } from "../components
 import { Icon } from "../components/Icon";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { examPageOf, folderMeta } from "../course/folders";
-import { useCourse, useRememberPlace } from "../course/useCourse";
+import { courseName } from "../course/pages";
+import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useSession } from "../login/session-context";
 import { examPagePath, navigate } from "../router";
 import { Screen } from "../shell/Screen";
@@ -29,6 +30,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
   const { course, error, reload } = useCourse(courseId);
   const folder = course?.folders.find((item) => item.id === folderId) ?? null;
   const page = course && folder ? examPageOf(course, folder) : null;
+  const { name, words } = useCourseNaming(courseId, course);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [selected, setSelected] = useState<ReadonlySet<string> | null>(null);
   const [moved, setMoved] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
   useRememberPlace(courseId);
 
   useEffect(() => {
-    if (course && folder) document.title = `${folder.name} · ${course.code} · Qbank`;
+    if (course && folder) document.title = `${folder.name} · ${courseName(course)} · Qbank`;
   }, [course, folder]);
 
   const close = () => {
@@ -67,7 +69,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
       });
   };
 
-  const back = page === null ? { to: `/course/${courseId}`, label: course?.code ?? "Course" } : { to: examPagePath(courseId, page.id), label: page.name };
+  const back = page === null ? { to: `/course/${courseId}`, label: name ?? "Course" } : { to: examPagePath(courseId, page.id), label: page.name };
 
   const sets = folder?.sets ?? [];
   const picked = sets.filter((set) => selected?.has(set.id) === true);
@@ -85,12 +87,15 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
         error ? null : <p className="note">Loading the folder.</p>
       ) : folder === null ? (
         <div className="empty-card">
-          <EmptyState icon="folder" message="This folder is not in the course anymore. If it was deleted, Recently deleted in the course can bring it back." />
+          <EmptyState
+            icon="folder"
+            message={`This folder is not in the ${words.container} anymore. If it was deleted, Recently deleted in the ${words.container} can bring it back.`}
+          />
         </div>
       ) : (
         <>
           <p className="note">
-            {page === null ? "On no exam page" : `On ${page.name}`} · {folderMeta(folder)}
+            {page === null ? `On no ${words.page}` : `On ${page.name}`} · {folderMeta(folder)}
           </p>
           {readOnly ? null : (
             <div className="folder-actions">
@@ -107,13 +112,13 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
               <button
                 type="button"
                 className="folder-action"
-                aria-label={page === null ? "Exam page: none" : `Exam page: ${page.name}`}
+                aria-label={page === null ? `${words.Page}: none` : `${words.Page}: ${page.name}`}
                 onClick={() => {
                   setSheet("page");
                 }}
               >
                 <Icon name="layers" size={16} strokeWidth={2} />
-                {page === null ? "Exam page" : page.name}
+                {page === null ? words.Page : page.name}
               </button>
               <ShellLink to={`/import?course=${courseId}&folder=${folder.id}`} className="folder-action" current={false}>
                 <Icon name="file-input" size={16} strokeWidth={2} />
@@ -253,7 +258,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
           ) : null}
         </>
       )}
-      {sheet === "rename" && folder ? <RenameFolderSheet folder={folder} onSaved={saved} onClose={close} /> : null}
+      {sheet === "rename" && folder ? <RenameFolderSheet kind={course?.kind ?? "course"} folder={folder} onSaved={saved} onClose={close} /> : null}
       {sheet === "page" && course && folder ? <FolderPageSheet course={course} folder={folder} onSaved={saved} onChanged={reload} onClose={close} /> : null}
       {sheet === "move" && course && folder ? (
         <MoveSetsSheet

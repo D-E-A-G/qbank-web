@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, type ExamSetup, type ExamSummary, type ExamView, type TwinJob, type TwinJobStep, type TwinSet } from "../api";
+import { useCatalogCourse } from "../catalog";
 import { Button } from "../components/Button";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { Icon } from "../components/Icon";
+import { courseLine, courseName } from "../course/pages";
 import { navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
@@ -23,10 +25,13 @@ export function TwinJobScreen({ courseId, jobId }: { courseId: string; jobId: st
   const [starting, setStarting] = useState(false);
   const [replacing, setReplacing] = useState(false);
   const done = job?.status === "done";
+  // Home's card says whether it is a course or a topic, which the job does not.
+  const course = useCatalogCourse(courseId);
 
   useEffect(() => {
-    document.title = job ? `${job.course.code} Exam twins · Qbank` : "Exam twins · Qbank";
-  }, [job]);
+    // Once the job is read, after the shell's own title for the address.
+    document.title = job && course ? `${courseName(course)} Exam twins · Qbank` : "Exam twins · Qbank";
+  }, [job, course]);
 
   // Read again while it runs. A dropped connection is tried again; a refusal is not.
   useEffect(() => {
@@ -110,7 +115,7 @@ export function TwinJobScreen({ courseId, jobId }: { courseId: string; jobId: st
       <ShellLink to={`/course/${courseId}/exam`} className="text-action" current={false}>
         Exam
       </ShellLink>
-      {job ? <p className="note">{`${job.course.code} · ${job.course.title}`}</p> : null}
+      {course ? <p className="note">{courseLine(course)}</p> : null}
       {loadError ? <p className="form-error">{loadError}</p> : null}
       {job === null && loadError === null ? <p className="note">Loading the exam twins.</p> : null}
       {job ? (

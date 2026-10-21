@@ -48,7 +48,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List semesters and courses */
+        /**
+         * List her semesters, courses and study topics
+         * @description Every semester, course and topic belongs to one account, with everything in it: its folders, exam pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -58,7 +61,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Every semester, with its courses. */
+                /** @description Her semesters by number, each with its courses, and her study topics. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -66,6 +69,31 @@ export interface paths {
                     content: {
                         "application/json": {
                             semesters: components["schemas"]["Semester"][];
+                            /** @description Her study topics, archived ones included (archivedAt), in her order: PUT /api/topic-order. Each opens with GET /api/courses/{id} like a course. */
+                            topics: {
+                                /** Format: uuid */
+                                id: string;
+                                /**
+                                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                                 * @enum {string}
+                                 */
+                                kind: "course" | "topic";
+                                /** @description Empty for a topic. */
+                                code: string;
+                                title: string;
+                                sortOrder: number;
+                                archivedAt: string | null;
+                                questionCount: number;
+                                /** @description Legacy: how many folder names hold practice sets, so two folders with the same name count once. Use folderCount. */
+                                weekCount: number;
+                                /** @description Her folders in the course, empty ones included: the course card's "N folders". */
+                                folderCount: number;
+                                reviewCount: number;
+                                answeredCount: number;
+                                fullyRightCount: number;
+                                points: number;
+                                maxPoints: number;
+                            }[];
                         };
                     };
                 };
@@ -90,7 +118,10 @@ export interface paths {
             };
         };
         put?: never;
-        /** Add a semester */
+        /**
+         * Add a semester
+         * @description One of hers, numbered 1 to 3; each number once among her own semesters (409 when she has it).
+         */
         post: {
             parameters: {
                 query?: never;
@@ -184,7 +215,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Rename a semester */
+        /**
+         * Rename, archive, or unarchive a semester
+         * @description Archiving is by hand only: `archived: true` sets archivedAt to now, false clears it. Nothing archives a semester on its own.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -200,6 +234,7 @@ export interface paths {
                         name?: string;
                         startsOn?: string | null;
                         endsOn?: string | null;
+                        archived?: boolean;
                     };
                 };
             };
@@ -299,6 +334,12 @@ export interface paths {
                         "application/json": {
                             /** Format: uuid */
                             id: string;
+                            /**
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @enum {string}
+                             */
+                            kind: "course" | "topic";
+                            /** @description Empty for a topic. */
                             code: string;
                             title: string;
                             sortOrder: number;
@@ -369,6 +410,234 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a study topic
+         * @description A topic is a course with no semester, for questions that are not a course: a certification, a language, her own notes. It has folders, study pages (exam pages), sets, Review, terms and exams as a course does, and opens with GET /api/courses/{id}. Its name is unique among her topics, ignoring case (409). Her first import into it with no folder makes its Unsorted folder.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        title: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description The new topic, after her other topics. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /**
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @enum {string}
+                             */
+                            kind: "course" | "topic";
+                            /** @description Empty for a topic. */
+                            code: string;
+                            title: string;
+                            sortOrder: number;
+                            archivedAt: string | null;
+                            questionCount: number;
+                            /** @description Legacy: how many folder names hold practice sets, so two folders with the same name count once. Use folderCount. */
+                            weekCount: number;
+                            /** @description Her folders in the course, empty ones included: the course card's "N folders". */
+                            folderCount: number;
+                            reviewCount: number;
+                            answeredCount: number;
+                            fullyRightCount: number;
+                            points: number;
+                            maxPoints: number;
+                        };
+                    };
+                };
+                /** @description The request was refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description Sign in is required. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description The request was refused. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description The request was refused. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description The database is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/topic-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put her study topics in her order
+         * @description A list that does not name exactly her topics, archived ones included, once each, is refused with 409, so a stale screen cannot drop or misplace one.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        topicIds: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Her topics in the new order. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            topics: {
+                                /** Format: uuid */
+                                id: string;
+                                /**
+                                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                                 * @enum {string}
+                                 */
+                                kind: "course" | "topic";
+                                /** @description Empty for a topic. */
+                                code: string;
+                                title: string;
+                                sortOrder: number;
+                                archivedAt: string | null;
+                                questionCount: number;
+                                /** @description Legacy: how many folder names hold practice sets, so two folders with the same name count once. Use folderCount. */
+                                weekCount: number;
+                                /** @description Her folders in the course, empty ones included: the course card's "N folders". */
+                                folderCount: number;
+                                reviewCount: number;
+                                answeredCount: number;
+                                fullyRightCount: number;
+                                points: number;
+                                maxPoints: number;
+                            }[];
+                        };
+                    };
+                };
+                /** @description The request was refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description Sign in is required. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description The request was refused. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description The request was refused. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description The database is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/courses/{id}": {
         parameters: {
             query?: never;
@@ -376,7 +645,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A course, its folders, its exam pages, and its sets */
+        /**
+         * A course or topic, its folders, its exam pages, and its sets
+         * @description Every semester, course and topic belongs to one account, with everything in it: its folders, exam pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -449,7 +721,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Rename, move, archive, or unarchive a course */
+        /**
+         * Rename, move, archive, or unarchive a course or topic
+         * @description A topic takes `title` and `archived` only: `code` or `semesterId` for a topic is refused with 400. A course moves only to another of her semesters.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -480,6 +755,12 @@ export interface paths {
                         "application/json": {
                             /** Format: uuid */
                             id: string;
+                            /**
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @enum {string}
+                             */
+                            kind: "course" | "topic";
+                            /** @description Empty for a topic. */
                             code: string;
                             title: string;
                             sortOrder: number;
@@ -557,7 +838,7 @@ export interface paths {
         put?: never;
         /**
          * Add an exam to a course
-         * @description An exam page (a course exam) is a name and the course's folders on it, shared by everyone like the folders. A folder is on one exam page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). The student and the admin can both do this.
+         * @description An exam page (a course exam; a study page, in a topic) is a name, an optional primer link, and the course's folders on it. A folder is on one exam page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). Its owner and the admin can both do this.
          */
         post: {
             parameters: {
@@ -646,7 +927,7 @@ export interface paths {
         get?: never;
         /**
          * Rename an exam page and set its folders
-         * @description An exam page (a course exam) is a name and the course's folders on it, shared by everyone like the folders. A folder is on one exam page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). The student and the admin can both do this. The folders sent replace the page's folders, in the order sent.
+         * @description An exam page (a course exam; a study page, in a topic) is a name, an optional primer link, and the course's folders on it. A folder is on one exam page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). Its owner and the admin can both do this. The folders sent replace the page's folders, in the order sent.
          */
         put: {
             parameters: {
@@ -1544,7 +1825,7 @@ export interface paths {
         put?: never;
         /**
          * Import a question file into a course and folder
-         * @description The set goes into `folderId`, or the folder named `folderName`, or else the course's Unsorted folder, made at the top of its Folders list the first time it is needed. A file with `"kind": "exam"` makes an exam set: the folder's exam bank, asked only on exams, never listed for practice and never in Review. Its questions may name their practice twin in `twinOf`: the id of a practice question in the same folder. A set conflicts only with a current set of the same kind and name in the course. A replace keeps the set in its folder, whatever folder the import names.
+         * @description The set goes into one of her courses or topics (`courseId`), or a new one (`newCourse`, `newTopic`); in it, into `folderId`, or the folder named `folderName`, or else the course's Unsorted folder, made at the top of its Folders list the first time it is needed. A file with `"kind": "exam"` makes an exam set: the folder's exam bank, asked only on exams, never listed for practice and never in Review. Its questions may name their practice twin in `twinOf`: the id of a practice question in the same folder. A set conflicts only with a current set of the same kind and name in the course. A replace keeps the set in its folder, whatever folder the import names.
          */
         post: {
             parameters: {
@@ -1567,13 +1848,21 @@ export interface paths {
                         folderName?: string;
                         /** @description Legacy: the same as folderName. */
                         weekLabel?: string;
-                        /** Format: uuid */
+                        /**
+                         * Format: uuid
+                         * @description One of her courses or topics.
+                         */
                         courseId?: string;
                         newCourse?: {
                             code: string;
                             title: string;
+                            /** @description Her semester of this number, made when she has none. */
                             semesterNumber: number;
                             semesterName?: string;
+                        };
+                        /** @description A new study topic of hers, named title (see POST /api/topics). Send one of courseId, newCourse and newTopic. Not with folderId. */
+                        newTopic?: {
+                            title: string;
                         };
                         /** @enum {string} */
                         decision?: "import" | "replace" | "separate";
@@ -5988,7 +6277,7 @@ export interface paths {
         put?: never;
         /**
          * Write exam twins of the questions she practiced in some folders
-         * @description The Twin option of Exam setup: the folders and pool she would start the exam over. Instead of an exam on those questions, QBank writes one exam twin of each with her recipe's twins pass (Prompt D, her checker, and the blind check in a fresh context), and files them through Import as new exam sets, one per practice set, each in its practice set's folder and each twin naming its practice question in twinOf. Her sets, questions, folders and answers are never changed. A practice question that already has an exam twin in its folder keeps it and is not twinned again, and so does one an exam question there may twin: one that names an id several of the folder's practice questions carry counts for each of them. A folder with an exam question that names none of its practice questions is left as it is, and `note` says so. Each set's twins are checked again against the folder as they are filed: a twin whose practice question has one by then is left out, and `warnings` says so. Starts in the background and answers at once; poll GET /api/twin-jobs/{id}. Once done, `exam` is the body of POST /api/courses/{courseId}/exams that starts the exam on the twins. Refused with 400 and a sentence when there is nothing to twin (no question in the pool, or every one already twinned or left as it is), more than 60 to twin, or while another twin job, hers or another account's, is still twinning in one of the folders. Counts against her daily limit like a set (429 `daily_limit` with availableAt).
+         * @description The Twin option of Exam setup: the folders and pool she would start the exam over. Instead of an exam on those questions, QBank writes one exam twin of each with her recipe's twins pass (Prompt D, her checker, and the blind check in a fresh context), and files them through Import as new exam sets, one per practice set, each in its practice set's folder and each twin naming its practice question in twinOf. Her sets, questions, folders and answers are never changed. A practice question that already has an exam twin in its folder keeps it and is not twinned again, and so does one an exam question there may twin: one that names an id several of the folder's practice questions carry counts for each of them. A folder with an exam question that names none of its practice questions is left as it is, and `note` says so. Each set's twins are checked again against the folder as they are filed: a twin whose practice question has one by then is left out, and `warnings` says so. Starts in the background and answers at once; poll GET /api/twin-jobs/{id}. Once done, `exam` is the body of POST /api/courses/{courseId}/exams that starts the exam on the twins. Refused with 400 and a sentence when there is nothing to twin (no question in the pool, or every one already twinned or left as it is), more than 60 to twin, or while another twin job, hers or one the admin started for her, is still twinning in one of the folders. Counts against her daily limit like a set (429 `daily_limit` with availableAt).
          */
         post: {
             parameters: {
@@ -6343,9 +6632,17 @@ export interface components {
             name: string;
             startsOn: string | null;
             endsOn: string | null;
+            /** @description When she archived it, by hand, or null. Archived semesters are still listed; the screens group them last. */
+            archivedAt: string | null;
             courses: {
                 /** Format: uuid */
                 id: string;
+                /**
+                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                 * @enum {string}
+                 */
+                kind: "course" | "topic";
+                /** @description Empty for a topic. */
                 code: string;
                 title: string;
                 sortOrder: number;
@@ -6369,15 +6666,22 @@ export interface components {
         CourseDetail: {
             /** Format: uuid */
             id: string;
+            /**
+             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+             * @enum {string}
+             */
+            kind: "course" | "topic";
+            /** @description Empty for a topic. */
             code: string;
             title: string;
             archivedAt: string | null;
+            /** @description Its semester. Null exactly for a topic. */
             semester: {
                 /** Format: uuid */
                 id: string;
                 number: number;
                 name: string;
-            };
+            } | null;
             /** @description Practice questions. Exam-bank questions are counted per week. */
             questionCount: number;
             /** @description How many questions an exam over every week draws from: each week's exam bank, or its practice questions when it has none. */
@@ -6456,6 +6760,8 @@ export interface components {
             weekLabels: string[];
             /** @description Its folders (CourseDetail.folders with this examPageId), in her order on the page. */
             folderIds: string[];
+            /** @description The page's primer: a web address she opens from the page, or null. QBank shows it as a link and renders nothing. */
+            linkUrl: string | null;
         };
         CourseExamInput: {
             name: string;
@@ -6463,6 +6769,8 @@ export interface components {
             folderIds?: string[];
             /** @description Legacy, for clients from before folders: folder names, each meaning the folder of that name already on this page, else the one on no exam page. The page holds them in week order. */
             weekLabels?: string[];
+            /** @description Its primer link, an http or https address of at most 2,000 characters. Null or empty takes it off; left out, PUT keeps the page's link. */
+            linkUrl?: string | null;
         };
         FolderInput: {
             name: string;
@@ -6972,16 +7280,22 @@ export interface components {
         ExportCourse: {
             /** Format: uuid */
             id: string;
+            /**
+             * @description `topic` for a study topic: a course with no semester and an empty code.
+             * @enum {string}
+             */
+            kind: "course" | "topic";
             code: string;
             title: string;
             /** @description When the course was archived, or null. */
             archivedAt: string | null;
+            /** @description Null for a topic. */
             semester: {
                 /** Format: uuid */
                 id: string;
                 number: number;
                 name: string;
-            };
+            } | null;
             /** @description Questions in the course's current sets. */
             questionCount: number;
             /** @description Current questions she has answered at least once. */

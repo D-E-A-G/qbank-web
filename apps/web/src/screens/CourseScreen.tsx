@@ -8,8 +8,8 @@ import { NavRow, RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { recentlyDeleted, useCourseVersion } from "../course/deletion";
 import { looseFolders } from "../course/folders";
-import { pageProgress, pageRowMeta } from "../course/pages";
-import { useCourse, useRememberPlace } from "../course/useCourse";
+import { courseName, nextPageName, pageProgress, pageRowMeta } from "../course/pages";
+import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useFolderOrder } from "../course/useFolderOrder";
 import { useSession } from "../login/session-context";
 import { deletedPath, examPagePath, navigate } from "../router";
@@ -19,6 +19,7 @@ import { ShellLink } from "../shell/ShellLink";
 /**
  * A course, as in the iPhone's Files app: the study tiles, then two lists. Exam pages, one row
  * each, and the folders on no exam page, one row each, in her order. Each opens its own screen.
+ * A study topic is the same screen, called by its name, with study pages for exam pages.
  */
 export function CourseScreen({ courseId }: { courseId: string }) {
   const session = useSession();
@@ -27,10 +28,11 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   const [ordering, setOrdering] = useState(false);
   const [making, setMaking] = useState(false);
   const deleted = useRecentlyDeleted(courseId);
+  const { name, words } = useCourseNaming(courseId, course);
   useRememberPlace(courseId);
 
   useEffect(() => {
-    if (course) document.title = `${course.code} · Qbank`;
+    if (course) document.title = `${courseName(course)} · Qbank`;
   }, [course]);
 
   const closeEditor = useCallback(() => {
@@ -43,16 +45,18 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   const editing = ordering && !readOnly && loose.length > 1;
 
   return (
-    <Screen title={course ? course.code : "Course"}>
+    <Screen title={name ?? "Course"}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to="/" className="text-action" current={false}>
-        Courses
+        {words.home}
       </ShellLink>
       {error ? <p className="form-error">{error}</p> : null}
       {course ? (
         <>
           <p className="note">
-            {course.title} · {plural(course.questionCount, "question")} · {plural(course.folders.length, "folder")}
+            {/* A topic's name is its title already. */}
+            {course.kind === "topic" ? null : `${course.title} · `}
+            {plural(course.questionCount, "question")} · {plural(course.folders.length, "folder")}
             {course.answeredCount > 0 ? (
               <>
                 <br />
@@ -85,18 +89,18 @@ export function CourseScreen({ courseId }: { courseId: string }) {
           </div>
           {course.folders.length === 0 && course.exams.length === 0 ? (
             <div className="empty-card">
-              <EmptyState icon="layers" message="This course has no question sets yet." />
+              <EmptyState icon="layers" message={`This ${words.container} has no question sets yet.`} />
             </div>
           ) : (
             <>
               <section className="group">
                 <div className="group-head">
-                  <h2 className="group-header">Exam pages</h2>
+                  <h2 className="group-header">{words.pages}</h2>
                   {readOnly ? null : (
                     <button
                       type="button"
                       className="group-action"
-                      aria-label="New exam page"
+                      aria-label={`New ${words.page}`}
                       onClick={() => {
                         setMaking(true);
                       }}
@@ -106,9 +110,13 @@ export function CourseScreen({ courseId }: { courseId: string }) {
                   )}
                 </div>
                 {course.exams.length === 0 ? (
-                  <p className="folder-empty">{readOnly ? "No exam pages yet." : "No exam pages yet. Tap New to make Exam 1."}</p>
+                  <p className="folder-empty">
+                    {readOnly
+                      ? `No ${words.pages.toLowerCase()} yet.`
+                      : `No ${words.pages.toLowerCase()} yet. Tap New to make ${nextPageName(course.exams, course.kind)}.`}
+                  </p>
                 ) : (
-                  <ul className="list-group" aria-label="Exam pages">
+                  <ul className="list-group" aria-label={words.pages}>
                     {course.exams.map((page) => (
                       <li key={page.id}>
                         <NavRow
@@ -148,7 +156,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
                       ? "Drag a folder by its handle, or move it up or down."
                       : course.exams.length === 0
                         ? "Open a folder to see its sets."
-                        : "Folders on no exam page. Open one to see its sets."}
+                        : `Folders on no ${words.page}. Open one to see its sets.`}
                   </p>
                 </section>
               ) : null}
@@ -170,7 +178,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
           ) : null}
         </>
       ) : error ? null : (
-        <p className="note">Loading the course.</p>
+        <p className="note">Loading the {words.container}.</p>
       )}
       {making && course ? (
         <ExamPageEditor

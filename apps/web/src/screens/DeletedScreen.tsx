@@ -5,7 +5,8 @@ import { EmptyState } from "../components/EmptyState";
 import { Icon, type IconName } from "../components/Icon";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { courseChanged, recentlyDeleted, refusalText, undoDeletion, useCourseVersion, type Doomed } from "../course/deletion";
-import { useCourse } from "../course/useCourse";
+import { courseName } from "../course/pages";
+import { useCourse, useCourseNaming } from "../course/useCourse";
 import { foldersText } from "../exam/names";
 import { useSession } from "../login/session-context";
 import { Screen } from "../shell/Screen";
@@ -21,6 +22,7 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
   const session = useSession();
   const readOnly = session.user.role !== "student";
   const { course } = useCourse(courseId);
+  const { name, words } = useCourseNaming(courseId, course);
   const version = useCourseVersion(courseId);
   const [deleted, setDeleted] = useState<RecentlyDeleted | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
   const [done, setDone] = useState<string | null>(null);
 
   useEffect(() => {
-    if (course) document.title = `Recently deleted · ${course.code} · Qbank`;
+    if (course) document.title = `Recently deleted · ${courseName(course)} · Qbank`;
   }, [course]);
 
   useEffect(() => {
@@ -84,12 +86,12 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
     <Screen title="Recently deleted">
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
-        {course?.code ?? "Course"}
+        {name ?? "Course"}
       </ShellLink>
       <p className="note">
         {readOnly
-          ? `What she deleted in this course in the last ${String(days)} days. She can bring each back as it was.`
-          : `What you deleted in this course in the last ${String(days)} days. Undo brings each back as it was, with your answers counting again.`}
+          ? `What she deleted in this ${words.container} in the last ${String(days)} days. She can bring each back as it was.`
+          : `What you deleted in this ${words.container} in the last ${String(days)} days. Undo brings each back as it was, with your answers counting again.`}
       </p>
       {loadError ? <p className="form-error">{loadError}</p> : null}
       {error ? <p className="form-error">{error}</p> : null}

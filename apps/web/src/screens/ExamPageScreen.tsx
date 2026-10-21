@@ -6,11 +6,12 @@ import { EmptyState } from "../components/EmptyState";
 import { ExamPageEditor } from "../components/ExamPageEditor";
 import { FolderRows } from "../components/FolderRows";
 import { Icon } from "../components/Icon";
+import { RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { pageFolders } from "../course/folders";
-import { examSetupPath, examTwinsLine, pageMeta, pageSittings } from "../course/pages";
+import { courseName, examSetupPath, examTwinsLine, pageMeta, pageSittings } from "../course/pages";
 import { deleteExamPage } from "../course/requests";
-import { useCourse, useRememberPlace } from "../course/useCourse";
+import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useFolderOrder } from "../course/useFolderOrder";
 import { PastExamList } from "../exam/PastExamList";
 import { useSession } from "../login/session-context";
@@ -18,12 +19,16 @@ import { navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
-/** One exam page: Start exam over its folders, its folders in her order, and the exams she took over them. */
+/**
+ * One exam page: Start exam over its folders, its folders in her order, and the exams she took over
+ * them. A topic's study page is the same screen, with its primer link when it has one.
+ */
 export function ExamPageScreen({ courseId, examPageId }: { courseId: string; examPageId: string }) {
   const session = useSession();
   const readOnly = session.user.role !== "student";
   const { course, setup, error, setupError, reload, replace } = useCourse(courseId, true);
   const page = course?.exams.find((item) => item.id === examPageId) ?? null;
+  const { name, words } = useCourseNaming(courseId, course);
   const [ordering, setOrdering] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -31,7 +36,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
   useRememberPlace(courseId);
 
   useEffect(() => {
-    if (course && page) document.title = `${page.name} · ${course.code} · Qbank`;
+    if (course && page) document.title = `${page.name} · ${courseName(course)} · Qbank`;
   }, [course, page]);
 
   const closeEditor = useCallback(() => {
@@ -56,30 +61,31 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
         navigate(`/course/${courseId}`);
       },
       (caught: unknown) => {
-        setActionError(caught instanceof ApiError ? caught.message : "Could not remove the exam page.");
+        setActionError(caught instanceof ApiError ? caught.message : `Could not remove the ${words.page}.`);
         reload();
       },
     );
   };
 
   return (
-    <Screen title={page?.name ?? "Exam page"}>
+    <Screen title={page?.name ?? words.Page}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
-        {course?.code ?? "Course"}
+        {name ?? "Course"}
       </ShellLink>
       {error ? <p className="form-error">{error}</p> : null}
       {actionError ? <p className="form-error">{actionError}</p> : null}
       {order.error ? <p className="form-error">{order.error}</p> : null}
       {course === null ? (
-        error ? null : <p className="note">Loading the exam page.</p>
+        error ? null : <p className="note">Loading the {words.page}.</p>
       ) : page === null ? (
         <div className="empty-card">
-          <EmptyState icon="layers" message="This exam page is not in the course anymore. It may have been removed on another device." />
+          <EmptyState icon="layers" message={`This ${words.page} is not in the ${words.container} anymore. It may have been removed on another device.`} />
         </div>
       ) : (
         <>
           <p className="note">{pageMeta(course, page)}</p>
+          {page.linkUrl === null ? null : <PrimerLink url={page.linkUrl} />}
           {readOnly ? null : <StartExam course={course} page={page} setup={setup} />}
           <section className="group">
             <div className="group-head">
@@ -88,7 +94,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
                 <button
                   type="button"
                   className="group-action"
-                  aria-label={edit ? "Done editing the exam page" : "Edit the exam page"}
+                  aria-label={edit ? `Done editing the ${words.page}` : `Edit the ${words.page}`}
                   onClick={() => {
                     setOrdering(!edit);
                   }}
@@ -113,7 +119,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
               <div className="empty-card">
                 <EmptyState
                   icon="folder"
-                  message={readOnly ? "No folders on this page yet." : "No folders on this page yet. Add the folders this exam covers."}
+                  message={readOnly ? "No folders on this page yet." : `No folders on this page yet. ${words.addFolders}`}
                   action={
                     readOnly ? null : (
                       <Button
@@ -172,7 +178,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
       {removing && page ? (
         <ConfirmSheet
           title={`Remove ${page.name}?`}
-          message="Its folders go back to the course’s Folders list. No set moves, and your answers and past exams are kept."
+          message={`Its folders go back to the ${words.container}’s Folders list. No set moves, and your answers and past exams are kept.`}
           confirmLabel="Remove"
           confirmVariant="destructive"
           onConfirm={remove}
@@ -220,4 +226,29 @@ function StartExam({ course, page, setup }: { course: CourseDetail; page: Course
       )}
     </div>
   );
+}
+
+/** A study page's primer: the page where she wrote it up, opened in a new tab. Nothing of it is shown here. */
+function PrimerLink({ url }: { url: string }) {
+  return (
+    <ul className="list-group" aria-label="Primer">
+      <li>
+        <a href={url} className="list-row" target="_blank" rel="noopener noreferrer">
+          <RowBody icon="link-2" title="Open the primer" meta={linkHost(url)} />
+          <span className="list-chevron">
+            <Icon name="chevron-right" size={18} strokeWidth={2} />
+          </span>
+        </a>
+      </li>
+    </ul>
+  );
+}
+
+/** "notes.example.com" for the row's line; the address itself when it does not parse. */
+function linkHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
 }

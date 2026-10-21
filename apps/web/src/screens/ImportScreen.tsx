@@ -8,13 +8,14 @@ import {
   type ImportReport,
   type ImportedSet,
 } from "../api";
-import { refreshCatalog, useCatalog } from "../catalog";
+import { findCourse, homeLayout, refreshCatalog, useCatalog, type CourseLink } from "../catalog";
 import { Button } from "../components/Button";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { Icon } from "../components/Icon";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
 import { folderGroups } from "../course/folders";
+import { courseLine, courseName, kindWords } from "../course/pages";
 import { folderPath, useSearch } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
@@ -27,21 +28,23 @@ type FolderChoice = { kind: "unsorted" } | { kind: "folder"; id: string } | { ki
 /** The folder the server files a set under when she picks none. */
 const UNSORTED = "Unsorted";
 
+/** What the menu offers besides her courses and topics: a new course, or a new topic. */
+const NEW_COURSE = "new";
+const NEW_TOPIC = "new-topic";
+
 /** Import. "Import here" on a folder opens it with `?course=` and `?folder=` picked; otherwise the set goes to Unsorted. */
 export function ImportScreen() {
-  const { semesters } = useCatalog();
-  const courses = semesters.flatMap((semester) =>
-    semester.placeholder ? [] : semester.courses.filter((course) => course.archivedAt === null),
-  );
+  const catalog = useCatalog();
   const search = useSearch();
   const [preset] = useState(() => readPreset(search));
   const [mode, setMode] = useState<SourceMode>("paste");
   const [source, setSource] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
-  const [courseId, setCourseId] = useState(preset?.courseId ?? "new");
+  const [courseId, setCourseId] = useState(preset?.courseId ?? NEW_COURSE);
   const [code, setCode] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
+  const [topicTitle, setTopicTitle] = useState("");
   const [semesterNumber, setSemesterNumber] = useState("1");
   const [course, setCourse] = useState<CourseDetail | null>(null);
   // Counts imports, so the picker reads the course's folders again after one made a folder.
@@ -55,11 +58,15 @@ export function ImportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
-  const known = courses.some((item) => item.id === courseId);
+  const layout = homeLayout(catalog);
+  const courses = layout.semesters.flatMap(({ semester, courses: inUse }) => (semester.placeholder ? [] : inUse));
+  const topics = layout.topics;
+  const known = courses.some((item) => item.id === courseId) || topics.some((item) => item.id === courseId);
+  const newTopic = courseId === NEW_TOPIC;
 
   // Her folders in the picked course, for the picker. A new course has none yet.
   useEffect(() => {
-    if (courseId === "new") return;
+    if (courseId === NEW_COURSE || courseId === NEW_TOPIC) return;
     let cancel = false;
     void api<CourseDetail>(`/api/courses/${courseId}`)
       .then((body) => {
@@ -103,7 +110,9 @@ export function ImportScreen() {
     setBusy(true);
     const json: Record<string, unknown> = { source, decision };
     if (title.trim()) json.title = title.trim();
-    if (courseId === "new" || !known) {
+    if (newTopic) {
+      json.newTopic = { title: topicTitle.trim() };
+    } else if (!known) {
       json.newCourse = { code: code.trim(), title: courseTitle.trim(), semesterNumber: Number(semesterNumber) };
     } else {
       json.courseId = courseId;
@@ -136,11 +145,13 @@ export function ImportScreen() {
 
   if (done) {
     const { set, examPageName } = done;
+    // The catalog was read again before Done, so it has a course or topic the import just made.
+    const landed = findCourse(catalog, set.courseId);
     const where =
       examPageName !== null
         ? ` It is on ${examPageName}.`
         : set.folderName === UNSORTED
-          ? " It is in the course’s Folders list until you move it."
+          ? ` It is in the ${kindWords(landed?.kind ?? "course").container}’s Folders list until you move it.`
           : "";
     return (
       <Screen title="Import">
@@ -151,7 +162,7 @@ export function ImportScreen() {
           <h2 className="done-title">{set.kind === "replaced" ? "Replaced" : "Imported"}</h2>
           <p className="done-copy">
             “{set.title}” · {set.questionCount} {set.setKind === "exam" ? "exam " : ""}
-            {set.questionCount === 1 ? "question" : "questions"} in {set.courseCode}, {set.folderName}.{where}
+            {set.questionCount === 1 ? "question" : "questions"} in {landed ? courseName(landed) : set.courseCode}, {set.folderName}.{where}
             {set.setKind === "exam" ? " Exams now ask them instead of that folder’s practice questions." : ""}
             {set.kind === "replaced" ? " The previous version can be restored from its folder." : ""}
           </p>
@@ -236,21 +247,33 @@ export function ImportScreen() {
           <select
             className="control"
             aria-label="Course"
-            value={known ? courseId : "new"}
+            value={known || newTopic ? courseId : NEW_COURSE}
             onChange={(event) => {
               chooseCourse(event.target.value);
             }}
           >
-            {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.code} · {course.title}
-              </option>
-            ))}
-            <option value="new">New course</option>
+            {/* Her courses as they always were; once she has a topic, her courses and topics in two groups. */}
+            {topics.length === 0 ? (
+              <CourseOptions courses={courses} />
+            ) : (
+              <>
+                {courses.length === 0 ? null : (
+                  <optgroup label="Courses">
+                    <CourseOptions courses={courses} />
+                  </optgroup>
+                )}
+                <optgroup label="Study topics">
+                  <CourseOptions courses={topics} />
+                </optgroup>
+              </>
+            )}
+            <option value={NEW_COURSE}>New course</option>
+            <option value={NEW_TOPIC}>New topic</option>
           </select>
         </label>
         <FolderPicker course={known ? course : null} value={folder} newName={newFolder} onChange={setFolder} onNewName={setNewFolder} />
-        {!known ? (
+        {newTopic ? <TextField label="Topic name" value={topicTitle} onChange={setTopicTitle} /> : null}
+        {!known && !newTopic ? (
           <>
             <TextField label="Course code" value={code} onChange={setCode} />
             <TextField label="Course name" value={courseTitle} onChange={setCourseTitle} />
@@ -342,7 +365,7 @@ export function ImportScreen() {
       {conflict ? (
         <ConfirmSheet
           title={`Replace “${conflict.title}”?`}
-          message={`${conflict.courseCode}, ${conflict.folderName} already has a set with this name. Replacing swaps its ${String(conflict.existingQuestionCount)} questions for the ${String(conflict.incomingQuestionCount)} in this file, and it stays in ${conflict.folderName}. Answers on unchanged questions are kept, and the old version stays restorable.`}
+          message={`${conflictName(conflict, findCourse(catalog, conflict.courseId))}, ${conflict.folderName} already has a set with this name. Replacing swaps its ${String(conflict.existingQuestionCount)} questions for the ${String(conflict.incomingQuestionCount)} in this file, and it stays in ${conflict.folderName}. Answers on unchanged questions are kept, and the old version stays restorable.`}
           confirmLabel="Replace"
           secondaryLabel="Import as a separate set"
           onConfirm={() => {
@@ -356,6 +379,20 @@ export function ImportScreen() {
       ) : null}
     </Screen>
   );
+}
+
+/** Her courses by code and name, or her topics by name. */
+function CourseOptions({ courses }: { courses: readonly CourseLink[] }) {
+  return courses.map((course) => (
+    <option key={course.id} value={course.id}>
+      {courseLine(course)}
+    </option>
+  ));
+}
+
+/** The course or topic a replace is in, as the rest of the screens call it. */
+function conflictName(conflict: ImportConflict, landed: CourseLink | undefined): string {
+  return landed ? courseName(landed) : conflict.courseCode || conflict.courseTitle;
 }
 
 /** The folder Import files the set under: Unsorted unless she picks one of her folders, grouped by exam page, or names a new one. */
