@@ -13,10 +13,10 @@ export function StudentsSection() {
 
   return (
     <section className="group">
-      <h2 className="group-header">Student</h2>
+      <h2 className="group-header">User account</h2>
       {list === null ? null : student === null ? (
         <div className="empty-card">
-          <EmptyState icon="user" message="No student account yet. Add her email to the sign-up list, and she can sign up." />
+          <EmptyState icon="user" message="No user account yet. Add an email to the sign-up list, and that person can sign up." />
         </div>
       ) : (
         <div className="group-card stack">
@@ -33,7 +33,7 @@ export function StudentsSection() {
                   setBusy(true);
                   void pickStudent(event.target.value)
                     .catch((caught: unknown) => {
-                      setError(caught instanceof ApiError ? caught.message : "Could not switch to that student.");
+                      setError(caught instanceof ApiError ? caught.message : "Could not switch to that user account.");
                     })
                     .finally(() => {
                       setBusy(false);
@@ -55,7 +55,7 @@ export function StudentsSection() {
         </div>
       )}
       {list !== null && list.students.length > 1 ? (
-        <p className="group-footer">Home, courses, Review, exams, the temporary password, and Repair all use the student picked here.</p>
+        <p className="group-footer">Home, courses, Review, exams, the temporary password, and Repair all use the user account picked here.</p>
       ) : null}
     </section>
   );

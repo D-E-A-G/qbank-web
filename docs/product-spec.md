@@ -45,7 +45,7 @@ Each of these was cut on purpose. Anything a user asks for later is a new decisi
 | Offline answering (cached sets, queued answers) | Deferred. The app is online-only; the home-screen icon still works. |
 | Open sign-up, classmates, sharing | Only emails the owner adds can sign up, and one account cannot see another's questions (see [Users](#users) and [Study topics](#study-topics)). |
 | Email of any kind (reset links, notices) | No email service. The owner resets her password from his admin account. |
-| Native iOS or macOS apps | The installable web app covers all three devices. A SwiftUI iOS app may come later as a second client of the same API (see [Settled decisions](#settled-decisions)). |
+| Native iOS or macOS apps | The installable web app covers all three devices. A SwiftUI iOS app may come later as a second client of the same API (see [Settled decisions](#settled-decisions)). It has no Admin screen and no sign-up list; those stay on the web (decision 22). |
 | A theme picker | Only Look (light or dark) and a choice of two color schemes, Dusk and Slate. |
 
 ## Users
@@ -316,7 +316,7 @@ He signs in the same way, with his own login, and lands on the Home of the user 
 - **Restore:** the Restore button on a replaced set works for him too, with the same confirmation.
 - **Admin > Semesters and courses:** the same controls as her Settings (add a semester; add, rename, move between semesters, archive, and unarchive a course; archive a semester), and the same **Study topics** card.
 - **Her folders, exam pages, and study pages, read-only:** he sees her course or topic page, its pages, and its folders as she does, with "Her past exams" and without New, Edit, Rename, Exam page, Study page, Import here, Select, Delete, or Start exam. She arranges her folders herself; the API lets him fix one when she asks. He sees her Recently deleted read-only, without Undo.
-- **Admin > Student:** the picker of the user account he is looking at. The heading on the screen is still Student. When there is more than one user account, the picker chooses whose progress he sees read-only; the read-only banner then names her email. The temporary password and Repair act on the picked account too. Until he picks, it is the oldest user account.
+- **Admin > User account:** the picker of the user account he is looking at. The heading on the screen is User account. When there is more than one user account, the picker chooses whose progress he sees read-only; the read-only banner then names her email. The temporary password and Repair act on the picked account too. Until he picks, it is the oldest user account.
 - **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
 - **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
 - **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
@@ -325,7 +325,7 @@ He signs in the same way, with his own login, and lands on the Home of the user 
 ## Platforms and layouts
 
 - **One installable web app** on iPhone, iPad, and Mac, running full-screen from the home screen or Dock, so it should feel native: no browser chrome, safe areas respected, touch targets sized for a thumb on iPhone and iPad, keyboard and pointer friendly on the Mac.
-- **iPhone:** a single column with bottom tabs (Home, Import, Settings, plus Admin for the owner). The question runner fills the screen.
+- **iPhone (the web app):** a single column with bottom tabs (Home, Import, Settings, plus Admin for the owner). The question runner fills the screen. The native iPhone app has no Admin screen and no sign-up list; those stay on this web Admin page (decision 22).
 - **iPad and Mac:** their own layout with a **sidebar** (navigation and the semester, course, and study topic tree), fitted to their screens rather than a stretched iPhone layout. Archived semesters, courses, and topics are left out of the sidebar. The exact shape comes from the Claude Design system.
 - **Light and dark mode:** both first-class. Settings offers Match device / Light / Dark, and Color picks Dusk or Slate, each with a light and a dark half; there is no other theme or palette choice. Correct, partly correct, and wrong states, and the timer's low-time state, read clearly in both modes and do not rely on color alone.
 
@@ -468,7 +468,7 @@ The design system's tokens come from the owner's Claude Design export and arrive
 
 Nothing else is planned after launch. In-app question generation (uploads plus a generator) is not planned; the questions come from the skill in Codex.
 
-Future work, not scheduled: a SwiftUI iOS app as a second client of the same API.
+Future work, not scheduled: a SwiftUI iOS app as a second client of the same API. It has no Admin screen and no sign-up list; those stay on the web Admin page, which he can open in Safari on his phone (decision 22).
 
 ## Settled decisions
 
@@ -512,7 +512,9 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 
 20. **Delete and Undo (2026-10-18):** sets, folders, and past exams can be deleted. Deleting a folder deletes its sets, after a warning that names them; every delete warns exactly what else goes. Undo brings anything back for 30 days, and nothing is deleted except by her explicit, confirmed action.
 
-21. **Study topics and private accounts (2026-10-19, ownership 2026-10-20):** a topic is a course with no semester, shown by its name, with study pages one level deep. Courses and topics stay in separate groups and use the same screens inside. A course keeps "Exam pages"; a topic says "Study pages". Folders stay, and the first import that needs a folder makes Unsorted. The timed exam is unchanged. A primer is a link on the study page, not a page stored in the app. Anki cards are not imported, and there is no review schedule. Archive is by hand, into a closed Archived group at the bottom of Home; nothing is archived from a date. Every semester, course, topic, page, folder, set, question, and term belongs to one user account. Every list, detail, and edit is that account's, and another account's id is answered as if it were not there. Sign-up makes a user account. The stored role value stays `student`, and the admin picker's heading stays Student. The admin's read-only view of one user account stays, and his existing edits apply only to the account he is looking at. There is no shared question bank, no class, and no invite. A shared bank can be a later choice, and is not built. Rows that already existed kept their ids, names, and places, and were given to the one user account that already held the answers. A second account sees none of them.
+21. **Study topics and private accounts (2026-10-19, ownership 2026-10-20):** a topic is a course with no semester, shown by its name, with study pages one level deep. Courses and topics stay in separate groups and use the same screens inside. A course keeps "Exam pages"; a topic says "Study pages". Folders stay, and the first import that needs a folder makes Unsorted. The timed exam is unchanged. A primer is a link on the study page, not a page stored in the app. Anki cards are not imported, and there is no review schedule. Archive is by hand, into a closed Archived group at the bottom of Home; nothing is archived from a date. Every semester, course, topic, page, folder, set, question, and term belongs to one user account. Every list, detail, and edit is that account's, and another account's id is answered as if it were not there. Sign-up makes a user account. The stored role value stays `student`, and the admin picker's heading is User account. The admin's read-only view of one user account stays, and his existing edits apply only to the account he is looking at. There is no shared question bank, no class, and no invite. A shared bank can be a later choice, and is not built. Rows that already existed kept their ids, names, and places, and were given to the one user account that already held the answers. A second account sees none of them.
+
+22. **Admin stays on the web (2026-10-21):** admin tools stay web-only. There is no Admin screen and no sign-up list in the iPhone app. The web Admin page (Sign-up list) is the place, and he can open it in Safari on his phone. No iPhone admin screen is added for parity.
 
 ## Open questions
 
