@@ -50,7 +50,9 @@ jobs:
     # repository's own branches.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 30 so the install below can time out once, retry once, and still run
+    # the tests. Each install step has its own shorter timeout.
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: read
@@ -75,7 +77,78 @@ jobs:
           echo
           curl -fsS http://localhost:4318/openapi.json | jq --sort-keys . >"$RUNNER_TEMP/served.json"
           jq --sort-keys . apps/web/contract/openapi.json | diff - "$RUNNER_TEMP/served.json"
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      # install --with-deps stalled in apt, not in the browser download. On
+      # main, run 39808491540 attempt 1 sat in apt-get downloads from
+      # azure.archive.ubuntu.com until the 20-minute job timeout cancelled
+      # it; Chrome was never fetched. The rerun fetched those packages in
+      # about six minutes and the browser zips in about fifteen seconds.
+      # Cache the browsers on the lockfile's resolved @playwright/test
+      # version, and on a hit install only the OS packages. Each install
+      # times out on its own and retries once, so a slow mirror fails or
+      # recovers without using the whole job. Save the cache only after a
+      # successful browser install, so a timed-out download is not reused.
+      - name: Read the Playwright version the lockfile resolved
+        id: playwright
+        run: |
+          version="$(awk '
+            $0 ~ /^  [^ ]/ { root = ($0 == "  .:") }
+            root && $0 == "      '\''@playwright/test'\'':" { grab = 1; next }
+            grab && $1 == "version:" { print $2; exit }
+          ' pnpm-lock.yaml)"
+          if [ -z "$version" ]; then
+            echo "::error::pnpm-lock.yaml has no resolved @playwright/test version for the root importer"
+            exit 1
+          fi
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+      - name: Restore cached Playwright browsers
+        id: playwright-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Playwright's operating system dependencies
+        id: playwright-deps
+        timeout-minutes: 8
+        continue-on-error: true
+        run: pnpm exec playwright install-deps chromium webkit
+      - name: Retry Playwright's operating system dependencies
+        if: steps.playwright-deps.outcome == 'failure'
+        timeout-minutes: 8
+        run: |
+          echo "The operating system dependency install timed out or failed; trying once more."
+          # install-deps runs apt-get as root. On run 39965884896 attempt 2
+          # the step timeout left that process holding
+          # /var/lib/dpkg/lock-frontend, and this retry failed at once.
+          sudo pkill -TERM apt-get || true
+          sudo pkill -TERM apt || true
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            if ! sudo pgrep -x apt-get >/dev/null && ! sudo pgrep -x apt >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          sudo pkill -KILL apt-get || true
+          sudo pkill -KILL apt || true
+          sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+          pnpm exec playwright install-deps chromium webkit
+      - name: Install Playwright browsers
+        id: playwright-browsers
+        if: success() && steps.playwright-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        continue-on-error: true
+        run: pnpm exec playwright install chromium webkit
+      - name: Retry the Playwright browser install
+        if: success() && steps.playwright-cache.outputs.cache-hit != 'true' && steps.playwright-browsers.outcome == 'failure'
+        timeout-minutes: 5
+        run: |
+          echo "The browser install timed out or failed; trying once more."
+          pnpm exec playwright install chromium webkit
+      - name: Save Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true' && success()
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - run: pnpm test:e2e
       - if: always()
         run: e2e/stack.sh logs || true
