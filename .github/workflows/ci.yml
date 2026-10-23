@@ -84,9 +84,29 @@ jobs:
       # about six minutes and the browser zips in about fifteen seconds.
       # Cache the browsers on the lockfile's resolved @playwright/test
       # version, and on a hit install only the OS packages. Each install
-      # times out on its own and retries once, so a slow mirror fails or
-      # recovers without using the whole job. Save the cache only after a
-      # successful browser install, so a timed-out download is not reused.
+      # times out on its own and retries once. Save the browser cache only
+      # after a successful browser install, so a timed-out download is not
+      # reused.
+      #
+      # Retrying the same mirror does not help when it is slow rather than
+      # stuck. On main, run 39969658185 attempt 1 (ubuntu-24.04 image
+      # 20261012.334.1) the browser cache missed
+      # (playwright-Linux-1.63.0). apt-get update from
+      # azure.archive.ubuntu.com fetched 12.5 MB in 7s, then the .deb files
+      # trickled: fonts-freefont-ttf (5.6 MB) took about two minutes and
+      # fonts-wqy-zenhei (7.5 MB) about two more, with no Err, so the
+      # image's 15s Acquire::http::Timeout never failed over to the next
+      # line of /etc/apt/apt-mirrors.txt. The install and its retry each
+      # used the whole 8 minutes, and Deploy web was skipped. Attempt 2 of
+      # that run, on a new runner, fetched the same 119 MB from
+      # azure.archive.ubuntu.com in 9s (13.1 MB/s) and the job passed. The
+      # mirror is sometimes fast. The in-job retry never leaves the slow
+      # node. Cache those .deb archives (Playwright version plus ImageOS and
+      # ImageVersion) so a hit installs from disk, and on the retry drop
+      # the Azure mirror.
+      # A trickling transfer still does not trip Timeout; the retry is what
+      # leaves the mirror. Save the .deb cache only after the package
+      # install succeeded.
       - name: Read the Playwright version the lockfile resolved
         id: playwright
         run: |
@@ -100,6 +120,52 @@ jobs:
             exit 1
           fi
           echo "version=$version" >>"$GITHUB_OUTPUT"
+      - name: Read the runner image
+        id: runner-image
+        run: |
+          if [ -z "${ImageOS:-}" ] || [ -z "${ImageVersion:-}" ]; then
+            echo "::error::ImageOS and ImageVersion must be set; the apt archive cache key uses both"
+            exit 1
+          fi
+          echo "ImageOS=$ImageOS ImageVersion=$ImageVersion"
+          # The key keeps dots, as the browser cache key already does. Other
+          # punctuation is replaced so a future image version cannot break it.
+          os=$(printf '%s' "$ImageOS" | tr -c 'A-Za-z0-9._-' '-')
+          version=$(printf '%s' "$ImageVersion" | tr -c 'A-Za-z0-9._-' '-')
+          echo "os=$os" >>"$GITHUB_OUTPUT"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+      # install-deps runs apt-get as root. Point the archive directory at a
+      # path the runner user can read, so actions/cache can save it. The
+      # image writes Acquire::Retries and Acquire::http::Timeout in
+      # zz-retries, and the last file in apt.conf.d wins, so this name sorts
+      # after that file. Timeout is how long apt waits when a fetch sends
+      # nothing (runner-images #14594); it does not abandon a slow transfer.
+      - name: Point apt at a runner-readable archive directory
+        run: |
+          archives="$HOME/.cache/playwright-apt-archives"
+          mkdir -p "$archives/partial"
+          chmod 755 "$archives"
+          # apt downloads as the _apt user into partial/. Root still reads
+          # restored .deb files, which are mode 644.
+          if ! id _apt >/dev/null 2>&1; then
+            echo "::error::the _apt user is missing; apt cannot use $archives"
+            exit 1
+          fi
+          sudo chown _apt:root "$archives/partial"
+          sudo chmod 755 "$archives/partial"
+          printf '%s\n' \
+            "Dir::Cache::Archives \"${archives}\";" \
+            'Acquire::http::Timeout "15";' \
+            'Acquire::https::Timeout "15";' \
+            'Acquire::Retries "1";' \
+            | sudo tee /etc/apt/apt.conf.d/zzz-playwright >/dev/null
+          apt-config dump Dir::Cache::Archives Acquire::Retries Acquire::http::Timeout Acquire::https::Timeout
+      - name: Restore cached Playwright operating system packages
+        id: playwright-apt-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/playwright-apt-archives
+          key: playwright-apt-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ steps.runner-image.outputs.os }}-${{ steps.runner-image.outputs.version }}
       - name: Restore cached Playwright browsers
         id: playwright-cache
         uses: actions/cache/restore@v6
@@ -110,8 +176,16 @@ jobs:
         id: playwright-deps
         timeout-minutes: 8
         continue-on-error: true
-        run: pnpm exec playwright install-deps chromium webkit
+        run: |
+          # Cache restore leaves this directory as the runner created it.
+          # apt fetches into partial/ as the _apt user.
+          partial="$HOME/.cache/playwright-apt-archives/partial"
+          mkdir -p "$partial"
+          sudo chown _apt:root "$partial"
+          sudo chmod 755 "$partial"
+          pnpm exec playwright install-deps chromium webkit
       - name: Retry Playwright's operating system dependencies
+        id: playwright-deps-retry
         if: steps.playwright-deps.outcome == 'failure'
         timeout-minutes: 8
         run: |
@@ -130,6 +204,37 @@ jobs:
           sudo pkill -KILL apt-get || true
           sudo pkill -KILL apt || true
           sudo DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+          # Run 39969658185 attempt 1 retried the same azure.archive.ubuntu.com
+          # mirror and timed out again. The mirror list prefers that host at
+          # priority 1, and a transfer that keeps sending bytes never fails
+          # over. Drop it so this attempt uses archive.ubuntu.com, then
+          # security.ubuntu.com. Complete .debs already in the archive
+          # directory are reused; apt checks them against the index.
+          mirrors=/etc/apt/apt-mirrors.txt
+          if [ ! -f "$mirrors" ]; then
+            echo "::error::$mirrors is missing, so the retry cannot leave azure.archive.ubuntu.com"
+            exit 1
+          fi
+          echo "apt mirrors before:"
+          cat "$mirrors"
+          filtered="$(awk '!/azure\.archive\.ubuntu\.com/' "$mirrors")"
+          if ! printf '%s\n' "$filtered" | grep -q '[^[:space:]]'; then
+            filtered="$(printf '%s\n' \
+              'https://archive.ubuntu.com/ubuntu/	priority:1' \
+              'https://security.ubuntu.com/ubuntu/	priority:2')"
+          fi
+          printf '%s\n' "$filtered" | sudo tee "$mirrors" >/dev/null
+          echo "apt mirrors after:"
+          cat "$mirrors"
+          if grep -q 'azure\.archive\.ubuntu\.com' "$mirrors"; then
+            echo "::error::azure.archive.ubuntu.com is still in $mirrors"
+            exit 1
+          fi
+          partial="$HOME/.cache/playwright-apt-archives/partial"
+          sudo rm -rf "$partial"
+          mkdir -p "$partial"
+          sudo chown _apt:root "$partial"
+          sudo chmod 755 "$partial"
           pnpm exec playwright install-deps chromium webkit
       - name: Install Playwright browsers
         id: playwright-browsers
@@ -149,6 +254,31 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Root apt writes the .debs. Hand them to the runner, and do not cache
+      # partial downloads or an empty directory (a hit on that would skip
+      # saving again while still downloading).
+      - name: Make the apt archives readable by the runner
+        id: playwright-apt-save
+        if: steps.playwright-apt-cache.outputs.cache-hit != 'true' && (steps.playwright-deps.outcome == 'success' || steps.playwright-deps-retry.outcome == 'success')
+        run: |
+          archives="$HOME/.cache/playwright-apt-archives"
+          sudo rm -rf "$archives/partial"
+          sudo rm -f "$archives/lock"
+          sudo chown -R "$(id -u):$(id -g)" "$archives"
+          chmod -R u+rX "$archives"
+          count="$(find "$archives" -name '*.deb' -type f | wc -l)"
+          echo "deb files: $count"
+          if [ "$count" -eq 0 ]; then
+            echo "save=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "save=true" >>"$GITHUB_OUTPUT"
+          fi
+      - name: Save Playwright operating system packages
+        if: steps.playwright-apt-save.outputs.save == 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.cache/playwright-apt-archives
+          key: playwright-apt-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ steps.runner-image.outputs.os }}-${{ steps.runner-image.outputs.version }}
       - run: pnpm test:e2e
       - if: always()
         run: e2e/stack.sh logs || true
