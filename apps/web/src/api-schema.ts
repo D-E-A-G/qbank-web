@@ -97,8 +97,17 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -678,8 +687,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1639,8 +1657,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1797,8 +1824,17 @@ export interface paths {
                         "application/json": components["schemas"]["ImportReport"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1864,7 +1900,10 @@ export interface paths {
                         newTopic?: {
                             title: string;
                         };
-                        /** @enum {string} */
+                        /**
+                         * @description `import` (the default) answers 409 for a set of the same kind and name; `replace` makes the file its new version; `separate` adds it beside it. With an agent key, only `import`: the others answer 403.
+                         * @enum {string}
+                         */
                         decision?: "import" | "replace" | "separate";
                     };
                 };
@@ -1888,8 +1927,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"] | components["schemas"]["ImportIssues"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -6615,6 +6663,562 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent-pairings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * An agent asks to be paired with a user's account
+         * @description Sent by the agent with no key or session. Answers its device code (its secret) and the user code (to show the user), both good for 10 minutes. Then the agent polls POST /api/agent-pairings/token while the user answers in QBank. See the Agents tag.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentPairingRequest"];
+                };
+            };
+            responses: {
+                /** @description The pairing is waiting for the user. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentPairingStarted"];
+                    };
+                };
+                /** @description The name or scopes were refused. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sent with an agent key (`agent_key_not_allowed`): pairing takes none. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Too many pairings started from this address, or waiting at once (`too_many_pairings`). */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Locked"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-pairings/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The agent polls for its key
+         * @description Sent by the agent with its device code and no key or session, `interval` seconds after each answer, until it gets its key or a pairing that is over. The key comes exactly once.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentPairingPoll"];
+                };
+            };
+            responses: {
+                /** @description Approved: the key, this once. Keep it in the operating system's keychain. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentKeyDelivered"];
+                    };
+                };
+                /** @description Not yet, or never: `authorization_pending` (not answered yet; poll again after `interval`), `slow_down` (too soon; wait the new `interval` from now on), `access_denied` (the user denied it), `expired_token` (it ran out, or its key was handed over already), `invalid_device_code` (QBank does not know it). After the last three, start a new pairing. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentPairingWait"] | components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sent with an agent key (`agent_key_not_allowed`): pairing takes none. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-pairings/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * See the agent waiting under a user code
+         * @description Signed in, before approving or denying: the agent's name and the scopes it asks for.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentPairingCode"];
+                };
+            };
+            responses: {
+                /** @description The pairing waiting for an answer. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentPairing"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description No pairing is waiting under that code: mistyped, answered already, or past its expiry (`pairing_not_found`). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Five codes that matched nothing lock this account's pairing answers for 15 minutes (`too_many_attempts`). */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Locked"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-pairings/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve the agent waiting under a user code
+         * @description Its key belongs to the account signed in. The agent picks it up on its next poll; until then nothing is listed under GET /api/agent-keys.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentPairingCode"];
+                };
+            };
+            responses: {
+                /** @description Approved. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentPairing"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description No pairing is waiting under that code: mistyped, answered already, or past its expiry (`pairing_not_found`). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Five codes that matched nothing lock this account's pairing answers for 15 minutes (`too_many_attempts`). */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Locked"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-pairings/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Deny the agent waiting under a user code
+         * @description No key is made. The agent's next poll answers access_denied.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AgentPairingCode"];
+                };
+            };
+            responses: {
+                /** @description Denied. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentPairing"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description No pairing is waiting under that code: mistyped, answered already, or past its expiry (`pairing_not_found`). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Five codes that matched nothing lock this account's pairing answers for 15 minutes (`too_many_attempts`). */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Locked"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the account's agent keys
+         * @description The signed-in account's own keys, newest first, revoked ones included. Never a key itself.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The account's keys. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentKeyList"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-keys/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke one of the account's agent keys
+         * @description It stops working at once and for good, and stays listed. The sets it imported keep its name. Revoking a revoked key changes nothing.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The key, revoked. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgentKey"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`). */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description The account has no key of that id (`agent_key_not_found`). */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6725,6 +7329,17 @@ export interface components {
             fullyRightCount: number;
             lastAnsweredAt: string | null;
             questionIds: string[];
+            /** @description The agent key that imported this version of the set, such as the user's own AI agent (see the Agents tag): show it as "Imported by your agent". Null when it was imported in the app or QBank made it. It stays after the key is revoked. */
+            importedByAgent: components["schemas"]["ImportingAgent"] | null;
+        };
+        ImportingAgent: {
+            /**
+             * Format: uuid
+             * @description Its agent key, as GET /api/agent-keys lists it.
+             */
+            id: string;
+            /** @description The name the agent paired with, such as My MacBook agent. */
+            name: string;
         };
         Folder: {
             /** Format: uuid */
@@ -6750,6 +7365,8 @@ export interface components {
             id: string;
             title: string;
             questionCount: number;
+            /** @description The agent key that imported this version of the set, such as the user's own AI agent (see the Agents tag): show it as "Imported by your agent". Null when it was imported in the app or QBank made it. It stays after the key is revoked. */
+            importedByAgent: components["schemas"]["ImportingAgent"] | null;
         };
         CourseExam: {
             /** Format: uuid */
@@ -7014,6 +7631,8 @@ export interface components {
             questionCount: number;
             termCount: number;
             warnings: string[];
+            /** @description The agent key that imported it, when an agent did; null when it was imported in the app or QBank made it. */
+            importedByAgent: components["schemas"]["ImportingAgent"] | null;
         };
         ImportIssues: {
             error: string;
@@ -8308,6 +8927,80 @@ export interface components {
             }[];
             exam: components["schemas"]["QuestionTwinExam"];
             warnings: string[];
+        };
+        AgentPairingStarted: {
+            /** @description The agent's secret for this pairing, for polling. Never shown to the user; QBank keeps only its hash. */
+            deviceCode: string;
+            /**
+             * @description Show it to the user, who enters it in QBank to approve.
+             * @example BCDF-GHJK
+             */
+            userCode: string;
+            expiresAt: string;
+            /** @description Seconds until expiresAt. */
+            expiresIn: number;
+            /** @description Seconds to wait between polls. */
+            interval: number;
+        };
+        AgentPairingRequest: {
+            /** @description What the user will see, such as My MacBook agent; the key keeps it. */
+            name: string;
+            /** @description What the key should be able to do. The user sees them before approving. */
+            scopes: components["schemas"]["AgentScope"][];
+        };
+        /**
+         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: accepted, and reaches nothing yet. More may be added later; show one you do not know by its name.
+         * @enum {string}
+         */
+        AgentScope: "import" | "read";
+        AgentKeyDelivered: {
+            /**
+             * @description The key. Send it as Authorization: Bearer. QBank keeps only its hash and never shows it again.
+             * @example qbk_...
+             */
+            token: string;
+            key: components["schemas"]["AgentKey"];
+        };
+        AgentKey: {
+            /** Format: uuid */
+            id: string;
+            /** @description The name the agent paired with. */
+            name: string;
+            scopes: components["schemas"]["AgentScope"][];
+            /** @description When the agent picked it up. */
+            createdAt: string;
+            /** @description When an operation last let it in, or null when none has. */
+            lastUsedAt: string | null;
+            /** @description When it was revoked, or null while it works. A revoked key stays listed and never works again. */
+            revokedAt: string | null;
+        };
+        AgentPairingWait: components["schemas"]["Error"] & {
+            /** @description Seconds to wait before the next poll, from now on. */
+            interval: number;
+        };
+        AgentPairingPoll: {
+            deviceCode: string;
+        };
+        AgentPairing: {
+            /** @description The name the agent asked with. */
+            name: string;
+            /** @description What its key would be able to do. */
+            scopes: components["schemas"]["AgentScope"][];
+            /**
+             * @description `pending` until the user answers.
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "denied";
+            createdAt: string;
+            /** @description When the code stops working, approved or not, if the agent has not picked up its key. */
+            expiresAt: string;
+        };
+        AgentPairingCode: {
+            /** @description The code the agent shows the user, such as BCDF-GHJK, in any case, with or without its dash. */
+            userCode: string;
+        };
+        AgentKeyList: {
+            keys: components["schemas"]["AgentKey"][];
         };
     };
     responses: never;

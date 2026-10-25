@@ -29,6 +29,7 @@ function set(questionCount: number, answeredCount = 0): SetSummary {
     fullyRightCount: answeredCount,
     lastAnsweredAt: null,
     questionIds: [],
+    importedByAgent: null,
   };
 }
 

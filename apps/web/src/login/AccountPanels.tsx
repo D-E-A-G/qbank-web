@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { AGENTS_PATH } from "../agents/agents";
+import { Icon } from "../components/Icon";
+import { ShellLink } from "../shell/ShellLink";
 import {
   ApiError,
   changePassword,
@@ -127,6 +130,18 @@ export function AccountSection({ user, onUser, onSignedOut }: { user: Account; o
             {error}
           </p>
         ) : null}
+        <ShellLink to={AGENTS_PATH} className="account-link" current={false}>
+          <span className="row-icon">
+            <Icon name="link-2" size={20} />
+          </span>
+          <span className="list-copy">
+            <span className="list-title">Connect an agent</span>
+            <span className="list-meta">Approve its code, and see your keys</span>
+          </span>
+          <span className="list-chevron">
+            <Icon name="chevron-right" size={18} strokeWidth={2} />
+          </span>
+        </ShellLink>
         <Button
           variant="quiet"
           size="md"

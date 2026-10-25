@@ -1,6 +1,6 @@
 import { homeLayout, useCatalog, type CourseLink } from "../catalog";
 import { Icon } from "../components/Icon";
-import type { AppRoute } from "../routes";
+import { inSection, type AppRoute } from "../routes";
 import { ShellLink } from "./ShellLink";
 
 export function Sidebar({ items, pathname }: { items: readonly AppRoute[]; pathname: string }) {
@@ -10,7 +10,7 @@ export function Sidebar({ items, pathname }: { items: readonly AppRoute[]; pathn
       <div className="sidebar-title">Qbank</div>
       <nav className="sidebar-nav" aria-label="Sections">
         {items.map((item) => {
-          const current = pathname === item.path;
+          const current = inSection(pathname, item.path);
           return (
             <ShellLink key={item.id} to={item.path} className="side-item" current={current}>
               <Icon name={item.icon} size={18} strokeWidth={current ? 2 : 1.75} />

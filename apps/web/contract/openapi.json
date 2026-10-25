@@ -4,7 +4,36 @@
     "title": "nclex-qbank API",
     "version": "0.1.0"
   },
+  "tags": [
+    {
+      "name": "Agents",
+      "description": "How an AI agent that a user brings, such as one running on their own computer, imports the question sets it made into their QBank over plain HTTP, with a key of its own instead of the user's session.\n\n**Pairing.** Nobody copies a key: the agent asks for one, the user approves it in QBank, and the agent picks it up (OAuth 2.0 device authorization, RFC 8628, in this API's words).\n\n1. The agent starts a pairing with `POST /api/agent-pairings`, sending no key: its `name`, which the user will see (such as \"My MacBook agent\"), and the `scopes` it wants. It gets back `deviceCode`, its own secret for this pairing, and `userCode`, such as `BCDF-GHJK`, to show the user. Both last 10 minutes (`expiresAt`).\n2. Signed in to QBank, the user enters the code. The app shows the agent's name and scopes (`POST /api/agent-pairings/lookup`), and the user approves (`POST /api/agent-pairings/approve`) or denies (`POST /api/agent-pairings/deny`) it. Approving gives the key to the account signed in. The name is only what the agent says it is, so the user approves only a code their own agent is showing them.\n3. Meanwhile the agent polls `POST /api/agent-pairings/token` with its `deviceCode`, waiting `interval` seconds (5 at first) after each answer. Until the user answers it gets 400 `authorization_pending`; a poll that comes too soon gets 400 `slow_down` and a longer `interval` to keep from then on. Once approved, it gets 200 with `token`, the key (`qbk_...`), exactly once: QBank keeps only its hash, and the pairing is used up. 400 `access_denied` means the user denied it; 400 `expired_token` means the pairing ran out or its key was handed over already. Either way the agent starts again.\n4. The agent keeps the key in the operating system's keychain (the macOS Keychain on a Mac), never in a file, a repository, or a log, and sends it on every call below as `Authorization: Bearer qbk_...`.\n\nStarting is limited: one address may start a few pairings in 10 minutes, and only so many may wait at once, whoever started them; past either, 429 `too_many_pairings` with `retryAfterSeconds`.\n\n**The user's keys.** `GET /api/agent-keys` lists the account's keys: each one's name, scopes, when it was made, and when it was last used. `POST /api/agent-keys/{id}/revoke` stops one at once and for good. A key is never shown again after the agent picks it up, and each account sees and revokes only its own.\n\n**Scopes.** `import` reaches the operations tagged Agents that name it in their security: checking and importing question files, and reading the account's semesters, courses and sets to do it. `read` is accepted at pairing and reaches nothing yet.\n\n**Importing with the key.**\n\n1. Find the course: `GET /api/semesters` lists the account's semesters with their courses (match `code`) and its study topics (match `title`).\n2. Check every file before importing any: `POST /api/imports/check` with `{\"source\": \"<the file>\"}`. `ok: false` lists the `errors` that block it; `warnings` do not. `kind` is `exam` for an exam set, such as exam twins: a file meant as exam twins that comes back `practice` is not one, so import nothing.\n3. Import each file: `POST /api/imports` with `source` and `courseId` (or `newCourse` or `newTopic`), and `folderName` or `folderId` (without either, the course's Unsorted folder); practice sets first, then their exam twins. Leave `decision` out, or send `import`.\n   - 201: the set landed: `courseId`, `folderId`, `folderName`, `setId`, `setKind`, its `warnings`, and `importedByAgent` naming this key.\n   - 409: a current set of the same kind and name is already in the course, and nothing was written. Read it with `GET /api/practice-sets/{setId}` to tell whether it holds the same questions, and tell the user: they decide in QBank whether to replace it. A key never replaces a set or adds a second of the same name (`decision` `replace` or `separate` answers 403).\n   - 400 `invalid_import`, with `errors` and `warnings`: the file fails the check. Another 400 names what is wrong with the course or folder choice in `message`.\n   - 404: that course or folder is not the account's.\n4. Confirm where the sets landed: `GET /api/courses/{courseId}`. Each folder in `folders` lists its `sets` and `examSets` by title, each with `importedByAgent`, so the agent can tell the user \"Week 5 now has Set 1 and Set 2, and their exam twins\".\n\n**What every one of these can answer for the key:** 401 `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (the user revoked it): pair again. 403 `agent_key_not_allowed`: its scopes do not cover this. 403 `must_change_password`: the account has a temporary password, and nothing works until the user signs in and picks their own. 503 `auth_unavailable`.\n\n**What a key never does.** Every other operation, pairing and the user's keys included, answers a request that carries a key with 403 `agent_key_not_allowed` before reading it: a key never deletes, moves, renames or replaces anything, never changes a password or an account, never reaches Admin, and never pairs, lists or revokes keys. Those need the user's signed-in session."
+    },
+    {
+      "name": "Agent keys",
+      "description": "The user's side of pairing, and the account's agent keys: a signed-in session only (the session cookie, or the token from sign-in), never an agent key. Each account sees, answers for, and revokes only its own. See Agents for the whole flow."
+    }
+  ],
   "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token",
+        "description": "The session cookie a browser holds after sign-in (`__Secure-better-auth.session_token` over HTTPS)."
+      },
+      "sessionToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The token from sign-in (SignedIn.token), as the iPhone app sends it."
+      },
+      "agentKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "qbk_...",
+        "description": "An agent key from pairing (see the Agents tag), as `Authorization: Bearer qbk_...`. It reaches only the operations whose security names it, with the scopes listed there; every other operation answers it with 403 agent_key_not_allowed."
+      }
+    },
     "schemas": {
       "Health": {
         "type": "object",
@@ -367,6 +396,17 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "importedByAgent": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportingAgent"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The agent key that imported this version of the set, such as the user's own AI agent (see the Agents tag): show it as \"Imported by your agent\". Null when it was imported in the app or QBank made it. It stays after the key is revoked."
           }
         },
         "required": [
@@ -381,7 +421,26 @@
           "answeredCount",
           "fullyRightCount",
           "lastAnsweredAt",
-          "questionIds"
+          "questionIds",
+          "importedByAgent"
+        ]
+      },
+      "ImportingAgent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Its agent key, as GET /api/agent-keys lists it."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name the agent paired with, such as My MacBook agent."
+          }
+        },
+        "required": [
+          "id",
+          "name"
         ]
       },
       "Folder": {
@@ -448,12 +507,24 @@
           },
           "questionCount": {
             "type": "integer"
+          },
+          "importedByAgent": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportingAgent"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The agent key that imported this version of the set, such as the user's own AI agent (see the Agents tag): show it as \"Imported by your agent\". Null when it was imported in the app or QBank made it. It stays after the key is revoked."
           }
         },
         "required": [
           "id",
           "title",
-          "questionCount"
+          "questionCount",
+          "importedByAgent"
         ]
       },
       "CourseExam": {
@@ -1298,6 +1369,17 @@
             "items": {
               "type": "string"
             }
+          },
+          "importedByAgent": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportingAgent"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The agent key that imported it, when an agent did; null when it was imported in the app or QBank made it."
           }
         },
         "required": [
@@ -1313,7 +1395,8 @@
           "examPageId",
           "questionCount",
           "termCount",
-          "warnings"
+          "warnings",
+          "importedByAgent"
         ]
       },
       "ImportIssues": {
@@ -5796,6 +5879,229 @@
           "exam",
           "warnings"
         ]
+      },
+      "AgentPairingStarted": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "description": "The agent's secret for this pairing, for polling. Never shown to the user; QBank keeps only its hash."
+          },
+          "userCode": {
+            "type": "string",
+            "example": "BCDF-GHJK",
+            "description": "Show it to the user, who enters it in QBank to approve."
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Seconds until expiresAt."
+          },
+          "interval": {
+            "type": "integer",
+            "description": "Seconds to wait between polls."
+          }
+        },
+        "required": [
+          "deviceCode",
+          "userCode",
+          "expiresAt",
+          "expiresIn",
+          "interval"
+        ]
+      },
+      "AgentPairingRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "What the user will see, such as My MacBook agent; the key keeps it."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentScope"
+            },
+            "minItems": 1,
+            "maxItems": 2,
+            "description": "What the key should be able to do. The user sees them before approving."
+          }
+        },
+        "required": [
+          "name",
+          "scopes"
+        ]
+      },
+      "AgentScope": {
+        "type": "string",
+        "enum": [
+          "import",
+          "read"
+        ],
+        "description": "What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: accepted, and reaches nothing yet. More may be added later; show one you do not know by its name."
+      },
+      "AgentKeyDelivered": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "qbk_...",
+            "description": "The key. Send it as Authorization: Bearer. QBank keeps only its hash and never shows it again."
+          },
+          "key": {
+            "$ref": "#/components/schemas/AgentKey"
+          }
+        },
+        "required": [
+          "token",
+          "key"
+        ]
+      },
+      "AgentKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name the agent paired with."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentScope"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When the agent picked it up."
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When an operation last let it in, or null when none has."
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When it was revoked, or null while it works. A revoked key stays listed and never works again."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scopes",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ]
+      },
+      "AgentPairingWait": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "interval": {
+                "type": "integer",
+                "description": "Seconds to wait before the next poll, from now on."
+              }
+            },
+            "required": [
+              "interval"
+            ]
+          }
+        ]
+      },
+      "AgentPairingPoll": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "deviceCode"
+        ]
+      },
+      "AgentPairing": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name the agent asked with."
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentScope"
+            },
+            "description": "What its key would be able to do."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "denied"
+            ],
+            "description": "`pending` until the user answers."
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the code stops working, approved or not, if the agent has not picked up its key."
+          }
+        },
+        "required": [
+          "name",
+          "scopes",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ]
+      },
+      "AgentPairingCode": {
+        "type": "object",
+        "properties": {
+          "userCode": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "The code the agent shows the user, such as BCDF-GHJK, in any case, with or without its dash."
+          }
+        },
+        "required": [
+          "userCode"
+        ]
+      },
+      "AgentKeyList": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentKey"
+            }
+          }
+        },
+        "required": [
+          "keys"
+        ]
       }
     },
     "parameters": {}
@@ -5824,7 +6130,21 @@
         "summary": "List her semesters, courses and study topics",
         "description": "Every semester, course and topic belongs to one account, with everything in it: its folders, exam pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.",
         "tags": [
-          "Courses"
+          "Courses",
+          "Agents"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          },
+          {
+            "agentKey": [
+              "import"
+            ]
+          }
         ],
         "responses": {
           "200": {
@@ -5929,7 +6249,17 @@
             }
           },
           "401": {
-            "description": "Sign in is required.",
+            "description": "Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6850,7 +7180,21 @@
         "summary": "A course or topic, its folders, its exam pages, and its sets",
         "description": "Every semester, course and topic belongs to one account, with everything in it: its folders, exam pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.",
         "tags": [
-          "Courses"
+          "Courses",
+          "Agents"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          },
+          {
+            "agentKey": [
+              "import"
+            ]
+          }
         ],
         "parameters": [
           {
@@ -6885,7 +7229,17 @@
             }
           },
           "401": {
-            "description": "Sign in is required.",
+            "description": "Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7753,7 +8107,21 @@
       "get": {
         "summary": "The questions in the current version of a practice set",
         "tags": [
-          "Courses"
+          "Courses",
+          "Agents"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          },
+          {
+            "agentKey": [
+              "import"
+            ]
+          }
         ],
         "parameters": [
           {
@@ -7788,7 +8156,17 @@
             }
           },
           "401": {
-            "description": "Sign in is required.",
+            "description": "Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7928,7 +8306,21 @@
       "post": {
         "summary": "Check a question file without importing it",
         "tags": [
-          "Import"
+          "Import",
+          "Agents"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          },
+          {
+            "agentKey": [
+              "import"
+            ]
+          }
         ],
         "requestBody": {
           "content": {
@@ -7951,7 +8343,17 @@
             }
           },
           "401": {
-            "description": "Sign in is required.",
+            "description": "Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7968,7 +8370,21 @@
         "summary": "Import a question file into a course and folder",
         "description": "The set goes into one of her courses or topics (`courseId`), or a new one (`newCourse`, `newTopic`); in it, into `folderId`, or the folder named `folderName`, or else the course's Unsorted folder, made at the top of its Folders list the first time it is needed. A file with `\"kind\": \"exam\"` makes an exam set: the folder's exam bank, asked only on exams, never listed for practice and never in Review. Its questions may name their practice twin in `twinOf`: the id of a practice question in the same folder. A set conflicts only with a current set of the same kind and name in the course. A replace keeps the set in its folder, whatever folder the import names.",
         "tags": [
-          "Import"
+          "Import",
+          "Agents"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          },
+          {
+            "agentKey": [
+              "import"
+            ]
+          }
         ],
         "requestBody": {
           "content": {
@@ -8041,7 +8457,8 @@
                       "import",
                       "replace",
                       "separate"
-                    ]
+                    ],
+                    "description": "`import` (the default) answers 409 for a set of the same kind and name; `replace` makes the file its new version; `separate` adds it beside it. With an agent key, only `import`: the others answer 403."
                   }
                 },
                 "required": [
@@ -8080,7 +8497,17 @@
             }
           },
           "401": {
-            "description": "Sign in is required.",
+            "description": "Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password.",
             "content": {
               "application/json": {
                 "schema": {
@@ -12786,6 +13213,553 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/QuestionMakerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-pairings": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "An agent asks to be paired with a user's account",
+        "description": "Sent by the agent with no key or session. Answers its device code (its secret) and the user code (to show the user), both good for 10 minutes. Then the agent polls POST /api/agent-pairings/token while the user answers in QBank. See the Agents tag.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentPairingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The pairing is waiting for the user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPairingStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name or scopes were refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sent with an agent key (`agent_key_not_allowed`): pairing takes none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many pairings started from this address, or waiting at once (`too_many_pairings`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Locked"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-pairings/token": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "The agent polls for its key",
+        "description": "Sent by the agent with its device code and no key or session, `interval` seconds after each answer, until it gets its key or a pairing that is over. The key comes exactly once.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentPairingPoll"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approved: the key, this once. Keep it in the operating system's keychain.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKeyDelivered"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not yet, or never: `authorization_pending` (not answered yet; poll again after `interval`), `slow_down` (too soon; wait the new `interval` from now on), `access_denied` (the user denied it), `expired_token` (it ran out, or its key was handed over already), `invalid_device_code` (QBank does not know it). After the last three, start a new pairing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AgentPairingWait"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sent with an agent key (`agent_key_not_allowed`): pairing takes none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-pairings/lookup": {
+      "post": {
+        "tags": [
+          "Agent keys"
+        ],
+        "summary": "See the agent waiting under a user code",
+        "description": "Signed in, before approving or denying: the agent's name and the scopes it asks for.",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentPairingCode"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The pairing waiting for an answer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPairing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pairing is waiting under that code: mistyped, answered already, or past its expiry (`pairing_not_found`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Five codes that matched nothing lock this account's pairing answers for 15 minutes (`too_many_attempts`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Locked"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-pairings/approve": {
+      "post": {
+        "tags": [
+          "Agent keys"
+        ],
+        "summary": "Approve the agent waiting under a user code",
+        "description": "Its key belongs to the account signed in. The agent picks it up on its next poll; until then nothing is listed under GET /api/agent-keys.",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentPairingCode"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPairing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pairing is waiting under that code: mistyped, answered already, or past its expiry (`pairing_not_found`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Five codes that matched nothing lock this account's pairing answers for 15 minutes (`too_many_attempts`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Locked"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-pairings/deny": {
+      "post": {
+        "tags": [
+          "Agent keys"
+        ],
+        "summary": "Deny the agent waiting under a user code",
+        "description": "No key is made. The agent's next poll answers access_denied.",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentPairingCode"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Denied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentPairing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pairing is waiting under that code: mistyped, answered already, or past its expiry (`pairing_not_found`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Five codes that matched nothing lock this account's pairing answers for 15 minutes (`too_many_attempts`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Locked"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-keys": {
+      "get": {
+        "tags": [
+          "Agent keys"
+        ],
+        "summary": "List the account's agent keys",
+        "description": "The signed-in account's own keys, newest first, revoked ones included. Never a key itself.",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The account's keys.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKeyList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-keys/{id}/revoke": {
+      "post": {
+        "tags": [
+          "Agent keys"
+        ],
+        "summary": "Revoke one of the account's agent keys",
+        "description": "It stops working at once and for good, and stays listed. The sets it imported keep its name. Revoking a revoked key changes nothing.",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "sessionToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The key, revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKey"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Choose a new password first (`must_change_password`), or sent with an agent key (`agent_key_not_allowed`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The account has no key of that id (`agent_key_not_found`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

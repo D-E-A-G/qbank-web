@@ -1367,6 +1367,60 @@ button.review-row:disabled {
   font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
 }
 
+/* Connect an agent: the agent waiting under a code, what it asks to do, and Deny or Approve. */
+.agent-request {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.agent-request-name {
+  font: var(--text-title-3);
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.agent-request-code {
+  font: var(--text-footnote);
+  color: var(--text-2);
+}
+
+.agent-scopes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.agent-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.agent-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.agent-scope .row-icon {
+  margin-top: 2px;
+}
+
+.agent-answer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* A revoked key stays listed, quieter, without its Revoke. */
+.agent-key-revoked .list-title {
+  color: var(--text-3);
+}
+
 /* Why a deleted item cannot come back yet, as the server says it, under its row. */
 .list-row-note {
   margin: -4px 0 0;
