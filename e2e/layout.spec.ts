@@ -240,6 +240,8 @@ test.describe("adding where she is", () => {
     await menu.getByRole("menuitem", { name: "Archive" }).click();
     await expect(page.getByRole("status").filter({ hasText: `Archived ${code}. It is in Archived at the bottom of Home.` })).toBeVisible();
     await expect(cardsIn(page, first.name).filter({ hasText: code })).toHaveCount(0);
+    // The card at the bottom can sit over Archived on a phone; she dismisses it, or it goes by itself.
+    await page.getByRole("status").getByRole("button", { name: "Dismiss" }).click();
     const archived = main(page).locator("details.archived");
     await archived.getByText("Archived", { exact: true }).click();
     await archived.getByRole("button", { name: `Actions for ${code}` }).click();

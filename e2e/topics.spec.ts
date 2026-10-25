@@ -308,6 +308,8 @@ test.describe("study topics", () => {
     await page.getByRole("button", { name: `Actions for ${renamed}` }).click();
     await page.getByRole("menu", { name: renamed }).getByRole("menuitem", { name: "Archive" }).click();
     await expect(topics).toHaveText(starts(second));
+    // The card at the bottom can sit over Archived on a phone; she dismisses it, or it goes by itself.
+    await page.getByRole("status").getByRole("button", { name: "Dismiss" }).click();
     const archived = main(page).locator("details.archived");
     await expect(archived).not.toHaveAttribute("open");
     await archived.getByText("Archived", { exact: true }).click();
