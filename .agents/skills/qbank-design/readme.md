@@ -35,10 +35,10 @@ The voice is **plain, calm and honest**, like a good clinical instructor writing
 
 - **Second person, present tense.** "You'll need your password or a passkey to sign back in." Admin copy says **"her"** ("Her progress, read-only", "Reset her password"), because the owner is acting for someone else.
 - **Sentence case everywhere**: buttons, titles, sheet titles. Title Case is never used. Small uppercase appears only in list-group headers and option state tags ("YOUR ANSWER · CORRECT"), and only through CSS.
-- **Verbs first on buttons:** Check answer, Submit and continue, Skip for now, Practice these 19 (shuffled), Copy these for Codex, Restore, Import as a separate set.
+- **Verbs first on buttons:** Check answer, Submit and continue, Skip for now, Practice these 19 (shuffled), Copy these for your Firstmate, Restore, Import as a separate set.
 - **State scores as numbers, without judgement:** "13 of 17 fully right", "2 of 4 points", "7 of 12 answered". No "Great job!", no "Oops". Misses are "Not correct" or "Missed", never "Wrong!".
 - **Confirmations name exactly what changes and what doesn't:** "Clear all 12 questions from this course's Review list?" followed by "Your answers and scores are kept. Only the list is emptied." Cancel is always last and always changes nothing.
-- **Errors are written so she can paste them back to Codex:** `Question 4 (X04): missing takeaway`. They name the question's position and its id.
+- **Errors are written so she can paste them back to your Firstmate:** `Question 4 (X04): missing takeaway`. They name the question's position and its id.
 - **Review is a to-do list, not a penalty:** "Questions you miss or flag as a guess show up here. They leave when you answer them fully right without guessing."
 - **No emoji, no exclamation marks, no streaks, badges or confetti.** Unicode is limited to typographic marks (· – — ’ ×) and the minus sign in "−1 for each wrong one".
 - **Clinical content** (stems, rationales) keeps its units and abbreviations exactly: "BP 88/52 mm Hg", "30 mL/kg", "MAP under 65". Terms get a plain-language definition in one sentence.
@@ -120,7 +120,7 @@ These are not in the PRD's list, but the screens need them:
 - `TabBar`, `Sidebar`, `NavBar`: the navigation described in "Platforms and layouts".
 
 ### UI kits
-- `ui_kits/qbank-app/index.html`: sign in → passkey offer → lands on the last course. From there: Home, Course (tiles, week sets, Restore), the runner with all 8 formats, Results, Review (filters, Clear), Terms, Exam setup (proportional draw), timed Exam (skip, End exam), Exam result, Import (check, errors, Copy for Codex, replace warning, done) and Settings (Look control switches the theme). Use the device and theme toggles at the top.
+- `ui_kits/qbank-app/index.html`: sign in → passkey offer → lands on the last course. From there: Home, Course (tiles, week sets, Restore), the runner with all 8 formats, Results, Review (filters, Clear), Terms, Exam setup (proportional draw), timed Exam (skip, End exam), Exam result, Import (check, errors, Copy for your Firstmate, replace warning, done) and Settings (Look control switches the theme). Use the device and theme toggles at the top.
 - `ui_kits/qbank-admin/index.html`: the owner's view. Her screens carry a read-only banner. Admin has Semesters and courses, Fix a week, Her password, and Repair with a confirmation.
 
 All question content in the kits is invented fixture data, per the PRD. It is not clinical advice.
