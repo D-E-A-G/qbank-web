@@ -736,7 +736,87 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete a course or topic
+         * @description Deletes a course or study topic with everything in it, as its preview named. It leaves Home (GET /api/semesters), the topic order, its own reads and everything in it (404, as an id that names nothing), study, Review, exams, Make questions and exam twins, the last course she used, and what an agent reads (GET /api/me/standing, and `courses` and `questions` of GET /api/me/export). Nothing in it is written: its folders, exam pages, sets, her answers, progress and past exams stay saved as they are, her answers count toward nothing while it is deleted, and an answer still on its way to one of its questions is saved. Its code, or a topic's name, is free again meanwhile. Refused with 409 `in_use` while a Make questions or twin job is still working in it, or an exam in it is in progress. GET /api/deleted-courses lists it for Undo. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this; the admin is refused with 403 `admin_cannot_delete_course`, and an agent key with 403 `agent_key_not_allowed`.
+         */
+        delete: {
+            parameters: {
+                query?: {
+                    /** @description `confirm` from the delete preview she was shown. Required (409 `confirmation_required` without it); one that no longer matches is refused with 409 `deletion_changed`, and nothing is deleted. */
+                    confirm?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description It was deleted. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         /**
@@ -3664,7 +3744,7 @@ export interface paths {
         };
         /**
          * A course's Review list
-         * @description Missed and guessed questions in this course. The admin sees her list and cannot change it here.
+         * @description What she missed or guessed in this course: each practice question whose latest answer was not fully right or was a guess, newest first, with its topic, folder, set and mark, as the Review screen shows it. A question leaves the list when she answers it fully right without guessing, or clears the list. `counts` are the chips: all, missed, partly right, guessed. The admin sees her list and cannot change it here. An agent key with `read` reads its own account's list.
          */
         get: {
             parameters: {
@@ -3688,7 +3768,7 @@ export interface paths {
                         "application/json": components["schemas"]["ReviewList"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -3697,7 +3777,7 @@ export interface paths {
                         "application/json": components["schemas"]["ProgressError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description `agent_key_not_allowed`: the key has no `read` scope, or the admin approved it (the admin account has no answers of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -3706,7 +3786,7 @@ export interface paths {
                         "application/json": components["schemas"]["ProgressError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description The course is not the account's, or not in the app (`course_not_found`). */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -3915,7 +3995,7 @@ export interface paths {
         };
         /**
          * The course she used last
-         * @description An archived course is omitted, so she lands on Home instead. The admin reads his own place, which stays empty.
+         * @description An archived or deleted course is omitted, so she lands on Home instead. The admin reads his own place, which stays empty.
          */
         get: {
             parameters: {
@@ -4047,7 +4127,7 @@ export interface paths {
         };
         /**
          * Export her progress
-         * @description Her answers, question progress, Review lists, course completion and scores, and study sessions, including exams, as one JSON file. Only the student can export, and only her own data.
+         * @description Her whole history as one JSON file: every answer she gave, her latest answer to each question, her Review lists, course completion and scores, and every study session, exams included (`studySessions` whose `mode` is `exam`, for GET /api/exams/{id}). It grows with every answer; GET /api/me/standing says where she stands in far less. A course or topic she deleted is left out of `courses` and `questions` until she brings it back; her sessions and answers in it stay. Only a user account can export, and only its own data: the admin cannot. An agent key with `read` exports its own account's.
          */
         get: {
             parameters: {
@@ -4069,7 +4149,7 @@ export interface paths {
                         "application/json": components["schemas"]["ProgressExport"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -4078,7 +4158,73 @@ export interface paths {
                         "application/json": components["schemas"]["ProgressError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description `not_student`: the admin cannot export. `agent_key_not_allowed`: the key has no `read` scope, or the admin approved it. `must_change_password`: the account has a temporary password. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProgressError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProgressError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/standing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where she stands, topic by topic
+         * @description Every course and study topic of hers, in the export's order, each with her standing on each topic its question files name: how many current questions it has, how many she has answered, and what her latest answers were. A topic with many answers and few fully right is a weak spot; one with few answers is not practiced yet. Counted by the course page's rules (current versions only, without the sets she deleted, keeping her answers across a replace), over practice and exam-bank questions alike. A course or topic she deleted is not listed until she brings it back. It reads; it writes nothing. Only a user account has a standing: the admin cannot read one. An agent key with `read` reads its own account's.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Her standing by course and topic. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Standing"];
+                    };
+                };
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProgressError"];
+                    };
+                };
+                /** @description `not_student`: the admin has no answers of its own. `agent_key_not_allowed`: the key has no `read` scope, or the admin approved it. `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -4420,7 +4566,7 @@ export interface paths {
         };
         /**
          * One of her exams
-         * @description Its questions in the order served and the ones she has answered. Once it has ended, the result: points, fully right, partly right, missed, guessed, not answered, minutes used, the by-folder, by-week and by-clinical-judgment-step breakdowns, each question's mark, how many practice questions went to Review, and how many exam-bank questions she got wrong (they stay out of Review). An exam whose time has run out is ended first.
+         * @description Its questions in the order served and the ones she has answered. Once it has ended, the result: points, fully right, partly right, missed, guessed, not answered, minutes used, the by-folder, by-week and by-clinical-judgment-step breakdowns, each question's mark, how many practice questions went to Review, and how many exam-bank questions she got wrong (they stay out of Review). An exam whose time has run out is ended first. An agent key with `read` reads its own account's exams (their ids are in GET /api/me/export, `studySessions` whose `mode` is `exam`) and never ends one: an exam whose time ran out reads with `finishedAt` and `result` null until her app next opens it.
          */
         get: {
             parameters: {
@@ -4442,7 +4588,7 @@ export interface paths {
                         "application/json": components["schemas"]["Exam"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -4451,7 +4597,7 @@ export interface paths {
                         "application/json": components["schemas"]["ExamError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description `agent_key_not_allowed`: the key has no `read` scope, or the admin approved it (the admin account has no answers of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -4460,7 +4606,7 @@ export interface paths {
                         "application/json": components["schemas"]["ExamError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description The exam is not the account's, or not in the app (`exam_not_found`). */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -5213,6 +5359,285 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What deleting a course or topic takes with it
+         * @description For the one question before a course or study topic is deleted: its folders, exam pages, sets, questions, her answers and past exams in it, and `message`, the question to ask her. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both read this.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description What goes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDeletion"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/courses/{id}/undo-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo deleting a course or topic
+         * @description Brings back a course or study topic she deleted, whole: its folders, exam pages, sets (one she had deleted on its own before stays in its Recently deleted), her answers counting again, and her past exams, in its semester or her topics as before. Refused with 409 when its semester has a course of its code now, or she has a topic of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this; the admin is refused with 403 `admin_cannot_delete_course`, and an agent key with 403 `agent_key_not_allowed`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Its card, as GET /api/semesters lists it. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /**
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @enum {string}
+                             */
+                            kind: "course" | "topic";
+                            /** @description Empty for a topic. */
+                            code: string;
+                            title: string;
+                            sortOrder: number;
+                            archivedAt: string | null;
+                            questionCount: number;
+                            /** @description Legacy: how many folder names hold practice sets, so two folders with the same name count once. Use folderCount. */
+                            weekCount: number;
+                            /** @description Her folders in the course, empty ones included: the course card's "N folders". */
+                            folderCount: number;
+                            reviewCount: number;
+                            answeredCount: number;
+                            fullyRightCount: number;
+                            points: number;
+                            maxPoints: number;
+                        };
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deleted-courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Her deleted courses and topics, for Undo
+         * @description Her courses and study topics deleted in the last 30 days, newest first: what Undo can still bring back. Older deletes stay hidden and are not listed. The admin reads the same for the user account he looks after.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Recently deleted courses and topics. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecentlyDeletedCourses"];
+                    };
+                };
+                /** @description Sign in. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -7948,6 +8373,11 @@ export interface components {
             setIsCurrent: boolean;
             /** @description When she deleted its set, or null. A deleted set's answers count toward nothing until she brings it back. */
             setDeletedAt: string | null;
+            /**
+             * @description `exam` for an exam-bank question, asked only on exams and never in Review.
+             * @enum {string}
+             */
+            setKind: "practice" | "exam";
             /** @description The question's own week, from its file. */
             weekLabel: string;
             /**
@@ -7980,6 +8410,13 @@ export interface components {
             examWeeks: string[] | null;
             /** @description The folders chosen, for an exam started once folders existed. */
             examFolderIds: string[] | null;
+            /**
+             * @description For an exam: `all`, or `wrong` for only the questions she last answered not fully right. `all` for every other session.
+             * @enum {string}
+             */
+            examPool: "all" | "wrong";
+            /** @description For an exam: the folders (weeks, before folders) that had no exam bank, so it drew their practice questions. Null when the course had no exam bank. */
+            examPracticeWeeks: string[] | null;
             /** @description The time limit, for an exam. */
             timeLimitSeconds: number | null;
             startedAt: string;
@@ -8033,6 +8470,58 @@ export interface components {
             inReview: boolean;
             /** Format: uuid */
             lastAttemptId: string;
+        };
+        Standing: {
+            courses: components["schemas"]["CourseStanding"][];
+        };
+        CourseStanding: {
+            /**
+             * Format: uuid
+             * @description The course, for GET /api/courses/{id}/review.
+             */
+            id: string;
+            /**
+             * @description `topic` for a study topic: a course with no semester and an empty code.
+             * @enum {string}
+             */
+            kind: "course" | "topic";
+            code: string;
+            title: string;
+            /** @description When it was archived, or null. */
+            archivedAt: string | null;
+            /** @description Null for a study topic. */
+            semester: {
+                /** Format: uuid */
+                id: string;
+                number: number;
+                name: string;
+            } | null;
+            /** @description Her standing on each topic of its current questions, by topic name. Empty when it has none. */
+            byTopic: components["schemas"]["TopicStanding"][];
+        };
+        TopicStanding: {
+            /** @description The topic, exactly as the question files name it (ReviewQuestion.topic); not a study topic. Empty for questions whose file named none. */
+            topic: string;
+            /** @description The course's current questions on this topic, practice and exam bank, leaving out the sets she deleted. */
+            questionCount: number;
+            /** @description Of those, the ones she has answered at least once, in practice or on an exam. */
+            answeredCount: number;
+            /** @description Of those, the ones her latest answer got fully right. */
+            fullyRightCount: number;
+            /** @description The ones her latest answer got partly right. */
+            partialCount: number;
+            /** @description The ones her latest answer got wrong. With partialCount and fullyRightCount, it adds up to answeredCount. */
+            missedCount: number;
+            /** @description The ones whose latest answer she marked as a guess, whatever its mark. */
+            guessedCount: number;
+            /** @description What those latest answers earned. */
+            points: number;
+            /** @description The most they could have earned. Her score on the topic is points over maxPoints. */
+            maxPoints: number;
+            /** @description Its practice questions in her Review list now (exam-bank questions never enter Review). */
+            reviewCount: number;
+            /** @description When she last answered one of them, or null when she has answered none. */
+            lastAnsweredAt: string | null;
         };
         RepairPlan: {
             attemptCount: number;
@@ -8439,6 +8928,76 @@ export interface components {
             refusal: string | null;
             confirm: string;
             undoDays: number;
+        };
+        CourseDeletion: {
+            /** Format: uuid */
+            courseId: string;
+            /**
+             * @description `topic` for a study topic: a course with no semester and an empty code.
+             * @enum {string}
+             */
+            kind: "course" | "topic";
+            code: string;
+            title: string;
+            /** @description Its semester; null for a study topic. */
+            semester: {
+                /** Format: uuid */
+                id: string;
+                number: number;
+                name: string;
+            } | null;
+            /** @description Its folders. They go with it, and come back with it. */
+            folderCount: number;
+            /** @description Its exam pages (study pages, in a topic). */
+            examPageCount: number;
+            /** @description Its sets, practice and exam, each counted once whatever its versions. */
+            setCount: number;
+            /** @description Its practice questions, as its card (CourseDetail.questionCount) counts them. */
+            questionCount: number;
+            /** @description Its exam-bank questions, asked only on exams. */
+            examQuestionCount: number;
+            /** @description Of its practice questions, the ones she has answered. Those answers stay saved and count again once it is back. */
+            answeredCount: number;
+            /** @description Of its practice questions, the ones in her Review list. */
+            reviewCount: number;
+            /** @description Her past exams in it. They go with it, and come back with it. */
+            pastExamCount: number;
+            /** @description The question to ask her once, such as "Delete NURS 220 and its 146 questions? You can bring it back for 30 days." */
+            message: string;
+            refusal: string | null;
+            confirm: string;
+            undoDays: number;
+        };
+        RecentlyDeletedCourses: {
+            undoDays: number;
+            /** @description Her courses and study topics deleted in the last 30 days, newest first. */
+            courses: components["schemas"]["DeletedCourse"][];
+        };
+        DeletedCourse: {
+            /**
+             * Format: uuid
+             * @description POST /api/courses/{id}/undo-delete.
+             */
+            id: string;
+            /** @enum {string} */
+            kind: "course" | "topic";
+            /** @description Empty for a topic. */
+            code: string;
+            title: string;
+            /** @description Its semester; null for a study topic. */
+            semester: {
+                /** Format: uuid */
+                id: string;
+                number: number;
+                name: string;
+            } | null;
+            /** @description Its practice questions, as its card counted them. */
+            questionCount: number;
+            deletedAt: string;
+            /** @description Undo is refused after this. */
+            undoUntil: string;
+            /** @description Why Undo would be refused now (its semester has a course of its code now, or she has a topic of its name), or null. */
+            undoRefusal: string | null;
         };
         RecentlyDeleted: {
             undoDays: number;
@@ -8949,7 +9508,7 @@ export interface components {
             scopes: components["schemas"]["AgentScope"][];
         };
         /**
-         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: accepted, and reaches nothing yet. More may be added later; show one you do not know by its name.
+         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: read the account's answers (its standing by topic, Review lists, exams and export) and change nothing. More may be added later; show one you do not know by its name.
          * @enum {string}
          */
         AgentScope: "import" | "read";
