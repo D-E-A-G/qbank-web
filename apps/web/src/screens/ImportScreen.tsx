@@ -16,7 +16,7 @@ import { SegmentedControl } from "../components/SegmentedControl";
 import { TextField } from "../components/TextField";
 import { folderGroups } from "../course/folders";
 import { courseLine, courseName, kindWords } from "../course/pages";
-import { folderPath, useSearch } from "../router";
+import { folderPath, readImportPreset, useSearch } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
@@ -32,11 +32,15 @@ const UNSORTED = "Unsorted";
 const NEW_COURSE = "new";
 const NEW_TOPIC = "new-topic";
 
-/** Import. "Import here" on a folder opens it with `?course=` and `?folder=` picked; otherwise the set goes to Unsorted. */
+/**
+ * Import. The + of a course or an exam page opens it with `?course=` picked (an exam page adds `?page=`,
+ * which lists that page's folders first), and "Import here" on a folder adds `?folder=`, picked. The set
+ * goes to Unsorted unless she picks a folder.
+ */
 export function ImportScreen() {
   const catalog = useCatalog();
   const search = useSearch();
-  const [preset] = useState(() => readPreset(search));
+  const [preset] = useState(() => readImportPreset(search));
   const [mode, setMode] = useState<SourceMode>("paste");
   const [source, setSource] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
@@ -49,7 +53,7 @@ export function ImportScreen() {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   // Counts imports, so the picker reads the course's folders again after one made a folder.
   const [imports, setImports] = useState(0);
-  const [folder, setFolder] = useState<FolderChoice>(preset ? { kind: "folder", id: preset.folderId } : { kind: "unsorted" });
+  const [folder, setFolder] = useState<FolderChoice>(preset?.folderId ? { kind: "folder", id: preset.folderId } : { kind: "unsorted" });
   const [newFolder, setNewFolder] = useState("");
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
@@ -271,7 +275,7 @@ export function ImportScreen() {
             <option value={NEW_TOPIC}>New topic</option>
           </select>
         </label>
-        <FolderPicker course={known ? course : null} value={folder} newName={newFolder} onChange={setFolder} onNewName={setNewFolder} />
+        <FolderPicker course={known ? course : null} firstPageId={courseId === preset?.courseId ? preset.examPageId : null} value={folder} newName={newFolder} onChange={setFolder} onNewName={setNewFolder} />
         {newTopic ? <TextField label="Topic name" value={topicTitle} onChange={setTopicTitle} /> : null}
         {!known && !newTopic ? (
           <>
@@ -398,6 +402,7 @@ function conflictName(conflict: ImportConflict, landed: CourseLink | undefined):
 /** The folder Import files the set under: Unsorted unless she picks one of her folders, grouped by exam page, or names a new one. */
 function FolderPicker({
   course,
+  firstPageId,
   value,
   newName,
   onChange,
@@ -405,6 +410,8 @@ function FolderPicker({
 }: {
   /** The picked course, or null for a new course or while it loads. */
   course: CourseDetail | null;
+  /** The exam page Import was opened from, whose folders come first. */
+  firstPageId: string | null;
   value: FolderChoice;
   newName: string;
   onChange: (choice: FolderChoice) => void;
@@ -412,7 +419,7 @@ function FolderPicker({
 }) {
   const labelId = useId();
   const name = useId();
-  const groups = course === null ? [] : folderGroups(course);
+  const groups = course === null ? [] : folderGroups(course, firstPageId);
   // Her Unsorted is the first chip, so it is not listed again with the other folders on no exam page.
   const unsorted = course?.folders.find((folder) => folder.examPageId === null && folder.name === UNSORTED) ?? null;
   const picked = (choice: FolderChoice) =>
@@ -469,12 +476,4 @@ function FolderPicker({
       <span className="field-hint">Pick a folder now, or leave it in Unsorted and move it later.</span>
     </div>
   );
-}
-
-/** The course and folder "Import here" opened Import with. */
-function readPreset(search: string): { courseId: string; folderId: string } | null {
-  const query = new URLSearchParams(search);
-  const courseId = query.get("course");
-  const folderId = query.get("folder");
-  return courseId === null || folderId === null ? null : { courseId, folderId };
 }

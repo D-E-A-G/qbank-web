@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CourseDetail } from "../api";
+import { refreshCatalog } from "../catalog";
 import { EmptyState } from "../components/EmptyState";
 import { ExamPageEditor } from "../components/ExamPageEditor";
+import { NewFolderSheet } from "../components/FolderSheets";
 import { FolderRows } from "../components/FolderRows";
 import { Icon } from "../components/Icon";
+import { AddMenu } from "../components/Menu";
 import { NavRow, RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { recentlyDeleted, useCourseVersion } from "../course/deletion";
@@ -12,13 +15,14 @@ import { courseName, nextPageName, pageProgress, pageRowMeta } from "../course/p
 import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useFolderOrder } from "../course/useFolderOrder";
 import { useSession } from "../login/session-context";
-import { deletedPath, examPagePath, navigate } from "../router";
+import { deletedPath, examPagePath, importPath, navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
 /**
  * A course, as in the iPhone's Files app: the study tiles, then two lists. Exam pages, one row
  * each, and the folders on no exam page, one row each, in her order. Each opens its own screen.
+ * Its + adds into it: a question file (Import with the course picked), a folder, or an exam page.
  * A study topic is the same screen, called by its name, with study pages for exam pages.
  */
 export function CourseScreen({ courseId }: { courseId: string }) {
@@ -26,7 +30,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   const readOnly = session.user.role !== "student";
   const { course, error, reload, replace } = useCourse(courseId);
   const [ordering, setOrdering] = useState(false);
-  const [making, setMaking] = useState(false);
+  const [making, setMaking] = useState<"page" | "folder" | null>(null);
   const deleted = useRecentlyDeleted(courseId);
   const { name, words } = useCourseNaming(courseId, course);
   useRememberPlace(courseId);
@@ -35,8 +39,8 @@ export function CourseScreen({ courseId }: { courseId: string }) {
     if (course) document.title = `${courseName(course)} · Qbank`;
   }, [course]);
 
-  const closeEditor = useCallback(() => {
-    setMaking(false);
+  const closeSheet = useCallback(() => {
+    setMaking(null);
   }, []);
 
   const loose = course ? looseFolders(course) : [];
@@ -44,8 +48,42 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   // Ordering needs two folders; if another device leaves one, edit mode ends with its Done button.
   const editing = ordering && !readOnly && loose.length > 1;
 
+  const add =
+    course && !readOnly ? (
+      <AddMenu
+        label={`Add to ${courseName(course)}`}
+        items={[
+          {
+            key: "import",
+            label: "Import a question file",
+            detail: "A JSON file from your agent",
+            icon: "file-input",
+            onSelect: () => {
+              navigate(importPath(course.id));
+            },
+          },
+          {
+            key: "folder",
+            label: "New folder",
+            icon: "folder",
+            onSelect: () => {
+              setMaking("folder");
+            },
+          },
+          {
+            key: "page",
+            label: `New ${words.page}`,
+            icon: "layers",
+            onSelect: () => {
+              setMaking("page");
+            },
+          },
+        ]}
+      />
+    ) : undefined;
+
   return (
-    <Screen title={name ?? "Course"}>
+    <Screen title={name ?? "Course"} action={add}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to="/" className="text-action" current={false}>
         {words.home}
@@ -89,31 +127,20 @@ export function CourseScreen({ courseId }: { courseId: string }) {
           </div>
           {course.folders.length === 0 && course.exams.length === 0 ? (
             <div className="empty-card">
-              <EmptyState icon="layers" message={`This ${words.container} has no question sets yet.`} />
+              <EmptyState
+                icon="layers"
+                message={readOnly ? `This ${words.container} has no question sets yet.` : `This ${words.container} has no question sets yet. Tap + to import a question file.`}
+              />
             </div>
           ) : (
             <>
               <section className="group">
-                <div className="group-head">
-                  <h2 className="group-header">{words.pages}</h2>
-                  {readOnly ? null : (
-                    <button
-                      type="button"
-                      className="group-action"
-                      aria-label={`New ${words.page}`}
-                      onClick={() => {
-                        setMaking(true);
-                      }}
-                    >
-                      New
-                    </button>
-                  )}
-                </div>
+                <h2 className="group-header">{words.pages}</h2>
                 {course.exams.length === 0 ? (
                   <p className="folder-empty">
                     {readOnly
                       ? `No ${words.pages.toLowerCase()} yet.`
-                      : `No ${words.pages.toLowerCase()} yet. Tap New to make ${nextPageName(course.exams, course.kind)}.`}
+                      : `No ${words.pages.toLowerCase()} yet. Tap + to make ${nextPageName(course.exams, course.kind)}.`}
                   </p>
                 ) : (
                   <ul className="list-group" aria-label={words.pages}>
@@ -180,14 +207,26 @@ export function CourseScreen({ courseId }: { courseId: string }) {
       ) : error ? null : (
         <p className="note">Loading the {words.container}.</p>
       )}
-      {making && course ? (
+      {making === "page" && course ? (
         <ExamPageEditor
           course={course}
           page={null}
           onSaved={(page) => {
             navigate(examPagePath(course.id, page.id));
           }}
-          onClose={closeEditor}
+          onClose={closeSheet}
+        />
+      ) : null}
+      {making === "folder" && course ? (
+        <NewFolderSheet
+          course={course}
+          page={null}
+          onMade={() => {
+            setMaking(null);
+            reload();
+            void refreshCatalog();
+          }}
+          onClose={closeSheet}
         />
       ) : null}
     </Screen>

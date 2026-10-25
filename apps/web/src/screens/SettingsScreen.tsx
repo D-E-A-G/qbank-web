@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api, ApiError } from "../api";
-import { CatalogEditor } from "../components/CatalogEditor";
+import { SemestersEditor } from "../components/CatalogEditor";
 import { Icon } from "../components/Icon";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { downloadProgressExport } from "../export";
@@ -28,7 +28,7 @@ export function SettingsScreen() {
   return (
     <Screen title="Settings">
       <AccountSection user={session.user} onUser={session.replace} onSignedOut={session.signOut} />
-      {student ? <CatalogEditor /> : null}
+      {student ? <SemestersEditor /> : null}
       <section className="group">
         <h2 className="group-header">Look</h2>
         <div className="group-card group-fields">

@@ -125,7 +125,7 @@ test.describe("course page", () => {
 
     await expect(page.getByText(`${course.code} folders · 17 questions · 7 folders`)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Exam pages" })).toBeVisible();
-    await expect(page.getByText("No exam pages yet. Tap New to make Exam 1.")).toBeVisible();
+    await expect(page.getByText("No exam pages yet. Tap + to make Exam 1.")).toBeVisible();
     const folders = page.getByRole("list", { name: "Folders", exact: true }).getByRole("link");
     await expect(folders).toHaveText([/^Week 1/, /^Week 2/, /^Week 3/, /^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
     await expect(page.getByText("Open a folder to see its sets.")).toBeVisible();
@@ -355,7 +355,8 @@ test.describe("exam pages", () => {
     await takeExam(page, course.id, folderIds(course, ["Week 3", "Week 4"]));
     await page.goto(`/course/${course.id}`);
 
-    await page.getByRole("button", { name: "New exam page" }).click();
+    await page.getByRole("button", { name: `Add to ${course.code}` }).click();
+    await page.getByRole("menuitem", { name: "New exam page" }).click();
     const editor = sheet(page, "New exam page");
     await expect(editor.getByRole("textbox", { name: "Exam page name" })).toHaveValue("Exam 1");
     await expect(editor.getByText("No folders yet")).toBeVisible();
@@ -502,13 +503,14 @@ test.describe("exam pages", () => {
     await expect(admin.getByText(/progress, read-only\./)).toBeVisible();
     await expect(admin.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
     await expect(admin.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
-    await expect(admin.getByRole("button", { name: "New exam page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: `Add to ${course.code}` })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Edit folder order" })).toHaveCount(0);
 
     await admin.goto(`/course/${course.id}/exam-page/${exam1}`);
     await expect(admin.getByRole("heading", { level: 1, name: "Exam 1" })).toBeVisible();
     await expect(admin.getByRole("link", { name: "Start exam" })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Edit the exam page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Add to Exam 1" })).toHaveCount(0);
     await expect(admin.getByRole("heading", { name: "Her past exams" })).toBeVisible();
 
     await folderLink(admin, "Study material on Exam 1", "Week 3").click();

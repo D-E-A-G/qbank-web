@@ -57,9 +57,13 @@ export function pageFolders(course: CourseDetail, examPageId: string): CourseFol
   return course.folders.filter((folder) => folder.examPageId === examPageId);
 }
 
-/** The course's folders as she sees them: each exam page's in turn, then the ones on no exam page. */
-export function folderGroups(course: CourseDetail): { key: string; title: string; folders: CourseFolder[] }[] {
-  const groups = course.exams.map((page) => ({ key: page.id, title: page.name, folders: pageFolders(course, page.id) }));
+/**
+ * The course's folders as she sees them: each exam page's in turn, then the ones on no exam page.
+ * `firstPageId` puts one page's folders first, for Import opened from that page.
+ */
+export function folderGroups(course: CourseDetail, firstPageId: string | null = null): { key: string; title: string; folders: CourseFolder[] }[] {
+  const pages = [...course.exams].sort((a, b) => Number(b.id === firstPageId) - Number(a.id === firstPageId));
+  const groups = pages.map((page) => ({ key: page.id, title: page.name, folders: pageFolders(course, page.id) }));
   groups.push({ key: "loose", title: `On no ${kindWords(course.kind).page}`, folders: looseFolders(course) });
   return groups.filter((group) => group.folders.length > 0);
 }

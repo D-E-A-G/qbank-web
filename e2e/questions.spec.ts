@@ -187,25 +187,6 @@ test.describe("admin import", () => {
   });
 });
 
-test.describe("settings courses", () => {
-  test.afterEach(async ({ page }) => {
-    await archiveCourses(page);
-  });
-
-  test("a course added in settings shows on home", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop-chrome", "settings on the wide layout");
-    const code = `S${Math.random().toString(36).slice(2, 8)}`;
-    await signIn(page);
-    await page.goto("/settings");
-    await page.getByRole("button", { name: "Add Semester 3" }).click();
-    await page.getByLabel("Course code in Semester 3").fill(code);
-    await page.getByLabel("Course name in Semester 3").fill("Maternal Health");
-    await page.getByRole("button", { name: "Add a course to Semester 3" }).click();
-    await page.goto("/");
-    await expect(page.getByRole("main").getByRole("link", { name: new RegExp(code) })).toBeVisible();
-  });
-});
-
 async function archiveCourses(page: Page): Promise<void> {
   const response = await page.request.get("/api/semesters");
   if (!response.ok()) return;
