@@ -8,6 +8,7 @@ export function TextField({
   value,
   onChange,
   autoComplete,
+  autoCapitalize,
   error,
   hint,
 }: {
@@ -17,6 +18,8 @@ export function TextField({
   value: string;
   onChange: (value: string) => void;
   autoComplete?: string;
+  /** "characters" for a code typed in capitals, such as an agent's pairing code. */
+  autoCapitalize?: "characters";
   error?: string;
   hint?: string;
 }) {
@@ -30,6 +33,8 @@ export function TextField({
         type={type}
         value={value}
         autoComplete={autoComplete}
+        autoCapitalize={autoCapitalize}
+        spellCheck={autoCapitalize === undefined ? undefined : false}
         aria-invalid={error !== undefined}
         aria-describedby={describedBy}
         onChange={(event) => {

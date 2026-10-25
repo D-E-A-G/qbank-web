@@ -26,6 +26,7 @@ function set(questionCount: number, answeredCount: number, fullyRightCount = ans
     fullyRightCount,
     lastAnsweredAt: null,
     questionIds: [],
+    importedByAgent: null,
   };
 }
 

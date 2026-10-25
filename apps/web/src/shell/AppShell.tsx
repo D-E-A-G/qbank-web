@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { AGENTS_PATH } from "../agents/agents";
 import { api } from "../api";
 import { refreshCatalog } from "../catalog";
 import { ExamScreen } from "../exam/ExamScreen";
@@ -95,7 +96,8 @@ export function AppShell({ role }: { role: Role }) {
                 <TwinJobScreen key={detail.jobId} courseId={detail.courseId} jobId={detail.jobId} />
               ) : (
                 // Keyed by the query, so Import opened from a folder ("Import here") starts with that folder picked.
-                <ScreenBody key={search} />
+                // Connect an agent drops the ?code= it opened with once it has read it, which must not start it over.
+                <ScreenBody key={route?.path === AGENTS_PATH ? AGENTS_PATH : search} />
               )}
             </div>
           )}

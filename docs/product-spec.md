@@ -51,7 +51,7 @@ Each of these was cut on purpose. Anything a user asks for later is a new decisi
 
 | User | Can do | Cannot do |
 |---|---|---|
-| **A user** | Everything in her own account: import question files, make and edit semesters, courses, and study topics, practice, take exams, use Review and Terms, export her progress, manage her password and passkeys. | See or change another account's questions, or let anyone else sign up. |
+| **A user** | Everything in her own account: import question files, make and edit semesters, courses, and study topics, practice, take exams, use Review and Terms, export her progress, manage her password and passkeys, and connect her agent. | See or change another account's questions, or let anyone else sign up. |
 | **The owner** (who set the app up) | Sign in with his own **admin** login to fix things in the app and in the user account he is looking at: import question files; create or fix semesters, courses, and topics; restore a replaced set; reset her password; repair her account data if something breaks; keep the sign-up list of emails that may make an account. See **that account's** progress read-only: courses, topics, sets, completion, scores, Review list, and exam history. | Answer questions as her, or change her scores, progress, or Review list in normal use. He does not see any other account. In his words: "this is for her, I'm just creating the app for her to help her study in her program." |
 
 - **Sign-up only for emails the owner adds (2026-10-01).** A user makes her own account from the Sign up screen, but only with an email on the owner's sign-up list. The admin account is never made there; a setup command run by the owner creates it, and can also create a user account and put emails on the sign-up list.
@@ -68,7 +68,7 @@ There are two doors. Both end in the same place: a set filed in a folder of her 
 2. **She imports that file in the app** from any device: Import, paste the JSON or choose the file, pick the course and a folder (Unsorted unless she picks one), confirm the set name, Check file, Import.
 3. **The app checks the file's shape** with the same rules the existing runner's importer uses. Errors block the import and are listed in words she can paste back to her agent; warnings import anyway.
 
-Planned, not built: a scoped agent key she mints in the app, so her agent can hand a set to QBank itself instead of her pasting the file. Until it ships, Import is how a file from her agent gets in.
+Her agent can also hand a set to QBank itself, with an agent key of its own instead of her pasting the file. Nobody copies a key: the agent asks to pair and shows her a short code, she enters or confirms it in **Settings › Account › Connect an agent**, sees the agent's name and what it asks to do, and approves or denies it; the agent then picks its key up. A key can only import (and read what importing needs), never replaces, moves, renames, or deletes anything, and she can revoke it there at any time. Sets it imports say "Imported by your agent". Reading her progress with a key is planned, not built.
 
 **Door 2: Make questions, inside QBank.** An account that may make questions now (`GET /api/question-maker` answers `available: true`; today only hers) asks QBank to write a set from material she hands it for that job (notes or slides she pastes, photos, or a file), or to copy in practice questions she already has on paper. QBank's server runs a copy of her agent's recipe, and files the set in the course or topic and folder she names (Unsorted if none). The same recipe writes exam twins (see [Exam setup](#exam-setup)). It is on the iPhone app's Add tab and, for exam twins, in the web app's Exam setup; the web Import screen is for files made outside.
 
@@ -226,7 +226,7 @@ A study topic is a course with no semester, for questions that are not one of he
 - **Exam page:** a sheet to put the folder on an exam page, on none, or on a new one.
 - **Import here:** opens Import with this course and folder picked.
 - **Delete:** deletes the folder and every set in it, after a warning that names them (see [Delete and Undo](#delete-and-undo)).
-- **Sets:** each set row shows its status: "Done Sep 24 · 13 of 17 fully right", "7 of 12 answered", or "Imported today". Tapping a set opens it in the practice runner, which goes back to the folder.
+- **Sets:** each set row shows its status: "Done Sep 24 · 13 of 17 fully right", "7 of 12 answered", or "Imported today", and "Imported by your agent" under it when her agent imported it with its key. Tapping a set opens it in the practice runner, which goes back to the folder.
 - **Select** puts a check circle on each set; a bar at the bottom then offers **Delete** and **Move N sets**, which opens **Move to**: the course's folders grouped by exam page, the current one marked "Here now", or a **New folder**. A set moves with every older version of it, and her answers and progress move with it.
 - A set that was replaced by a re-import shows a **Restore** button; Restore asks before bringing the previous version back.
 - A folder with an exam bank says so in one line under its sets: "Exam twins: 14 questions, exams only". Exam sets are not listed.
@@ -309,6 +309,7 @@ Sets, folders, and past exams can be deleted, and each comes back with Undo for 
 
 - Account; change password.
 - Passkeys: list, add, remove.
+- **Connect an agent**, under the passkeys: opens a screen where she enters the short code her agent shows (or confirms one her agent sent in the link), sees the agent's name and what it asks to do in plain words, and taps **Approve** or **Deny**. A code that is mistyped, answered already, or past its 10 minutes says so. **Your keys** lists each key's name, when it was made, when it was last used, and what it can do, with **Revoke**, which asks first. A revoked key stays listed and never works again; the sets it imported stay. No key is ever shown or copied.
 - **Semesters and courses:** add a semester; add a course; rename, move between semesters, archive, and unarchive a course; archive and unarchive a semester by hand. (Courses and semesters can also be made from Import.) Nothing archives a semester because its end date has passed.
 - **Study topics:** rename, reorder, archive, unarchive, and add a topic. Archived topics are listed after the others. Topics can also be made from Home and Import.
 - **Look:** Match device / Light / Dark, per device.
@@ -329,7 +330,7 @@ He signs in the same way, with his own login, and lands on the Home of the user 
 - **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
 - **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
 - **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
-- **His Settings:** account, change password, passkeys, Look, Color, sign out.
+- **His Settings:** account, change password, passkeys, Connect an agent (his agent's key imports into the user account he looks after), Look, Color, sign out.
 
 ## Platforms and layouts
 
@@ -475,7 +476,7 @@ The design system's tokens come from the owner's Claude Design export and arrive
 | 5 | Progress sync and Review | Attempts with idempotent ids, server re-scoring, `question_progress`, course completion and scores, Review with its filters, leave rule, and Clear the review list; landing on the last course; the admin's read-only view of her progress and the Repair that rebuilds it from her answers. | Answer on browser A, see the same Review on browser B; drop the network mid-answer and reconnect, exactly one attempt is recorded; Clear asks first and Cancel changes nothing; the admin sees her Review but cannot change it outside a repair. |
 | 6 | Exam, installable app, look, backups, launch | Exam over ticked weeks (40 in 60 minutes, or all at 1.5 minutes each) drawn in proportion, leave-ends-exam, unanswered questions kept out of Review, results with by-week breakdown and history; manifest and icons; light/dark mode; JSON export; a restore drill with her real data; iPhone layout and iPad/Mac sidebar layout; her three devices set up. | An exam over Weeks 1-3 draws only from those weeks, in proportion, times out, and sends only the misses and guesses among what she answered to Review; it installs on an iPhone and a Mac and opens full-screen; a restore from last night's dump brings back a fresh attempt. |
 
-Nothing else is planned after launch beyond the agent key for her agent (see [How questions get into the app](#how-questions-get-into-the-app)). The questions come from her agent's skill, imported, or from Make questions.
+Nothing else is planned after launch beyond letting her agent's key read her progress (see [How questions get into the app](#how-questions-get-into-the-app)). The questions come from her agent's skill, imported, or from Make questions.
 
 Future work, not scheduled: a SwiftUI iOS app as a second client of the same API. It has no Admin screen and no sign-up list; those stay on the web Admin page, which he can open in Safari on his phone (decision 22).
 

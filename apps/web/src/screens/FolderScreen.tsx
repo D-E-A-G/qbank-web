@@ -314,10 +314,12 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
 }
 
 function SetCopy({ set }: { set: SetSummary }) {
+  const admin = useSession().user.role === "admin";
   return (
     <span className="list-copy">
       <span className="list-title list-title-strong">{set.title}</span>
       <span className="list-meta">{statusLine(set)}</span>
+      {set.importedByAgent === null ? null : <span className="list-meta">{admin ? "Imported by an agent" : "Imported by your agent"}</span>}
     </span>
   );
 }
