@@ -1,23 +1,26 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../api";
 import type { CourseLink, SemesterGroup } from "../catalog";
 import { homeLayout, refreshCatalog, useCatalog } from "../catalog";
 import { NewCourseSheet, RenameCourseSheet } from "../components/CourseSheets";
+import { DeleteSheet } from "../components/DeleteSheet";
 import { EmptyState } from "../components/EmptyState";
 import { Icon, type IconName } from "../components/Icon";
 import { AddMenu, Menu, type MenuAnchor, type MenuItem } from "../components/Menu";
+import { RowBody } from "../components/NavRow";
 import { NewTopicSheet } from "../components/NewTopicSheet";
 import { Notice, type NoticeMessage } from "../components/Notice";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
+import { recentlyDeletedCourses, useCoursesVersion } from "../course/deletion";
 import { courseName } from "../course/pages";
 import { saveTopicOrder } from "../course/requests";
 import { cardActionLabel, cardActions, homeAdds, semesterOf, topicOrderAfterMove, type CardAction, type HomeAdd } from "../home/menus";
 import { useSession } from "../login/session-context";
-import { navigate } from "../router";
+import { DELETED_COURSES_PATH, navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
-type Sheet = { kind: "course"; semester: SemesterGroup } | { kind: "topic" } | { kind: "rename"; course: CourseLink } | null;
+type Sheet = { kind: "course"; semester: SemesterGroup } | { kind: "topic" } | { kind: "rename"; course: CourseLink } | { kind: "delete"; course: CourseLink } | null;
 
 const ADD_ICONS: Record<HomeAdd["kind"], IconName> = { course: "graduation-cap", topic: "book-marked", semester: "calendar" };
 
@@ -29,12 +32,14 @@ const ACTION_ICONS: Record<CardAction["kind"], IconName> = {
   down: "chevron-down",
   archive: "archive",
   unarchive: "archive-restore",
+  delete: "trash-2",
 };
 
 /**
  * Her semesters with their courses, her study topics, and what she archived. One + at the top adds
  * a course to a semester, a topic, or the next semester; each card's "…" (or a right-click) opens,
- * renames, moves or archives it. The owner's read-only view has neither.
+ * renames, moves, archives or deletes it. The owner's read-only view has neither. Recently deleted,
+ * last, brings a deleted course or topic back for 30 days.
  */
 export function HomeScreen() {
   const session = useSession();
@@ -51,6 +56,7 @@ export function HomeScreen() {
     setNotice((current) => (current?.id === id ? null : current));
   }, []);
   const { semesters, topics, archived } = homeLayout(catalog);
+  const deleted = useDeletedCourses();
 
   const say = (text: string, icon: IconName, extra: Partial<NoticeMessage> = {}) => {
     notices.current += 1;
@@ -105,6 +111,11 @@ export function HomeScreen() {
       case "unarchive":
         change(patch(course, { archived: false }));
         return;
+      case "delete":
+        // Undo for the delete shows where this notice would, so an older notice gives way.
+        setNotice(null);
+        setSheet({ kind: "delete", course });
+        return;
     }
   };
 
@@ -114,6 +125,7 @@ export function HomeScreen() {
           key: action.kind === "move" ? `move-${action.semester.id}` : action.kind,
           label: cardActionLabel(action),
           icon: ACTION_ICONS[action.kind],
+          destructive: action.kind === "delete",
           onSelect: () => {
             act(course, action);
           },
@@ -170,6 +182,20 @@ export function HomeScreen() {
           </div>
         </details>
       ) : null}
+      {deleted !== null && deleted.count > 0 ? (
+        <section className="group">
+          <ul className="list-group" aria-label="Recently deleted">
+            <li>
+              <ShellLink to={DELETED_COURSES_PATH} className="list-row" current={false}>
+                <RowBody icon="trash-2" title="Recently deleted" meta={`${plural(deleted.count, "item")} · Undo for ${String(deleted.undoDays)} days`} />
+                <span className="list-chevron">
+                  <Icon name="chevron-right" size={18} strokeWidth={2} />
+                </span>
+              </ShellLink>
+            </li>
+          </ul>
+        </section>
+      ) : null}
       {sheet?.kind === "course" ? (
         <NewCourseSheet
           semester={sheet.semester}
@@ -190,9 +216,43 @@ export function HomeScreen() {
         />
       ) : null}
       {sheet?.kind === "rename" ? <RenameCourseSheet course={sheet.course} onSaved={close} onClose={close} /> : null}
+      {sheet?.kind === "delete" ? (
+        <DeleteSheet
+          courseId={sheet.course.id}
+          items={[{ kind: "course", id: sheet.course.id }]}
+          title={`Delete ${courseName(sheet.course)}?`}
+          onDeleted={close}
+          onClose={close}
+        />
+      ) : null}
       <Notice notice={notice} onDismiss={dismiss} />
     </Screen>
   );
+}
+
+/** How many courses and topics Undo can still bring back, and for how long; null until it is read. */
+function useDeletedCourses(): { count: number; undoDays: number } | null {
+  const version = useCoursesVersion();
+  const [loaded, setLoaded] = useState<{ count: number; undoDays: number } | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    recentlyDeletedCourses().then(
+      (deleted) => {
+        if (!cancel) setLoaded({ count: deleted.courses.length, undoDays: deleted.undoDays });
+      },
+      (caught: unknown) => {
+        console.error(caught);
+      },
+    );
+    return () => {
+      cancel = true;
+    };
+  }, [version]);
+  return loaded;
+}
+
+function plural(count: number, noun: string): string {
+  return `${String(count)} ${count === 1 ? noun : `${noun}s`}`;
 }
 
 /**

@@ -12,6 +12,8 @@ export interface MenuItem {
   /** A second line, for a row whose label alone would leave her guessing. */
   detail?: string;
   icon?: IconName;
+  /** Red, for a row that deletes. */
+  destructive?: boolean;
   onSelect: () => void;
 }
 
@@ -132,7 +134,7 @@ export function Menu({
             key={item.key}
             type="button"
             role="menuitem"
-            className="menu-row"
+            className={item.destructive === true ? "menu-row menu-row-destructive" : "menu-row"}
             // The row is called by its label; its second line describes it.
             aria-labelledby={`${id}-${item.key}`}
             aria-describedby={item.detail === undefined ? undefined : `${id}-${item.key}-detail`}

@@ -28,8 +28,8 @@ export function homeAdds(catalog: { semesters: readonly SemesterGroup[] }): Home
 /**
  * What a course card or topic card on Home offers from its "…" or a right-click. Open and Rename
  * always; a course moves to each other semester she is in, a topic moves up or down among her
- * topics in use; Archive for one in use and Unarchive for one she archived. Delete comes after
- * Archive once the server can bring a course back for 30 days.
+ * topics in use; Archive for one in use and Unarchive for one she archived; and Delete last, on
+ * every card, since Recently deleted brings it back for 30 days.
  */
 export type CardAction =
   | { kind: "open" }
@@ -38,7 +38,8 @@ export type CardAction =
   | { kind: "up" }
   | { kind: "down" }
   | { kind: "archive" }
-  | { kind: "unarchive" };
+  | { kind: "unarchive" }
+  | { kind: "delete" };
 
 export function cardActions(course: CourseLink, catalog: { semesters: readonly SemesterGroup[]; topics: readonly CourseLink[] }): CardAction[] {
   const actions: CardAction[] = [{ kind: "open" }, { kind: "rename" }];
@@ -59,6 +60,7 @@ export function cardActions(course: CourseLink, catalog: { semesters: readonly S
     // A course in an archived semester is in Archived with it; moving it to another semester brings it back.
     actions.push({ kind: "archive" });
   }
+  actions.push({ kind: "delete" });
   return actions;
 }
 
@@ -78,6 +80,8 @@ export function cardActionLabel(action: CardAction): string {
       return "Archive";
     case "unarchive":
       return "Unarchive";
+    case "delete":
+      return "Delete";
   }
 }
 

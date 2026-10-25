@@ -218,7 +218,7 @@ test.describe("adding where she is", () => {
     await page.getByRole("button", { name: `Actions for ${code}` }).click();
     const menu = page.getByRole("menu", { name: code });
     await expect(menu.getByRole("menuitem", { name: "Open" })).toBeVisible();
-    await expect(menu.getByRole("menuitem", { name: "Delete" })).toHaveCount(0);
+    await expect(menu.getByRole("menuitem").last()).toHaveText("Delete");
     await menu.getByRole("menuitem", { name: "Rename" }).click();
     const rename = sheet(page, "Rename course");
     await expect(rename.getByRole("textbox", { name: "Course code" })).toHaveValue(code);

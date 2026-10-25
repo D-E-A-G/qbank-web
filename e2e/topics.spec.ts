@@ -282,7 +282,7 @@ test.describe("study topics", () => {
     // Rename from the card's menu: only the name changes.
     await page.getByRole("button", { name: `Actions for ${first}` }).click();
     const menu = page.getByRole("menu", { name: first });
-    await expect(menu.getByRole("menuitem")).toHaveText(["Open", "Rename", "Move down", "Archive"]);
+    await expect(menu.getByRole("menuitem")).toHaveText(["Open", "Rename", "Move down", "Archive", "Delete"]);
     await menu.getByRole("menuitem", { name: "Rename" }).click();
     const rename = sheet(page, "Rename topic");
     await expect(rename.getByRole("textbox", { name: "Topic name" })).toHaveValue(first);
@@ -315,7 +315,7 @@ test.describe("study topics", () => {
     await archived.getByText("Archived", { exact: true }).click();
     await expect(archived.getByRole("heading", { name: "Study topics" })).toBeVisible();
     await archived.getByRole("button", { name: `Actions for ${renamed}` }).click();
-    await expect(page.getByRole("menu", { name: renamed }).getByRole("menuitem")).toHaveText(["Open", "Rename", "Unarchive"]);
+    await expect(page.getByRole("menu", { name: renamed }).getByRole("menuitem")).toHaveText(["Open", "Rename", "Unarchive", "Delete"]);
     await page.getByRole("menu", { name: renamed }).getByRole("menuitem", { name: "Unarchive" }).click();
     await expect(topics).toHaveText(starts(second, renamed));
   });

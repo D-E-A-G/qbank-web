@@ -1628,6 +1628,11 @@ button.review-row:disabled {
   color: var(--tint);
 }
 
+.menu-row-destructive,
+.menu-row-destructive .menu-icon {
+  color: var(--wrong);
+}
+
 .menu-copy {
   display: flex;
   flex-direction: column;

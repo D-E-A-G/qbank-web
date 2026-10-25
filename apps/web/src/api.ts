@@ -60,11 +60,16 @@ export type TwinExam = Schemas["QuestionTwinExam"];
 export type SetDeletion = Schemas["SetDeletion"];
 export type FolderDeletion = Schemas["FolderDeletion"];
 export type ExamDeletion = Schemas["ExamDeletion"];
+/** What deleting a course or study topic takes with it, and the question to ask her once. */
+export type CourseDeletion = Schemas["CourseDeletion"];
 /** A course's folders, sets and past exams deleted in the last 30 days: everything Undo can still bring back. */
 export type RecentlyDeleted = Schemas["RecentlyDeleted"];
 export type DeletedFolder = Schemas["DeletedFolder"];
 export type DeletedSet = Schemas["DeletedSet"];
 export type DeletedExam = Schemas["DeletedExam"];
+/** Her courses and study topics deleted in the last 30 days, for Undo. */
+export type RecentlyDeletedCourses = Schemas["RecentlyDeletedCourses"];
+export type DeletedCourse = Schemas["DeletedCourse"];
 
 export async function api<T>(path: string, init: { method?: string; json?: unknown } = {}): Promise<T> {
   const request: RequestInit = { method: init.method ?? "GET" };

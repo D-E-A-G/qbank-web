@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect } from "react";
 import type { DeletedExam, DeletedFolder, DeletedSet, RecentlyDeleted } from "../api";
-import { Button } from "../components/Button";
+import { DeletedGroup, DeletedRow, UndoOutcome } from "../components/DeletedList";
 import { EmptyState } from "../components/EmptyState";
-import { Icon, type IconName } from "../components/Icon";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
-import { courseChanged, recentlyDeleted, refusalText, undoDeletion, useCourseVersion, type Doomed } from "../course/deletion";
+import { courseChanged, recentlyDeleted, useCourseVersion } from "../course/deletion";
 import { courseName } from "../course/pages";
 import { useCourse, useCourseNaming } from "../course/useCourse";
+import { useUndoList } from "../course/useUndoList";
 import { foldersText } from "../exam/names";
 import { useSession } from "../login/session-context";
 import { Screen } from "../shell/Screen";
@@ -24,60 +24,14 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
   const { course } = useCourse(courseId);
   const { name, words } = useCourseNaming(courseId, course);
   const version = useCourseVersion(courseId);
-  const [deleted, setDeleted] = useState<RecentlyDeleted | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  // Every Undo on its way, and each that worked until the list is read again without it: its button stays off, so it is never sent twice.
-  const [busy, setBusy] = useState<ReadonlySet<string>>(() => new Set());
-  const inFlight = useRef(new Set<string>());
-  const [done, setDone] = useState<string | null>(null);
+  const read = useCallback(() => recentlyDeleted(courseId), [courseId]);
+  const { list: deleted, loadError, error, done, busy, undo } = useUndoList<RecentlyDeleted>(read, version, () => {
+    courseChanged(courseId);
+  });
 
   useEffect(() => {
     if (course) document.title = `Recently deleted · ${courseName(course)} · Qbank`;
   }, [course]);
-
-  useEffect(() => {
-    let cancel = false;
-    recentlyDeleted(courseId).then(
-      (body) => {
-        if (cancel) return;
-        setLoadError(null);
-        setDeleted(body);
-        // The list now says what came back, so only the Undos still on their way stay off.
-        setBusy(new Set(inFlight.current));
-      },
-      (caught: unknown) => {
-        if (!cancel) setLoadError(refusalText(caught, "Could not load Recently deleted."));
-      },
-    );
-    return () => {
-      cancel = true;
-    };
-  }, [courseId, version]);
-
-  const undo = (item: Doomed, name: string) => {
-    inFlight.current.add(item.id);
-    setBusy((current) => new Set(current).add(item.id));
-    setError(null);
-    setDone(null);
-    undoDeletion(item).then(
-      () => {
-        inFlight.current.delete(item.id);
-        setDone(`Brought back ${name}.`);
-        courseChanged(courseId);
-      },
-      (caught: unknown) => {
-        inFlight.current.delete(item.id);
-        setBusy((current) => {
-          const next = new Set(current);
-          next.delete(item.id);
-          return next;
-        });
-        setError(refusalText(caught, "Could not bring it back."));
-        courseChanged(courseId);
-      },
-    );
-  };
 
   const empty = deleted !== null && deleted.folders.length + deleted.sets.length + deleted.exams.length === 0;
   const days = deleted?.undoDays ?? 30;
@@ -93,14 +47,7 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
           ? `What she deleted in this ${words.container} in the last ${String(days)} days. She can bring each back as it was.`
           : `What you deleted in this ${words.container} in the last ${String(days)} days. Undo brings each back as it was, with your answers counting again.`}
       </p>
-      {loadError ? <p className="form-error">{loadError}</p> : null}
-      {error ? <p className="form-error">{error}</p> : null}
-      {done ? (
-        <p className="status-banner" role="status">
-          <Icon name="check" size={16} strokeWidth={2} />
-          <span>{done}</span>
-        </p>
-      ) : null}
+      <UndoOutcome loadError={loadError} error={error} done={done} />
       {deleted === null ? (
         loadError ? null : <p className="note">Loading Recently deleted.</p>
       ) : empty ? (
@@ -168,62 +115,6 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
         </>
       )}
     </Screen>
-  );
-}
-
-function DeletedGroup({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="group">
-      <h2 className="group-header">{title}</h2>
-      <ul className="list-group" aria-label={`Deleted ${title.toLowerCase()}`}>
-        {children}
-      </ul>
-    </section>
-  );
-}
-
-function DeletedRow({
-  icon = null,
-  title,
-  meta,
-  refusal,
-  readOnly,
-  busy,
-  label,
-  onUndo,
-}: {
-  /** Folders have their folder icon; sets and exams have none, as in their own lists. */
-  icon?: IconName | null;
-  title: string;
-  meta: string;
-  /** Why Undo would be refused now, as the server says it ("Its folder Week 4 is deleted. Bring the folder back first."). */
-  refusal: string | null;
-  readOnly: boolean;
-  busy: boolean;
-  label: string;
-  onUndo: () => void;
-}) {
-  return (
-    <li>
-      <div className="list-row">
-        {icon === null ? null : (
-          <span className="list-icon">
-            <Icon name={icon} size={22} />
-          </span>
-        )}
-        <span className="list-copy">
-          <span className="list-title list-title-strong">{title}</span>
-          <span className="list-meta">{meta}</span>
-        </span>
-        {readOnly ? null : (
-          <Button variant="secondary" className="row-undo" aria-label={label} disabled={busy || refusal !== null} onClick={onUndo}>
-            <Icon name="rotate-ccw" size={16} strokeWidth={2} />
-            Undo
-          </Button>
-        )}
-      </div>
-      {refusal !== null ? <p className="list-row-note">{refusal}</p> : null}
-    </li>
   );
 }
 

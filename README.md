@@ -9,8 +9,9 @@ sync across her iPhone, iPad, and Mac.
   its course (Unsorted unless she picks one), and arranges the folders herself:
   rename them, move sets between them, put them in her own order, and gather
   the ones an exam covers on an exam page (Exam 1 over Weeks 1-3), with the
-  exams she took over them. Sets, folders, and past exams can be deleted after
-  a warning naming everything that goes, and Undo brings them back for 30 days.
+  exams she took over them. Courses, topics, sets, folders, and past exams can
+  be deleted after a warning naming everything that goes, and Undo brings them
+  back for 30 days.
 - **Eight NCLEX question formats.** Single answer, priority, select all that
   apply, highlight, ordering, matching, matrix, and drop-down, scored with
   partial credit. Every option explains why it is right or wrong.

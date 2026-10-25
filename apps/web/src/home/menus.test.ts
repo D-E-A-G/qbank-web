@@ -65,31 +65,34 @@ describe("a card's menu", () => {
   const semesters = [semester(1, [nurs220, pharm]), semester(2, []), semester(3, [], { archivedAt: ARCHIVED })];
   const labels = (course: CourseLink, topics: CourseLink[] = []) => cardActions(course, { semesters, topics }).map(cardActionLabel);
 
-  it("opens, renames, moves to each other semester she is in, and archives a course", () => {
-    expect(labels(nurs220)).toEqual(["Open", "Rename", "Move to Semester 2", "Archive"]);
+  it("opens, renames, moves to each other semester she is in, archives and deletes a course", () => {
+    expect(labels(nurs220)).toEqual(["Open", "Rename", "Move to Semester 2", "Archive", "Delete"]);
   });
 
   it("unarchives a course she archived", () => {
-    expect(labels(pharm)).toEqual(["Open", "Rename", "Move to Semester 2", "Unarchive"]);
+    expect(labels(pharm)).toEqual(["Open", "Rename", "Move to Semester 2", "Unarchive", "Delete"]);
   });
 
   it("moves a course in an archived semester out of it, rather than archiving it again", () => {
     const old = card("old", "course");
     const archivedSemester = [semester(1, []), semester(2, [old], { archivedAt: ARCHIVED })];
-    expect(cardActions(old, { semesters: archivedSemester, topics: [] }).map(cardActionLabel)).toEqual(["Open", "Rename", "Move to Semester 1"]);
+    expect(cardActions(old, { semesters: archivedSemester, topics: [] }).map(cardActionLabel)).toEqual(["Open", "Rename", "Move to Semester 1", "Delete"]);
   });
 
   it("moves a topic up or down among the topics in use, never to a semester", () => {
     const [t1, t2, t3, t4] = [card("t1", "topic"), card("t2", "topic"), card("t3", "topic"), card("t4", "topic", ARCHIVED)];
     const topics = [t1, t2, t3, t4];
-    expect(labels(t1, topics)).toEqual(["Open", "Rename", "Move down", "Archive"]);
-    expect(labels(t2, topics)).toEqual(["Open", "Rename", "Move up", "Move down", "Archive"]);
-    expect(labels(t3, topics)).toEqual(["Open", "Rename", "Move up", "Archive"]);
-    expect(labels(t4, topics)).toEqual(["Open", "Rename", "Unarchive"]);
+    expect(labels(t1, topics)).toEqual(["Open", "Rename", "Move down", "Archive", "Delete"]);
+    expect(labels(t2, topics)).toEqual(["Open", "Rename", "Move up", "Move down", "Archive", "Delete"]);
+    expect(labels(t3, topics)).toEqual(["Open", "Rename", "Move up", "Archive", "Delete"]);
+    expect(labels(t4, topics)).toEqual(["Open", "Rename", "Unarchive", "Delete"]);
   });
 
-  it("has no Delete yet", () => {
-    expect(cardActions(nurs220, { semesters, topics: [] }).map((action) => action.kind)).not.toContain("delete");
+  it("deletes any course or topic, last, archived ones too", () => {
+    const topic = card("t1", "topic", ARCHIVED);
+    for (const course of [nurs220, pharm, topic]) {
+      expect(cardActions(course, { semesters, topics: [topic] }).at(-1)).toEqual({ kind: "delete" });
+    }
   });
 });
 
