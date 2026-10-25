@@ -1,62 +1,157 @@
-import { useCallback, useState } from "react";
-import type { CourseLink } from "../catalog";
-import { homeLayout, useCatalog } from "../catalog";
+import { useCallback, useRef, useState } from "react";
+import { ApiError, api } from "../api";
+import type { CourseLink, SemesterGroup } from "../catalog";
+import { homeLayout, refreshCatalog, useCatalog } from "../catalog";
+import { NewCourseSheet, RenameCourseSheet } from "../components/CourseSheets";
 import { EmptyState } from "../components/EmptyState";
-import { Icon } from "../components/Icon";
+import { Icon, type IconName } from "../components/Icon";
+import { AddMenu, Menu, type MenuAnchor, type MenuItem } from "../components/Menu";
 import { NewTopicSheet } from "../components/NewTopicSheet";
+import { Notice, type NoticeMessage } from "../components/Notice";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
+import { courseName } from "../course/pages";
+import { saveTopicOrder } from "../course/requests";
+import { cardActionLabel, cardActions, homeAdds, semesterOf, topicOrderAfterMove, type CardAction, type HomeAdd } from "../home/menus";
 import { useSession } from "../login/session-context";
 import { navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
+type Sheet = { kind: "course"; semester: SemesterGroup } | { kind: "topic" } | { kind: "rename"; course: CourseLink } | null;
+
+const ADD_ICONS: Record<HomeAdd["kind"], IconName> = { course: "graduation-cap", topic: "book-marked", semester: "calendar" };
+
+const ACTION_ICONS: Record<CardAction["kind"], IconName> = {
+  open: "arrow-right",
+  rename: "pencil",
+  move: "move",
+  up: "chevron-up",
+  down: "chevron-down",
+  archive: "archive",
+  unarchive: "archive-restore",
+};
+
+/**
+ * Her semesters with their courses, her study topics, and what she archived. One + at the top adds
+ * a course to a semester, a topic, or the next semester; each card's "…" (or a right-click) opens,
+ * renames, moves or archives it. The owner's read-only view has neither.
+ */
 export function HomeScreen() {
   const session = useSession();
   const readOnly = session.user.role !== "student";
   const catalog = useCatalog();
-  const [making, setMaking] = useState(false);
+  const editable = !readOnly && catalog.fromServer;
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [notice, setNotice] = useState<NoticeMessage | null>(null);
+  const notices = useRef(0);
   const close = useCallback(() => {
-    setMaking(false);
+    setSheet(null);
+  }, []);
+  const dismiss = useCallback((id: number) => {
+    setNotice((current) => (current?.id === id ? null : current));
   }, []);
   const { semesters, topics, archived } = homeLayout(catalog);
 
+  const say = (text: string, icon: IconName, extra: Partial<NoticeMessage> = {}) => {
+    notices.current += 1;
+    setNotice({ id: notices.current, text, icon, ...extra });
+  };
+
+  /** Saves one change, reads Home again, and says what happened, or the server's refusal. */
+  const change = (work: () => Promise<unknown>, done?: () => void) => {
+    void work()
+      .then(async () => {
+        await refreshCatalog();
+        done?.();
+      })
+      .catch((caught: unknown) => {
+        say(caught instanceof ApiError ? caught.message : "Could not save that. Try again.", "circle-alert", { failed: true });
+      });
+  };
+
+  const patch = (course: CourseLink, json: Record<string, unknown>) => () => api(`/api/courses/${course.id}`, { method: "PATCH", json });
+
+  const add = (item: HomeAdd) => {
+    if (item.kind === "course") setSheet({ kind: "course", semester: item.semester });
+    else if (item.kind === "topic") setSheet({ kind: "topic" });
+    else change(() => api("/api/semesters", { method: "POST", json: { number: item.number } }));
+  };
+
+  const act = (course: CourseLink, action: CardAction) => {
+    const name = courseName(course);
+    switch (action.kind) {
+      case "open":
+        navigate(`/course/${course.id}`);
+        return;
+      case "rename":
+        setSheet({ kind: "rename", course });
+        return;
+      case "move": {
+        const from = semesterOf(course, catalog.semesters);
+        change(patch(course, { semesterId: action.semester.id }), () => {
+          say(`Moved ${name} to ${action.semester.label}.`, "move", from === undefined ? {} : { undo: () => { change(patch(course, { semesterId: from.id })); } });
+        });
+        return;
+      }
+      case "up":
+      case "down":
+        change(() => saveTopicOrder(topicOrderAfterMove(catalog.topics, course.id, action.kind === "up" ? -1 : 1)));
+        return;
+      case "archive":
+        change(patch(course, { archived: true }), () => {
+          say(`Archived ${name}. It is in Archived at the bottom of Home.`, "archive", { undo: () => { change(patch(course, { archived: false })); } });
+        });
+        return;
+      case "unarchive":
+        change(patch(course, { archived: false }));
+        return;
+    }
+  };
+
+  const actionsFor = editable
+    ? (course: CourseLink): MenuItem[] =>
+        cardActions(course, catalog).map((action) => ({
+          key: action.kind === "move" ? `move-${action.semester.id}` : action.kind,
+          label: cardActionLabel(action),
+          icon: ACTION_ICONS[action.kind],
+          onSelect: () => {
+            act(course, action);
+          },
+        }))
+    : undefined;
+
+  const addItems: MenuItem[] = homeAdds(catalog).map((item) => ({
+    key: item.kind === "course" ? `course-${item.semester.id}` : item.kind,
+    label: item.label,
+    icon: ADD_ICONS[item.kind],
+    onSelect: () => {
+      add(item);
+    },
+  }));
+
   return (
-    <Screen title="Home">
+    <Screen title="Home" action={editable ? <AddMenu label="Add" items={addItems} /> : undefined}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       {semesters.map(({ semester, courses }) => (
         <section key={semester.id} className="semester">
           <h2 className="semester-label">{semester.label}</h2>
           {courses.length === 0 ? (
             <div className="empty-card">
-              <EmptyState icon="layers" message="A course appears here when its first question file is imported." />
+              <EmptyState icon="layers" message={editable ? "No courses yet. Tap + to add one, or import its first question file." : "No courses yet."} />
             </div>
           ) : (
-            <CourseCards courses={courses} />
+            <CourseCards courses={courses} actionsFor={actionsFor} />
           )}
         </section>
       ))}
       <section className="semester">
-        <div className="semester-head">
-          <h2 className="semester-label">Study topics</h2>
-          {readOnly || !catalog.fromServer ? null : (
-            <button
-              type="button"
-              className="group-action"
-              aria-label="New topic"
-              onClick={() => {
-                setMaking(true);
-              }}
-            >
-              New
-            </button>
-          )}
-        </div>
+        <h2 className="semester-label">Study topics</h2>
         {topics.length === 0 ? (
           <div className="empty-card">
             <EmptyState icon="book-marked" message="A topic is a place for questions that are not a course: a certification, a language, your own notes." />
           </div>
         ) : (
-          <CourseCards courses={topics} />
+          <CourseCards courses={topics} actionsFor={actionsFor} />
         )}
       </section>
       {archived.length > 0 ? (
@@ -69,51 +164,104 @@ export function HomeScreen() {
             {archived.map((group) => (
               <section key={group.key} className="group">
                 <h3 className="group-header">{group.title}</h3>
-                {group.courses.length === 0 ? <p className="folder-empty">No courses.</p> : <CourseCards courses={group.courses} />}
+                {group.courses.length === 0 ? <p className="folder-empty">No courses.</p> : <CourseCards courses={group.courses} actionsFor={actionsFor} />}
               </section>
             ))}
           </div>
         </details>
       ) : null}
-      {making ? (
+      {sheet?.kind === "course" ? (
+        <NewCourseSheet
+          semester={sheet.semester}
+          onMade={(course) => {
+            setSheet(null);
+            navigate(`/course/${course.id}`);
+          }}
+          onClose={close}
+        />
+      ) : null}
+      {sheet?.kind === "topic" ? (
         <NewTopicSheet
           onMade={(topic) => {
-            setMaking(false);
+            setSheet(null);
             navigate(`/course/${topic.id}`);
           }}
           onClose={close}
         />
       ) : null}
+      {sheet?.kind === "rename" ? <RenameCourseSheet course={sheet.course} onSaved={close} onClose={close} /> : null}
+      <Notice notice={notice} onDismiss={dismiss} />
     </Screen>
   );
 }
 
-/** Course cards; a topic's card is called by its name alone, as a course's is by its code and name. */
-function CourseCards({ courses }: { courses: readonly CourseLink[] }) {
+/**
+ * Course cards; a topic's card is called by its name alone, as a course's is by its code and name.
+ * With `actionsFor`, each card has a "…" and a right-click menu.
+ */
+function CourseCards({ courses, actionsFor }: { courses: readonly CourseLink[]; actionsFor: ((course: CourseLink) => MenuItem[]) | undefined }) {
   return (
     <ul className="course-list">
       {courses.map((course) => (
-        <li key={course.id}>
-          <ShellLink to={`/course/${course.id}`} className="course-card" current={false}>
-            {course.kind === "topic" ? null : <span className="course-code">{course.code}</span>}
-            <span className="course-card-title">{course.title}</span>
-            <span className="course-meta course-meta-row">
-              <span>
-                {course.questionCount} {course.questionCount === 1 ? "question" : "questions"} · {course.folderCount}{" "}
-                {course.folderCount === 1 ? "folder" : "folders"}
-              </span>
-              {course.reviewCount > 0 ? (
-                <span className="review-pill">
-                  <Icon name="inbox" size={14} />
-                  {course.reviewCount} to review
-                </span>
-              ) : null}
-            </span>
-            <CourseProgress course={course} />
-          </ShellLink>
-        </li>
+        <CourseCard key={course.id} course={course} actionsFor={actionsFor} />
       ))}
     </ul>
+  );
+}
+
+function CourseCard({ course, actionsFor }: { course: CourseLink; actionsFor: ((course: CourseLink) => MenuItem[]) | undefined }) {
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+  const closeMenu = useCallback(() => {
+    setAnchor(null);
+  }, []);
+  const name = courseName(course);
+  return (
+    <li
+      className={actionsFor === undefined ? undefined : anchor === null ? "course-item" : "course-item course-item-open"}
+      onContextMenu={
+        actionsFor === undefined
+          ? undefined
+          : (event) => {
+              event.preventDefault();
+              setAnchor({ x: event.clientX, y: event.clientY });
+            }
+      }
+    >
+      <ShellLink to={`/course/${course.id}`} className="course-card" current={false}>
+        {course.kind === "topic" ? null : <span className="course-code">{course.code}</span>}
+        <span className="course-card-title">{course.title}</span>
+        <span className="course-meta course-meta-row">
+          <span>
+            {course.questionCount} {course.questionCount === 1 ? "question" : "questions"} · {course.folderCount}{" "}
+            {course.folderCount === 1 ? "folder" : "folders"}
+          </span>
+          {course.reviewCount > 0 ? (
+            <span className="review-pill">
+              <Icon name="inbox" size={14} />
+              {course.reviewCount} to review
+            </span>
+          ) : null}
+        </span>
+        <CourseProgress course={course} />
+      </ShellLink>
+      {actionsFor === undefined ? null : (
+        <>
+          <button
+            type="button"
+            className="card-more"
+            aria-label={`Actions for ${name}`}
+            aria-haspopup="menu"
+            aria-expanded={anchor !== null}
+            onClick={(event) => {
+              setAnchor(anchor === null ? { element: event.currentTarget } : null);
+            }}
+          >
+            <Icon name="ellipsis" size={20} strokeWidth={2} />
+          </button>
+          {anchor === null ? null : <Menu label={name} anchor={anchor} items={actionsFor(course)} onClose={closeMenu} />}
+        </>
+      )}
+    </li>
   );
 }
 

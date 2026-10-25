@@ -56,6 +56,31 @@ export function folderPath(courseId: string, folderId: string): string {
   return `/course/${courseId}/folder/${folderId}`;
 }
 
+/** Where Import is opened from inside a course: the course picked, and one of its folders picked or an exam page's folders listed first. */
+export interface ImportPreset {
+  courseId: string;
+  folderId: string | null;
+  examPageId: string | null;
+}
+
+/** Import with the course picked, from its +, an exam page's +, or a folder's Import here. */
+export function importPath(courseId: string, place: { folderId?: string; examPageId?: string } = {}): string {
+  const query = new URLSearchParams({ course: courseId });
+  if (place.folderId !== undefined) query.set("folder", place.folderId);
+  if (place.examPageId !== undefined) query.set("page", place.examPageId);
+  return `/import?${query.toString()}`;
+}
+
+export function readImportPreset(search: string): ImportPreset | null {
+  const query = new URLSearchParams(search);
+  const value = (key: string) => {
+    const found = query.get(key)?.trim() ?? "";
+    return found === "" ? null : found;
+  };
+  const courseId = value("course");
+  return courseId === null ? null : { courseId, folderId: value("folder"), examPageId: value("page") };
+}
+
 /** A course's Recently deleted: what Undo can still bring back. */
 export function deletedPath(courseId: string): string {
   return `/course/${courseId}/deleted`;

@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { ApiError, type CourseDetail, type CourseFolder, type CourseKind } from "../api";
+import { ApiError, type CourseDetail, type CourseExam, type CourseFolder, type CourseKind } from "../api";
 import { folderGroups, folderMeta } from "../course/folders";
 import { kindWords, nextPageName, pageMeta } from "../course/pages";
 import { createExamPage, createFolder, moveSet, putOnExamPage, renameFolder } from "../course/requests";
@@ -56,6 +56,61 @@ export function RenameFolderSheet({
         />
       </label>
       <p className="sheet-hint">Only the name changes. Its sets, their progress, its {kindWords(kind).page}, and your past exams stay with it.</p>
+    </FormSheet>
+  );
+}
+
+/**
+ * New folder, from the + of a course (it goes at the end of its Folders list) or of an exam page
+ * (made on that page, in one step). A name another folder in the same list has is refused by the server.
+ */
+export function NewFolderSheet({
+  course,
+  page,
+  onMade,
+  onClose,
+}: {
+  course: CourseDetail;
+  /** The exam page to make it on, or null for the course's Folders list. */
+  page: CourseExam | null;
+  onMade: () => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const words = kindWords(course.kind);
+
+  const save = () => {
+    const next = name.trim();
+    if (next === "") {
+      setError("Give the folder a name.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    createFolder(course.id, next, page?.id ?? null).then(onMade, (caught: unknown) => {
+      setBusy(false);
+      setError(refusal(caught, "Could not make the folder."));
+    });
+  };
+
+  return (
+    <FormSheet title={page === null ? "New folder" : `New folder on ${page.name}`} busy={busy} error={error} onDone={save} onClose={onClose}>
+      <label className="field">
+        <span className="field-label">Folder name</span>
+        <input
+          className="control"
+          aria-label="Folder name"
+          value={name}
+          maxLength={80}
+          autoFocus
+          onChange={(event) => {
+            setName(event.target.value);
+          }}
+        />
+      </label>
+      <p className="sheet-hint">{page === null ? `It goes at the end of the ${words.container}’s Folders list.` : `It goes on ${page.name}, after its other folders.`}</p>
     </FormSheet>
   );
 }

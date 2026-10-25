@@ -12,7 +12,7 @@ import { examPageOf, folderMeta } from "../course/folders";
 import { courseName } from "../course/pages";
 import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useSession } from "../login/session-context";
-import { examPagePath, navigate } from "../router";
+import { examPagePath, importPath, navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 import { when } from "../when";
@@ -120,7 +120,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
                 <Icon name="layers" size={16} strokeWidth={2} />
                 {page === null ? words.Page : page.name}
               </button>
-              <ShellLink to={`/import?course=${courseId}&folder=${folder.id}`} className="folder-action" current={false}>
+              <ShellLink to={importPath(courseId, { folderId: folder.id })} className="folder-action" current={false}>
                 <Icon name="file-input" size={16} strokeWidth={2} />
                 Import here
               </ShellLink>

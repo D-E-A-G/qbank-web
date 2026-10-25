@@ -28,6 +28,35 @@ function useRun(): { busy: boolean; error: string | null; run: Run } {
   return { busy, error, run };
 }
 
+/**
+ * Her Settings: each semester's name and dates, and archiving one she finished. Adding a semester,
+ * course or topic is Home's +, and renaming, moving or archiving one is its card's menu on Home.
+ */
+export function SemestersEditor() {
+  const { semesters } = useCatalog();
+  const saved = semesters.filter((semester) => !semester.placeholder);
+  const { busy, error, run } = useRun();
+
+  return (
+    <section className="group">
+      <h2 className="group-header">Semesters</h2>
+      {saved.length === 0 ? null : (
+        <div className="stack">
+          {saved.map((semester) => (
+            <SemesterCard key={semester.id} semester={semester} semesters={saved} withCourses={false} busy={busy} onRun={run} />
+          ))}
+        </div>
+      )}
+      <p className="group-footer">
+        Name a semester, give it dates, or archive one you finished. Add a semester, course or topic with the + on Home, and rename, move or
+        archive a course or topic from its card there.
+      </p>
+      {error ? <p className="form-error">{error}</p> : null}
+    </section>
+  );
+}
+
+/** The owner's Admin: every semester, course and topic of the user account he looks after, with adding. */
 export function CatalogEditor() {
   const { semesters, topics, fromServer } = useCatalog();
   const saved = semesters.filter((semester) => !semester.placeholder);
@@ -40,7 +69,7 @@ export function CatalogEditor() {
         <h2 className="group-header">Semesters and courses</h2>
         <div className="stack">
           {saved.map((semester) => (
-            <SemesterCard key={semester.id} semester={semester} semesters={saved} busy={busy} onRun={run} />
+            <SemesterCard key={semester.id} semester={semester} semesters={saved} withCourses busy={busy} onRun={run} />
           ))}
           {missing.map((number) => (
             <Button
@@ -105,7 +134,7 @@ function TopicsSection({ topics }: { topics: readonly CourseLink[] }) {
           Add a topic
         </Button>
       </div>
-      <p className="group-footer">Rename, reorder, archive or unarchive a topic. Topics can also be made from Home and Import.</p>
+      <p className="group-footer">Rename, reorder, archive or unarchive a topic. Topics can also be made from Home's + and Import.</p>
       {error ? <p className="form-error">{error}</p> : null}
     </section>
   );
@@ -189,11 +218,14 @@ function TopicRow({
 function SemesterCard({
   semester,
   semesters,
+  withCourses,
   busy,
   onRun,
 }: {
   semester: SemesterGroup;
   semesters: readonly SemesterGroup[];
+  /** Its courses, to edit, and Add a course; Admin only. */
+  withCourses: boolean;
   busy: boolean;
   onRun: (work: () => Promise<unknown>) => void;
 }) {
@@ -256,23 +288,27 @@ function SemesterCard({
           {semester.archivedAt === null ? `Archive ${semester.label}` : `Unarchive ${semester.label}`}
         </Button>
       </div>
-      {semester.courses.map((course) => (
-        <CourseRow key={course.id} course={course} semesters={semesters} busy={busy} onRun={onRun} />
-      ))}
-      <TextField label={`Course code in ${semester.label}`} value={code} onChange={setCode} />
-      <TextField label={`Course name in ${semester.label}`} value={title} onChange={setTitle} />
-      <Button
-        disabled={busy || code.trim() === "" || title.trim() === ""}
-        onClick={() => {
-          onRun(async () => {
-            await api("/api/courses", { method: "POST", json: { semesterId: semester.id, code, title } });
-            setCode("");
-            setTitle("");
-          });
-        }}
-      >
-        Add a course to {semester.label}
-      </Button>
+      {withCourses ? (
+        <>
+          {semester.courses.map((course) => (
+            <CourseRow key={course.id} course={course} semesters={semesters} busy={busy} onRun={onRun} />
+          ))}
+          <TextField label={`Course code in ${semester.label}`} value={code} onChange={setCode} />
+          <TextField label={`Course name in ${semester.label}`} value={title} onChange={setTitle} />
+          <Button
+            disabled={busy || code.trim() === "" || title.trim() === ""}
+            onClick={() => {
+              onRun(async () => {
+                await api("/api/courses", { method: "POST", json: { semesterId: semester.id, code, title } });
+                setCode("");
+                setTitle("");
+              });
+            }}
+          >
+            Add a course to {semester.label}
+          </Button>
+        </>
+      ) : null}
     </div>
   );
 }

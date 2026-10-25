@@ -10,9 +10,9 @@ export async function putOnExamPage(folderId: string, examPageId: string | null)
   await api<CourseFolder>(`/api/folders/${folderId}`, { method: "PATCH", json: { examPageId } });
 }
 
-/** A new, empty folder at the end of the course's Folders list. */
-export async function createFolder(courseId: string, name: string): Promise<CourseFolder> {
-  return api<CourseFolder>(`/api/courses/${courseId}/folders`, { method: "POST", json: { name } });
+/** A new, empty folder at the end of the course's Folders list, or of an exam page's folders. */
+export async function createFolder(courseId: string, name: string, examPageId: string | null = null): Promise<CourseFolder> {
+  return api<CourseFolder>(`/api/courses/${courseId}/folders`, { method: "POST", json: examPageId === null ? { name } : { name, examPageId } });
 }
 
 /** Moves a set, with every older version of it, into another folder. Answers and progress go with it. */

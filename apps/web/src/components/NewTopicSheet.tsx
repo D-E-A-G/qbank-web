@@ -4,7 +4,7 @@ import { refreshCatalog } from "../catalog";
 import { createTopic } from "../course/requests";
 import { FormSheet } from "./FormSheet";
 
-/** New topic: a name, nothing else. A name another of her topics has is refused by the server. */
+/** New study topic, from Home's +: a name, nothing else. A name another of her topics has is refused by the server. */
 export function NewTopicSheet({ onMade, onClose }: { onMade: (topic: SemesterCourse) => void; onClose: () => void }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,7 +30,7 @@ export function NewTopicSheet({ onMade, onClose }: { onMade: (topic: SemesterCou
   };
 
   return (
-    <FormSheet title="New topic" busy={busy} error={error} onDone={save} onClose={onClose}>
+    <FormSheet title="New study topic" busy={busy} error={error} onDone={save} onClose={onClose}>
       <label className="field">
         <span className="field-label">Topic name</span>
         <input

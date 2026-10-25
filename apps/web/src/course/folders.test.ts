@@ -108,6 +108,14 @@ describe("her lists", () => {
     ]);
   });
 
+  it("puts the exam page Import was opened from first, and the rest in her order", () => {
+    const exam1 = page("p1", "Exam 1");
+    const two = course([...folders, folder("Week 9", [], { examPageId: "p1" })], [exam1, exam2]);
+    expect(folderGroups(two).map((group) => group.title)).toEqual(["Exam 1", "Exam 2", "On no exam page"]);
+    expect(folderGroups(two, "p2").map((group) => group.title)).toEqual(["Exam 2", "Exam 1", "On no exam page"]);
+    expect(folderGroups(two, "gone").map((group) => group.title)).toEqual(["Exam 1", "Exam 2", "On no exam page"]);
+  });
+
   it("calls a topic's pages study pages", () => {
     const topic = course(folders, [page("p2", "Page 1")], "topic");
     expect(folderGroups(topic).map((group) => group.title)).toEqual(["Page 1", "On no study page"]);

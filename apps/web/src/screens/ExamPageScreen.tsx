@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, type CourseDetail, type CourseExam, type ExamSetup } from "../api";
+import { refreshCatalog } from "../catalog";
 import { Button } from "../components/Button";
 import { ConfirmSheet } from "../components/ConfirmSheet";
 import { EmptyState } from "../components/EmptyState";
 import { ExamPageEditor } from "../components/ExamPageEditor";
+import { NewFolderSheet } from "../components/FolderSheets";
 import { FolderRows } from "../components/FolderRows";
 import { Icon } from "../components/Icon";
+import { AddMenu } from "../components/Menu";
 import { RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { pageFolders } from "../course/folders";
@@ -15,13 +18,15 @@ import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCours
 import { useFolderOrder } from "../course/useFolderOrder";
 import { PastExamList } from "../exam/PastExamList";
 import { useSession } from "../login/session-context";
-import { navigate } from "../router";
+import { importPath, navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
 /**
  * One exam page: Start exam over its folders, its folders in her order, and the exams she took over
- * them. A topic's study page is the same screen, with its primer link when it has one.
+ * them. Its + adds into it: a question file (Import with this page's folders first), a new folder
+ * on the page, or folders the course already has. A topic's study page is the same screen, with its
+ * primer link when it has one.
  */
 export function ExamPageScreen({ courseId, examPageId }: { courseId: string; examPageId: string }) {
   const session = useSession();
@@ -33,6 +38,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
   const [actionError, setActionError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [making, setMaking] = useState(false);
   useRememberPlace(courseId);
 
   useEffect(() => {
@@ -45,6 +51,10 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
 
   const keep = useCallback(() => {
     setRemoving(false);
+  }, []);
+
+  const closeMaking = useCallback(() => {
+    setMaking(false);
   }, []);
 
   const folders = course && page ? pageFolders(course, page.id) : [];
@@ -67,8 +77,42 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
     );
   };
 
+  const add =
+    course && page && !readOnly ? (
+      <AddMenu
+        label={`Add to ${page.name}`}
+        items={[
+          {
+            key: "import",
+            label: "Import a question file here",
+            detail: "A JSON file from your agent",
+            icon: "file-input",
+            onSelect: () => {
+              navigate(importPath(course.id, { examPageId: page.id }));
+            },
+          },
+          {
+            key: "folder",
+            label: "New folder on this page",
+            icon: "folder",
+            onSelect: () => {
+              setMaking(true);
+            },
+          },
+          {
+            key: "existing",
+            label: "Add existing folders",
+            icon: "plus",
+            onSelect: () => {
+              setEditing(true);
+            },
+          },
+        ]}
+      />
+    ) : undefined;
+
   return (
-    <Screen title={page?.name ?? words.Page}>
+    <Screen title={page?.name ?? words.Page} action={add}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
         {name ?? "Course"}
@@ -173,6 +217,18 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
             setRemoving(true);
           }}
           onClose={closeEditor}
+        />
+      ) : null}
+      {making && course && page ? (
+        <NewFolderSheet
+          course={course}
+          page={page}
+          onMade={() => {
+            setMaking(false);
+            reload();
+            void refreshCatalog();
+          }}
+          onClose={closeMaking}
         />
       ) : null}
       {removing && page ? (

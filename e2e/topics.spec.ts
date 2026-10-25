@@ -50,6 +50,12 @@ async function openHome(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
 }
 
+/** Opens a screen's + and picks one of its rows. */
+async function addFromMenu(page: Page, plus: string, row: string): Promise<void> {
+  await page.getByRole("button", { name: plus, exact: true }).click();
+  await page.getByRole("menu", { name: plus }).getByRole("menuitem", { name: row, exact: true }).click();
+}
+
 function sheet(page: Page, title: string) {
   return page.getByRole("dialog", { name: title });
 }
@@ -69,8 +75,8 @@ test.describe("study topics", () => {
     await openHome(page);
 
     await expect(page.getByRole("heading", { name: "Study topics" })).toBeVisible();
-    await page.getByRole("button", { name: "New topic" }).click();
-    const make = sheet(page, "New topic");
+    await addFromMenu(page, "Add", "New study topic");
+    const make = sheet(page, "New study topic");
     await expect(make.getByRole("textbox", { name: "Topic name" })).toBeFocused();
     await make.getByRole("button", { name: "Done" }).click();
     await expect(make.getByRole("alert")).toHaveText("Give the topic a name.");
@@ -94,7 +100,7 @@ test.describe("study topics", () => {
     await expect(main(page).getByRole("link", { name: new RegExp(`^${name}`) })).toContainText("0 questions · 0 folders");
 
     // A second topic of the same name, in any case, is refused, and her typing stays.
-    await page.getByRole("button", { name: "New topic" }).click();
+    await addFromMenu(page, "Add", "New study topic");
     await make.getByRole("textbox", { name: "Topic name" }).fill(name.toUpperCase());
     await make.getByRole("button", { name: "Done" }).click();
     await expect(make.getByRole("alert")).toContainText("already have a topic named");
@@ -125,8 +131,8 @@ test.describe("study topics", () => {
 
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Study pages" })).toBeVisible();
-    await expect(page.getByText("No study pages yet. Tap New to make Page 1.")).toBeVisible();
-    await page.getByRole("button", { name: "New study page" }).click();
+    await expect(page.getByText("No study pages yet. Tap + to make Page 1.")).toBeVisible();
+    await addFromMenu(page, `Add to ${name}`, "New study page");
     const editor = sheet(page, "New study page");
     await expect(editor.getByRole("textbox", { name: "Study page name" })).toHaveValue("Page 1");
     await editor.getByRole("group", { name: "Folders on this study page" }).getByRole("button", { name: /^Unsorted/ }).click();
@@ -196,7 +202,7 @@ test.describe("study topics", () => {
         back: "Courses",
         note: `${code} course · 2 questions · 1 folder`,
         pages: "Exam pages",
-        empty: "No exam pages yet. Tap New to make Exam 1.",
+        empty: "No exam pages yet. Tap + to make Exam 1.",
         page: "exam page",
         Page: "Exam page",
         first: "Exam 1",
@@ -212,7 +218,7 @@ test.describe("study topics", () => {
         back: "Topics",
         note: "2 questions · 1 folder",
         pages: "Study pages",
-        empty: "No study pages yet. Tap New to make Page 1.",
+        empty: "No study pages yet. Tap + to make Page 1.",
         page: "study page",
         Page: "Study page",
         first: "Page 1",
@@ -232,7 +238,7 @@ test.describe("study topics", () => {
       await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveCount(1);
       await expect(page.getByText("Open a folder to see its sets.")).toBeVisible();
 
-      await page.getByRole("button", { name: `New ${screen.page}` }).click();
+      await addFromMenu(page, `Add to ${screen.heading}`, `New ${screen.page}`);
       const editor = sheet(page, `New ${screen.page}`);
       await expect(editor.getByRole("textbox", { name: `${screen.Page} name` })).toHaveValue(screen.first);
       await expect(editor.getByText(`Tap the folders on this page. A folder on another ${screen.page} is greyed and says which.`)).toBeVisible();
@@ -254,45 +260,62 @@ test.describe("study topics", () => {
     }
   });
 
-  test("in Settings she renames, reorders and archives her topics, and Home keeps an archived one closed at the bottom", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop-chrome", "settings on the wide layout");
+  test("on Home she renames, reorders and archives her topics from their menus, and Archived keeps them closed at the bottom", async ({ page }) => {
     const first = topicName();
     const second = topicName();
     await signIn(page);
     await makeTopic(page, first);
     await makeTopic(page, second);
     const renamed = `${first} renamed`;
+    const starts = (...names: string[]) => names.map((name) => new RegExp(`^${name}`));
 
-    await page.goto("/settings");
-    await expect(page.getByRole("heading", { name: "Study topics" })).toBeVisible();
-    await page.getByLabel(`${first} name`).fill(renamed);
-    await page.getByRole("button", { name: `Save ${first}` }).click();
-    await expect(page.getByRole("button", { name: `Save ${renamed}` })).toBeVisible();
-    await expect(page.getByRole("button", { name: `Move ${second} down` })).toBeDisabled();
-    const sidebar = page.getByRole("complementary", { name: "Sidebar" });
-    const topicLinks = sidebar.getByRole("link").filter({ hasText: /^Topic / });
-    await expect(topicLinks).toHaveText([renamed, second]);
-    await page.getByRole("button", { name: `Move ${second} up` }).click();
-    await expect(topicLinks).toHaveText([second, renamed]);
-    await expect(page.getByRole("button", { name: `Move ${renamed} down` })).toBeDisabled();
-
-    await page.getByRole("button", { name: `Archive ${renamed}` }).click();
-    await expect(page.getByRole("button", { name: `Unarchive ${renamed}` })).toBeVisible();
-    await expect(topicLinks).toHaveText([second]);
-
+    // Loaded again, so Home reads the topics made through the API.
+    await page.waitForLoadState("networkidle");
+    await page.reload();
     await openHome(page);
-    await expect(main(page).getByRole("link", { name: new RegExp(`^${second}`) })).toBeVisible();
-    await expect(main(page).getByRole("link", { name: new RegExp(`^${renamed}`) })).toBeHidden();
-    // Archived is last on Home and closed; opening it shows the topic under Study topics.
+    const topics = main(page)
+      .locator("section.semester")
+      .filter({ has: page.getByRole("heading", { name: "Study topics", exact: true }) })
+      .getByRole("link");
+    await expect(topics).toHaveText(starts(first, second));
+
+    // Rename from the card's menu: only the name changes.
+    await page.getByRole("button", { name: `Actions for ${first}` }).click();
+    const menu = page.getByRole("menu", { name: first });
+    await expect(menu.getByRole("menuitem")).toHaveText(["Open", "Rename", "Move down", "Archive"]);
+    await menu.getByRole("menuitem", { name: "Rename" }).click();
+    const rename = sheet(page, "Rename topic");
+    await expect(rename.getByRole("textbox", { name: "Topic name" })).toHaveValue(first);
+    await rename.getByRole("textbox", { name: "Topic name" }).fill(renamed);
+    await rename.getByRole("button", { name: "Save" }).click();
+    await expect(rename).toBeHidden();
+    await expect(topics).toHaveText(starts(renamed, second));
+
+    // Move up is her order everywhere: Home, and the server's list.
+    await page.getByRole("button", { name: `Actions for ${second}` }).click();
+    await page.getByRole("menu", { name: second }).getByRole("menuitem", { name: "Move up" }).click();
+    await expect(topics).toHaveText(starts(second, renamed));
+
+    // Archive asks nothing; a card at the bottom says where it went, and its Undo brings it back.
+    await page.getByRole("button", { name: `Actions for ${renamed}` }).click();
+    await page.getByRole("menu", { name: renamed }).getByRole("menuitem", { name: "Archive" }).click();
+    await expect(page.getByRole("status").filter({ hasText: `Archived ${renamed}. It is in Archived at the bottom of Home.` })).toBeVisible();
+    await expect(topics).toHaveText(starts(second));
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await expect(topics).toHaveText(starts(second, renamed));
+
+    // Archived again, it waits in the closed Archived group, whose menu unarchives it.
+    await page.getByRole("button", { name: `Actions for ${renamed}` }).click();
+    await page.getByRole("menu", { name: renamed }).getByRole("menuitem", { name: "Archive" }).click();
+    await expect(topics).toHaveText(starts(second));
     const archived = main(page).locator("details.archived");
     await expect(archived).not.toHaveAttribute("open");
     await archived.getByText("Archived", { exact: true }).click();
-    await expect(archived.getByRole("link", { name: new RegExp(`^${renamed}`) })).toBeVisible();
     await expect(archived.getByRole("heading", { name: "Study topics" })).toBeVisible();
-
-    await page.goto("/settings");
-    await page.getByRole("button", { name: `Unarchive ${renamed}` }).click();
-    await expect(topicLinks).toHaveText([second, renamed]);
+    await archived.getByRole("button", { name: `Actions for ${renamed}` }).click();
+    await expect(page.getByRole("menu", { name: renamed }).getByRole("menuitem")).toHaveText(["Open", "Rename", "Unarchive"]);
+    await page.getByRole("menu", { name: renamed }).getByRole("menuitem", { name: "Unarchive" }).click();
+    await expect(topics).toHaveText(starts(second, renamed));
   });
 
   test("the admin sees her topic and its study pages read-only", async ({ page, browser }, testInfo) => {
@@ -305,12 +328,13 @@ test.describe("study topics", () => {
 
     const admin = await signedInPage(browser, ADMIN_EMAIL, ADMIN_PASSWORD);
     await expect(admin.getByRole("heading", { name: "Study topics" })).toBeVisible();
-    await expect(admin.getByRole("button", { name: "New topic" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Add", exact: true })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: /^Actions for / })).toHaveCount(0);
     await main(admin).getByRole("link", { name: new RegExp(`^${name}`) }).click();
     await expect(admin.getByText(/progress, read-only\./)).toBeVisible();
     await expect(admin.getByRole("heading", { level: 1, name })).toBeVisible();
     await expect(admin.getByRole("list", { name: "Study pages" }).getByRole("link")).toHaveText([/^Page 1/]);
-    await expect(admin.getByRole("button", { name: "New study page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: `Add to ${name}` })).toHaveCount(0);
     await admin.getByRole("list", { name: "Study pages" }).getByRole("link", { name: /^Page 1/ }).click();
     await expect(admin.getByRole("link", { name: "Start exam" })).toHaveCount(0);
     await expect(admin.getByRole("heading", { name: "Her past exams" })).toBeVisible();
