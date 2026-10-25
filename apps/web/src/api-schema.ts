@@ -106,7 +106,7 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -167,8 +167,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -266,8 +275,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -375,8 +393,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -488,8 +515,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -602,8 +638,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -696,7 +741,7 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -738,7 +783,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a course or topic
-         * @description Deletes a course or study topic with everything in it, as its preview named. It leaves Home (GET /api/semesters), the topic order, its own reads and everything in it (404, as an id that names nothing), study, Review, exams, Make questions and exam twins, the last course she used, and what an agent reads (GET /api/me/standing, and `courses` and `questions` of GET /api/me/export). Nothing in it is written: its folders, exam pages, sets, her answers, progress and past exams stay saved as they are, her answers count toward nothing while it is deleted, and an answer still on its way to one of its questions is saved. Its code, or a topic's name, is free again meanwhile. Refused with 409 `in_use` while a Make questions or twin job is still working in it, or an exam in it is in progress. GET /api/deleted-courses lists it for Undo. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this; the admin is refused with 403 `admin_cannot_delete_course`, and an agent key with 403 `agent_key_not_allowed`.
+         * @description Deletes a course or study topic with everything in it, as its preview named. It leaves Home (GET /api/semesters), the topic order, its own reads and everything in it (404, as an id that names nothing), study, Review, exams, Make questions and exam twins, the last course she used, and what an agent reads (GET /api/me/standing, and `courses` and `questions` of GET /api/me/export). Nothing in it is written: its folders, exam pages, sets, her answers, progress and past exams stay saved as they are, her answers count toward nothing while it is deleted, and an answer still on its way to one of its questions is saved. Its code, or a topic's name, is free again meanwhile. Refused with 409 `in_use` while a Make questions or twin job is still working in it, or an exam in it is in progress. GET /api/deleted-courses lists it for Undo. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this, itself or with its own agent key with the `manage` scope; the admin is refused with 403 `admin_cannot_delete_course`, and any other agent key with 403 `agent_key_not_allowed`.
          */
         delete: {
             parameters: {
@@ -770,7 +815,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -779,7 +824,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -885,8 +930,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -971,8 +1025,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1060,8 +1123,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1101,7 +1173,7 @@ export interface paths {
         post?: never;
         /**
          * Remove an exam page
-         * @description Its folders go back to the end of the course's Folders list, with their sets and progress; her past exams stay, and those it held no longer belong to a page. Refused with 409 when one of its folders has the name of a folder already in the Folders list: rename one of them first.
+         * @description Its folders go back to the end of the course's Folders list, with their sets and progress; her past exams stay, and those it held no longer belong to a page. Refused with 409 when one of its folders has the name of a folder already in the Folders list: rename one of them first. The page has no Undo, so an agent key, even with `manage`, is refused with 403 `agent_key_not_allowed`: it can take every folder off the page with PUT /api/course-exams/{id}, and the user removes the page in QBank.
          */
         delete: {
             parameters: {
@@ -1219,8 +1291,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1307,7 +1388,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1316,7 +1397,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -1393,8 +1474,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1479,8 +1569,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1570,8 +1669,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1746,7 +1854,7 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -1820,7 +1928,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1829,7 +1937,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -1913,7 +2021,7 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -1981,7 +2089,7 @@ export interface paths {
                             title: string;
                         };
                         /**
-                         * @description `import` (the default) answers 409 for a set of the same kind and name; `replace` makes the file its new version; `separate` adds it beside it. With an agent key, only `import`: the others answer 403.
+                         * @description `import` (the default) answers 409 for a set of the same kind and name; `replace` makes the file its new version (the one before stays, for Restore); `separate` adds it beside it. With an agent key without the `manage` scope, only `import`: the others answer 403.
                          * @enum {string}
                          */
                         decision?: "import" | "replace" | "separate";
@@ -2016,7 +2124,7 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, or it asked for what a key never does. `must_change_password`: the account has a temporary password. */
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -2099,8 +2207,17 @@ export interface paths {
                         "application/json": components["schemas"]["ContentError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentError"];
+                    };
+                };
+                /** @description `agent_key_not_allowed`: the key's scopes do not cover this, it asked for what its scopes do not cover, or it has `manage` only and the admin approved it (the admin account has no content of its own). `must_change_password`: the account has a temporary password. */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4835,7 +4952,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -4844,7 +4961,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -4932,7 +5049,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -4941,7 +5058,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5025,7 +5142,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -5034,7 +5151,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5122,7 +5239,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -5131,7 +5248,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5405,7 +5522,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -5414,7 +5531,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5471,7 +5588,7 @@ export interface paths {
         put?: never;
         /**
          * Undo deleting a course or topic
-         * @description Brings back a course or study topic she deleted, whole: its folders, exam pages, sets (one she had deleted on its own before stays in its Recently deleted), her answers counting again, and her past exams, in its semester or her topics as before. Refused with 409 when its semester has a course of its code now, or she has a topic of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this; the admin is refused with 403 `admin_cannot_delete_course`, and an agent key with 403 `agent_key_not_allowed`.
+         * @description Brings back a course or study topic she deleted, whole: its folders, exam pages, sets (one she had deleted on its own before stays in its Recently deleted), her answers counting again, and her past exams, in its semester or her topics as before. Refused with 409 when its semester has a course of its code now, or she has a topic of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this, itself or with its own agent key with the `manage` scope; the admin is refused with 403 `admin_cannot_delete_course`, and any other agent key with 403 `agent_key_not_allowed`.
          */
         post: {
             parameters: {
@@ -5525,7 +5642,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -5534,7 +5651,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5607,7 +5724,7 @@ export interface paths {
                         "application/json": components["schemas"]["RecentlyDeletedCourses"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -5616,7 +5733,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -5684,7 +5801,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -5693,7 +5810,7 @@ export interface paths {
                         "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused, with the sentence to show her in `message`. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -8996,8 +9113,19 @@ export interface components {
             deletedAt: string;
             /** @description Undo is refused after this. */
             undoUntil: string;
+            /** @description The agent key that deleted it, such as the user's own AI agent (see the Agents tag): show it as "Deleted by your agent". Null when it was deleted in the app. It stays after the key is revoked. */
+            deletedByAgent: components["schemas"]["DeletingAgent"] | null;
             /** @description Why Undo would be refused now (its semester has a course of its code now, or she has a topic of its name), or null. */
             undoRefusal: string | null;
+        };
+        DeletingAgent: {
+            /**
+             * Format: uuid
+             * @description Its agent key, as GET /api/agent-keys lists it.
+             */
+            id: string;
+            /** @description The name the agent paired with, such as My MacBook agent. */
+            name: string;
         };
         RecentlyDeleted: {
             undoDays: number;
@@ -9032,6 +9160,8 @@ export interface components {
             deletedAt: string;
             /** @description Undo is refused after this. */
             undoUntil: string;
+            /** @description The agent key that deleted it, such as the user's own AI agent (see the Agents tag): show it as "Deleted by your agent". Null when it was deleted in the app. It stays after the key is revoked. */
+            deletedByAgent: components["schemas"]["DeletingAgent"] | null;
             /** @description Why Undo would be refused now (its list has a folder of its name now), or null. */
             undoRefusal: string | null;
         };
@@ -9051,6 +9181,8 @@ export interface components {
             deletedAt: string;
             /** @description Undo is refused after this. */
             undoUntil: string;
+            /** @description The agent key that deleted it, such as the user's own AI agent (see the Agents tag): show it as "Deleted by your agent". Null when it was deleted in the app. It stays after the key is revoked. */
+            deletedByAgent: components["schemas"]["DeletingAgent"] | null;
             /** @description Why Undo would be refused now (its folder is deleted), or null. */
             undoRefusal: string | null;
         };
@@ -9508,10 +9640,10 @@ export interface components {
             scopes: components["schemas"]["AgentScope"][];
         };
         /**
-         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: read the account's answers (its standing by topic, Review lists, exams and export) and change nothing. More may be added later; show one you do not know by its name.
+         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: read the account's answers (its standing by topic, Review lists, exams and export) and change nothing. `manage`: add, change and delete the account's own content as the user can in QBank (semesters, courses, study topics, folders, exam pages, sets, and their questions through Import, Replace and Restore), every delete with Undo, as well as everything `import` reaches. More may be added later; show one you do not know by its name.
          * @enum {string}
          */
-        AgentScope: "import" | "read";
+        AgentScope: "import" | "read" | "manage";
         AgentKeyDelivered: {
             /**
              * @description The key. Send it as Authorization: Bearer. QBank keeps only its hash and never shows it again.
@@ -9545,6 +9677,12 @@ export interface components {
             name: string;
             /** @description What its key would be able to do. */
             scopes: components["schemas"]["AgentScope"][];
+            /** @description Each of scopes, in the same order, in plain words: show these to the user beside the agent's name. */
+            scopeTexts: {
+                scope: components["schemas"]["AgentScope"];
+                /** @description The scope in plain words, to show the user before they approve. */
+                text: string;
+            }[];
             /**
              * @description `pending` until the user answers.
              * @enum {string}

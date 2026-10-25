@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import {
   AGENTS_PATH,
   answerPairing,
+  approvalNote,
   cleanCode,
   codeEnds,
   codeFromSearch,
   keyDates,
   listAgentKeys,
   lookupPairing,
+  pairingScopes,
   refusal,
   revokeAgentKey,
+  revokeMessage,
   scopesLine,
-  scopeWords,
   type AgentKey,
   type AgentPairing,
 } from "../agents/agents";
@@ -265,7 +267,10 @@ export function AgentsScreen() {
               <li key={key.id}>
                 <div className={key.revokedAt === null ? "list-row" : "list-row agent-key-revoked"}>
                   <span className="list-copy">
-                    <span className="list-title list-title-strong">{key.name}</span>
+                    <span className="list-title list-title-strong agent-tagged">
+                      <span>{key.name}</span>
+                      {key.revokedAt === null && key.scopes.includes("manage") ? <MostAccess /> : null}
+                    </span>
                     <span className="list-meta">{keyDates(key)}</span>
                     <span className="list-meta">{key.revokedAt === null ? scopesLine(key.scopes) : "Revoked: it never works again"}</span>
                   </span>
@@ -288,14 +293,14 @@ export function AgentsScreen() {
           </ul>
         )}
         <p className="group-footer">
-          Each key works for this account only, and only for what it was approved to do. Revoking one stops it at once; the sets it imported stay where they
-          are.
+          Each key works for this account only, and only for what it was approved to do. Revoking one stops it at once; what it imported or changed stays as
+          it is.
         </p>
       </section>
       {revoking !== null ? (
         <ConfirmSheet
           title={`Revoke ${revoking.name}?`}
-          message="Its key stops working at once and for good. The sets it imported stay where they are. To connect this agent again, approve a new code from it."
+          message={revokeMessage(revoking.scopes)}
           confirmLabel="Revoke"
           confirmVariant="destructive"
           onConfirm={confirmRevoke}
@@ -335,25 +340,23 @@ function PairingRequest({
       <div className="agent-scopes">
         <span className="field-label">It asks to</span>
         <ul className="agent-scope-list">
-          {pairing.scopes.map((scope) => {
-            const words = scopeWords(scope, admin);
-            return (
-              <li key={scope} className="agent-scope">
-                <span className="row-icon">
-                  <Icon name="check" size={18} strokeWidth={2} />
+          {pairingScopes(pairing, admin).map((scope) => (
+            <li key={scope.scope} className="agent-scope">
+              <span className="row-icon">
+                <Icon name="check" size={18} strokeWidth={2} />
+              </span>
+              <span className="list-copy">
+                <span className="list-title agent-tagged">
+                  <span>{scope.title}</span>
+                  {scope.strongest ? <MostAccess /> : null}
                 </span>
-                <span className="list-copy">
-                  <span className="list-title">{words.title}</span>
-                  <span className="list-meta">{words.detail}</span>
-                </span>
-              </li>
-            );
-          })}
+                <span className="list-meta">{scope.detail}</span>
+              </span>
+            </li>
+          ))}
         </ul>
       </div>
-      <p className="form-note">
-        Approve only a code your own agent is showing you now. Its key never changes a password, deletes anything, or reaches your other keys.
-      </p>
+      <p className="form-note">{approvalNote(pairing.scopes)}</p>
       <div className="agent-answer">
         <Button variant="secondary" disabled={busy} onClick={onDeny}>
           Deny
@@ -364,4 +367,9 @@ function PairingRequest({
       </div>
     </div>
   );
+}
+
+/** Marks the scope that reaches the most, calmly: a tag beside its title, never a warning. */
+function MostAccess() {
+  return <span className="agent-scope-tag">Most access</span>;
 }
