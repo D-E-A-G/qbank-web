@@ -37,7 +37,7 @@ Each of these was cut on purpose. Anything a user asks for later is a new decisi
 
 | Not in the app | Why |
 |---|---|
-| Question generation | Questions are made outside the app by the weekly question skill in Codex and imported. |
+| Slide uploads for a question generator | Questions come in by two doors: made outside the app by her Firstmate and imported, or written inside QBank by Make questions (see [How questions get into the app](#how-questions-get-into-the-app)). The app never takes her slides. |
 | Slides, transcripts, notes, or any course files | They stay in her iCloud course folder. The app holds questions only. A study page may link to a primer; the primer stays where it was written. |
 | Study plans, high-yield sheets, flashcards, day-by-day exam plans | Study-planning territory, deliberately out of scope. Anki cards are not imported. |
 | Spaced repetition, streaks, reminders, a weakness dashboard | Same reason. Review is only "what I missed or guessed". A review schedule stays outside the app. |
@@ -61,9 +61,19 @@ Each of these was cut on purpose. Anything a user asks for later is a new decisi
 
 ## How questions get into the app
 
-1. **She makes a set outside the app** by running the weekly `nclex-questions` skill in Codex. Codex runs on one shared ChatGPT plan that is on both her machine and the owner's, so either can run it. The skill reads the week's slides and transcripts from her iCloud folder, writes 12 to 15 hard questions per batch, runs a blind accuracy check, and returns one JSON question file.
+There are two doors. Both end in the same place: a set filed in a folder of her course or topic.
+
+**Door 1: her Firstmate makes the questions outside the app, and she imports them.**
+
+1. **Her Firstmate makes a set outside the app** by running the weekly `nclex-questions` skill. The skill reads the week's slides and transcripts from her iCloud folder, writes 12 to 15 hard questions per batch, runs a blind accuracy check, and returns one JSON question file.
 2. **She imports that file in the app** from any device: Import, paste the JSON or choose the file, pick the course and a folder (Unsorted unless she picks one), confirm the set name, Check file, Import.
-3. **The app checks the file's shape** with the same rules the existing runner's importer uses. Errors block the import and are listed in words she can paste back into her Codex chat; warnings import anyway.
+3. **The app checks the file's shape** with the same rules the existing runner's importer uses. Errors block the import and are listed in words she can paste back to her Firstmate; warnings import anyway.
+
+Planned, not built: a scoped agent key she mints in the app, so her Firstmate can hand a set to QBank itself instead of her pasting the file. Until it ships, Import is how a file from her Firstmate gets in.
+
+**Door 2: Make questions, inside QBank.** An account that may make questions now (`GET /api/question-maker` answers `available: true`; today only hers) asks QBank to write a set. QBank's server runs a copy of her Firstmate's recipe, and files the set in the course or topic and folder she names (Unsorted if none). The same recipe writes exam twins (see [Exam setup](#exam-setup)). It is on the iPhone app's Add tab and, for exam twins, in the web app's Exam setup; the web Import screen is for files made outside.
+
+The recipe is her Firstmate's `nclex-questions` skill; QBank runs a copy of it.
 
 The app checks shape, not clinical accuracy. A wrong question is fixed in the JSON and re-imported, which replaces the set (see [Import](#import)).
 
@@ -291,7 +301,7 @@ Sets, folders, and past exams can be deleted, and each comes back with Undo for 
 - Course: an existing course, an existing study topic (under **Study topics**, once she has one), **New course** (code, name, semester), or **New topic** (a name only: no code, no semester). With no topics yet, the menu is her courses, as before, plus those two new choices. A set with no folder goes to **Unsorted** in a topic the same way it does in a course. The done line and the replace warning name a topic by its name.
 - Folder: **Unsorted**, picked every time unless she picks another; her folders, grouped by exam page; or **New folder** with a name. **Import here** on a folder arrives with that folder picked.
 - Set name: filled from the file's `title`, editable.
-- **Check file:** shows "Ready: N questions, M terms" with the format breakdown, or the errors with a **"Copy these for Codex"** button, plus any warnings. An exam set says so: its questions are asked only on exams over its folder.
+- **Check file:** shows "Ready: N questions, M terms" with the format breakdown, or the errors with a **"Copy these for your Firstmate"** button, plus any warnings. An exam set says so: its questions are asked only on exams over its folder.
 - **Replace warning:** if the set name matches an existing set of the same kind (practice or exam), it asks first, naming the course, the folder the set is in (a replaced set stays in its folder, whatever folder she picked), and how many questions would be replaced. Choices: **Replace**, **Import as a separate set**, **Cancel**. Cancel changes nothing.
 - **Replace keeps what it can:** answers on questions that did not change are kept, and the replaced version is kept and restorable from its folder with one tap.
 - **Done:** "Imported" or "Replaced", naming the folder and its exam page, with **Open** the folder and **Import another file**, which keeps the course and goes back to Unsorted.
@@ -466,7 +476,7 @@ The design system's tokens come from the owner's Claude Design export and arrive
 | 5 | Progress sync and Review | Attempts with idempotent ids, server re-scoring, `question_progress`, course completion and scores, Review with its filters, leave rule, and Clear the review list; landing on the last course; the admin's read-only view of her progress and the Repair that rebuilds it from her answers. | Answer on browser A, see the same Review on browser B; drop the network mid-answer and reconnect, exactly one attempt is recorded; Clear asks first and Cancel changes nothing; the admin sees her Review but cannot change it outside a repair. |
 | 6 | Exam, installable app, look, backups, launch | Exam over ticked weeks (40 in 60 minutes, or all at 1.5 minutes each) drawn in proportion, leave-ends-exam, unanswered questions kept out of Review, results with by-week breakdown and history; manifest and icons; light/dark mode; JSON export; a restore drill with her real data; iPhone layout and iPad/Mac sidebar layout; her three devices set up. | An exam over Weeks 1-3 draws only from those weeks, in proportion, times out, and sends only the misses and guesses among what she answered to Review; it installs on an iPhone and a Mac and opens full-screen; a restore from last night's dump brings back a fresh attempt. |
 
-Nothing else is planned after launch. In-app question generation (uploads plus a generator) is not planned; the questions come from the skill in Codex.
+Nothing else is planned after launch beyond the agent key for her Firstmate (see [How questions get into the app](#how-questions-get-into-the-app)). Slide uploads for a generator are not planned; the questions come from her Firstmate's skill, imported, or from Make questions.
 
 Future work, not scheduled: a SwiftUI iOS app as a second client of the same API. It has no Admin screen and no sign-up list; those stay on the web Admin page, which he can open in Safari on his phone (decision 22).
 
@@ -478,8 +488,8 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 
 1. **Build a small custom app** (not a bought product, not the offline pages plus a sync service, not "no app").
 2. **Hosting (2026-09-28, replacing Railway + Neon):** one self-managed DigitalOcean droplet (Basic Regular, 1 vCPU / 2 GB / 50 GB, $12 a month, New York, Ubuntu 24.04 LTS, weekly backups) declared in OpenTofu, running Caddy, the API, and Postgres 16 in Docker Compose, mirroring Kun's Hetzner setup. No Railway, Neon, or Resend. One production environment. Backups are DigitalOcean's weekly backups plus a nightly encrypted `pg_dump` off the box to Cloudflare R2, with a tested restore, starting in milestone 1. Later, one root domain with a subdomain per app, DNS on Cloudflare. (2026-10-01: the nightly dump is no longer encrypted. The owner chose not to keep a separate decryption key; the bucket stays private.)
-3. **Questions get in** through an Import screen in the app, where she imports the weekly question skill's JSON.
-4. **Questions are made** by running the `nclex-questions` skill in Codex, on the one ChatGPT plan shared by her machine and the owner's. The app does not generate questions.
+3. **Questions get in** through an Import screen in the app, where she imports the JSON her Firstmate's weekly question skill makes, or through Make questions (see decision 4).
+4. **Questions are made** by her Firstmate running the `nclex-questions` skill outside the app (imported), or by Make questions inside QBank, which runs a copy of the same recipe on the server (this revises the original decision, which had no Make questions). The app never takes her slides.
 5. **Login** is a password with an optional passkey (Face ID / Touch ID).
 6. **Each week's slides and transcripts stay in her iCloud folder**, not in the app. The app holds questions only.
 7. **Replacing a week's questions warns first** (naming the course, the week, and the number of questions), Cancel does nothing, and the previous version is kept and restorable.

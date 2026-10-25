@@ -93,7 +93,7 @@ function Import({ nav, phone, wide, admin }) {
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <SegmentedControl value={src} onChange={setSrc} options={[{ value: 'paste', label: 'Paste JSON', icon: 'clipboard-paste' }, { value: 'file', label: 'Choose file', icon: 'file-json' }]} />
           {src === 'paste'
-            ? <TextField multiline mono rows={7} value={text} onChange={() => setChecked(null)} placeholder="Paste the JSON from Codex" />
+            ? <TextField multiline mono rows={7} value={text} onChange={() => setChecked(null)} placeholder="Paste the JSON from your Firstmate" />
             : <button style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, borderRadius: 'var(--radius-sm)', border: '1px dashed var(--separator-strong)', background: 'var(--surface)', cursor: 'pointer', textAlign: 'left' }}>
                 <Icon name="file-json" size={24} color="var(--tint)" />
                 <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={{ font: 'var(--text-body)', color: 'var(--text-1)' }}>week4-set2.json</span><span style={{ font: 'var(--text-footnote)', color: 'var(--text-3)' }}>14 KB · from iCloud Drive</span></span>
