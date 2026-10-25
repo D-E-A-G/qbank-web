@@ -22,7 +22,7 @@ export function IssueList({ kind = 'error', items = [], onCopy, copied }) {
           </li>
         ))}
       </ul>
-      {err && onCopy && <Button variant="quiet" size="sm" icon={copied ? 'check' : 'copy'} onClick={onCopy} style={{ alignSelf: 'flex-start', background: 'var(--surface-raised)' }}>{copied ? 'Copied' : 'Copy these for your Firstmate'}</Button>}
+      {err && onCopy && <Button variant="quiet" size="sm" icon={copied ? 'check' : 'copy'} onClick={onCopy} style={{ alignSelf: 'flex-start', background: 'var(--surface-raised)' }}>{copied ? 'Copied' : 'Copy these for your agent'}</Button>}
     </section>
   );
 }

@@ -44,7 +44,7 @@ test.describe("phone import", () => {
     await page.getByLabel("Paste JSON").fill("not json");
     await page.getByRole("button", { name: "Check file" }).click();
     await expect(page.getByText(/This is not valid JSON:/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Copy these for your Firstmate" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy these for your agent" })).toBeVisible();
     expect(await overflows(page)).toBe(false);
   });
 
