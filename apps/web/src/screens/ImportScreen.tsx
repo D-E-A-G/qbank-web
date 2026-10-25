@@ -210,7 +210,7 @@ export function ImportScreen() {
           multiline
           mono
           value={source}
-          hint="Paste the JSON from your Firstmate."
+          hint="Paste the JSON from your agent."
           onChange={(value) => {
             setSource(value);
             setReport(null);
@@ -339,7 +339,7 @@ export function ImportScreen() {
               });
             }}
           >
-            {copied ? "Copied" : "Copy these for your Firstmate"}
+            {copied ? "Copied" : "Copy these for your agent"}
           </Button>
         </div>
       ) : null}

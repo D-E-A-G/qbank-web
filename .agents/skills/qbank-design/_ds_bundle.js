@@ -1744,7 +1744,7 @@ function IssueList({
       alignSelf: 'flex-start',
       background: 'var(--surface-raised)'
     }
-  }, copied ? 'Copied' : 'Copy these for your Firstmate'));
+  }, copied ? 'Copied' : 'Copy these for your agent'));
 }
 Object.assign(__ds_scope, { IssueList });
 })(); } catch (e) { __ds_ns.__errors.push({ path: "components/feedback/IssueList.jsx", error: String((e && e.message) || e) }); }
@@ -4557,7 +4557,7 @@ try { (() => {
       rows: 7,
       value: text,
       onChange: () => setChecked(null),
-      placeholder: "Paste the JSON from your Firstmate"
+      placeholder: "Paste the JSON from your agent"
     }) : /*#__PURE__*/React.createElement("button", {
       style: {
         display: 'flex',
