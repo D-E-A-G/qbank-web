@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "../api";
-import { AGENTS_PATH, cleanCode, codeFromSearch, keyDates, refusal, scopesLine, scopeWords, type AgentKey } from "./agents";
+import {
+  AGENTS_PATH,
+  approvalNote,
+  cleanCode,
+  codeFromSearch,
+  isStrongest,
+  keyDates,
+  pairingScopes,
+  refusal,
+  revokeMessage,
+  scopesLine,
+  scopeWords,
+  type AgentKey,
+  type AgentPairing,
+} from "./agents";
 
 function key(overrides: Partial<AgentKey> = {}): AgentKey {
   return {
@@ -10,6 +24,21 @@ function key(overrides: Partial<AgentKey> = {}): AgentKey {
     createdAt: "2026-03-02T15:00:00Z",
     lastUsedAt: null,
     revokedAt: null,
+    ...overrides,
+  };
+}
+
+function pairing(overrides: Partial<AgentPairing> = {}): AgentPairing {
+  return {
+    name: "My MacBook agent",
+    scopes: ["import", "manage"],
+    scopeTexts: [
+      { scope: "import", text: "Import question sets into your courses and topics." },
+      { scope: "manage", text: "Add, change and delete your courses, topics, folders and sets. Anything it deletes goes to Recently deleted." },
+    ],
+    status: "pending",
+    createdAt: "2026-03-02T15:00:00Z",
+    expiresAt: "2026-03-02T15:10:00Z",
     ...overrides,
   };
 }
@@ -41,10 +70,50 @@ describe("what an agent asks to do", () => {
     expect(scopeWords("import", true).detail).toContain("the user account you look after");
   });
 
-  it("says read is read-only, and not offered yet", () => {
+  it("says read is read-only", () => {
     const words = scopeWords("read", false);
     expect(words.title).toBe("Read progress, read-only");
-    expect(words.detail).toContain("does not offer this yet");
+    expect(words.detail).toContain("It changes nothing.");
+  });
+
+  it("says manage adds, changes, and deletes her content, every delete to Recently deleted", () => {
+    const words = scopeWords("manage", false);
+    expect(words.title).toBe("Add, change, and delete your content");
+    expect(words.detail).toContain("sets, questions, folders, courses, and topics of your account");
+    expect(words.detail).toContain("goes to Recently deleted");
+    expect(scopeWords("manage", true).detail).toContain("the user account you look after");
+  });
+
+  it("marks only manage as the scope that reaches the most", () => {
+    expect(isStrongest("manage")).toBe(true);
+    expect(isStrongest("import")).toBe(false);
+    expect(isStrongest("read")).toBe(false);
+  });
+
+  it("shows the server's plain words for each scope, in its order, under a short title", () => {
+    expect(pairingScopes(pairing(), false)).toEqual([
+      { scope: "import", title: "Import question sets", detail: "Import question sets into your courses and topics.", strongest: false },
+      {
+        scope: "manage",
+        title: "Add, change, and delete your content",
+        detail: "Add, change and delete your courses, topics, folders and sets. Anything it deletes goes to Recently deleted.",
+        strongest: true,
+      },
+    ]);
+  });
+
+  it("falls back to its own words only for a scope the server did not describe", () => {
+    const [imported, read] = pairingScopes(pairing({ scopes: ["import", "read"], scopeTexts: [{ scope: "import", text: "Server words." }] }), false);
+    expect(imported?.detail).toBe("Server words.");
+    expect(read?.detail).toBe(scopeWords("read", false).detail);
+  });
+
+  it("says a key never deletes, unless it asks to manage, and then that deletes go to Recently deleted", () => {
+    expect(approvalNote(["import", "read"])).toContain("never changes a password, deletes anything, or reaches your other keys");
+    const manage = approvalNote(["import", "manage"]);
+    expect(manage).not.toContain("deletes anything");
+    expect(manage).toContain("never answers questions for you");
+    expect(manage).toContain("what it deletes goes to Recently deleted");
   });
 
   it("shows a scope it does not know by its name", () => {
@@ -52,7 +121,7 @@ describe("what an agent asks to do", () => {
   });
 
   it("never says Firstmate", () => {
-    for (const scope of ["import", "read", "export"]) {
+    for (const scope of ["import", "read", "manage", "export"]) {
       for (const admin of [false, true]) expect(JSON.stringify(scopeWords(scope, admin))).not.toMatch(/firstmate/i);
     }
   });
@@ -64,6 +133,20 @@ describe("a key's row", () => {
     expect(scopesLine(["import", "read"])).toBe("Can import sets and read progress");
     expect(scopesLine(["import", "read", "export"])).toBe("Can import sets, read progress and export");
     expect(scopesLine([])).toBe("Can do nothing");
+  });
+
+  it("says a key that manages adds, changes, and deletes her content, and where its deletes go", () => {
+    const line = "add, change, and delete your sets, questions, folders, courses, and topics. What it deletes goes to Recently deleted.";
+    expect(scopesLine(["manage"])).toBe(`Can ${line}`);
+    expect(scopesLine(["import", "manage"])).toBe(`Can ${line}`);
+    expect(scopesLine(["import", "read", "manage"])).toBe(`Can read progress, and ${line}`);
+  });
+
+  it("says what revoking leaves: the sets it imported, and for a key that manages, what it changed and deleted", () => {
+    expect(revokeMessage(["import"])).toContain("The sets it imported stay where they are.");
+    const manage = revokeMessage(["import", "manage"]);
+    expect(manage).toContain("What it imported or changed stays as it is, and what it deleted stays in Recently deleted.");
+    expect(manage).toMatch(/^Its key stops working at once and for good\./);
   });
 
   it("says when it was made and last used, or that it never was", () => {

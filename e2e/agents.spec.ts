@@ -2,8 +2,8 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import { signIn } from "./sign-in";
 
 // The agent's side is plain HTTP with no session, as an agent on her computer would send it. QBank lets
-// one address start only a few pairings in 10 minutes, so this file starts three in all: one on each
-// device for the approval, and one on desktop Chrome for the denial.
+// one address start only five pairings in 10 minutes, so this file starts five in all: two on each
+// device, for the approval and for the agent that asks to manage, and one on desktop Chrome for the denial.
 
 /** A single-answer set the agent made; option 0 is right. */
 function agentSet(title: string): string {
@@ -143,6 +143,60 @@ test.describe("connect an agent", () => {
       await expect(sets.getByRole("listitem").filter({ hasText: "Agent set" })).toContainText("Imported by your agent");
     } finally {
       await page.request.patch(`/api/courses/${courseId}`, { data: { archived: true } });
+    }
+  });
+
+  test("she approves an agent that asks to manage her content, and its key says what it can change", async ({ page, request: agent }) => {
+    const name = unique("Test agent");
+    await signIn(page);
+    const { deviceCode, userCode } = await startPairing(agent, name, ["import", "read", "manage"]);
+
+    // Each scope in plain words, the server's, with manage marked as the one that reaches the most.
+    await page.goto(`/settings/agents?code=${userCode}`);
+    const request = page.getByRole("group", { name: `${name} asks to connect` });
+    const scopes = request.getByRole("listitem");
+    await expect(scopes).toHaveCount(3);
+    await expect(scopes.nth(0)).toContainText("Import question sets");
+    await expect(scopes.nth(1)).toContainText("Read progress, read-only");
+    const manage = scopes.nth(2);
+    await expect(manage.getByText("Add, change, and delete your content", { exact: true })).toBeVisible();
+    await expect(manage.getByText("Most access", { exact: true })).toBeVisible();
+    await expect(manage).toContainText("Anything it deletes goes to Recently deleted, where you can bring it back for 30 days.");
+    await expect(scopes.nth(0).getByText("Most access")).toHaveCount(0);
+    await expect(request).toContainText("Its key never answers questions for you, changes a password, or reaches your other keys");
+    await expect(request).not.toContainText("deletes anything");
+    await expect(page.getByText(/firstmate/i)).toHaveCount(0);
+
+    await request.getByRole("button", { name: "Approve" }).click();
+    await expect(page.getByRole("status").filter({ hasText: `Approved ${name}.` })).toBeVisible();
+    const delivered = await poll(agent, deviceCode);
+    expect(delivered.status()).toBe(200);
+    const token = ((await delivered.json()) as { token: string }).token;
+
+    // Your keys says what it can change, and where what it deletes goes.
+    const row = keyRow(page, name);
+    await expect(row).toContainText("Never used", { timeout: 15_000 });
+    await expect(row).toContainText(
+      "Can read progress, and add, change, and delete your sets, questions, folders, courses, and topics. What it deletes goes to Recently deleted.",
+    );
+    await expect(row.getByText("Most access", { exact: true })).toBeVisible();
+
+    // The key makes a topic of hers, as she could herself.
+    const made = await agent.post("/api/topics", { headers: { authorization: `Bearer ${token}` }, data: { title: unique("Agent topic") } });
+    expect(made.status()).toBe(201);
+    const topicId = ((await made.json()) as { id: string }).id;
+    try {
+      // Revoking says what stays: what it changed, and what it deleted, in Recently deleted.
+      await page.reload();
+      await expect(row).toContainText("Last used today");
+      await row.getByRole("button", { name: `Revoke ${name}` }).click();
+      const sheet = page.getByRole("dialog", { name: `Revoke ${name}?` });
+      await expect(sheet).toContainText("What it imported or changed stays as it is, and what it deleted stays in Recently deleted.");
+      await sheet.getByRole("button", { name: "Revoke" }).click();
+      await expect(row).toContainText("Revoked today");
+      await expect(row.getByText("Most access")).toHaveCount(0);
+    } finally {
+      await page.request.patch(`/api/courses/${topicId}`, { data: { archived: true } });
     }
   });
 

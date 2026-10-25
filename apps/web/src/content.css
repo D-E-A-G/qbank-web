@@ -1455,6 +1455,27 @@ button.review-row:disabled {
   margin-top: 2px;
 }
 
+/* A title with the Most access tag beside it, which wraps under it when the line is full. */
+.agent-tagged {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+
+.agent-scope-tag {
+  padding: 1px 8px;
+  border: 1px solid var(--tint-soft-border);
+  border-radius: var(--radius-pill);
+  background: var(--tint-soft);
+  color: var(--tint);
+  font: var(--weight-semibold) var(--size-caption-2) / var(--lh-caption-2) var(--font-mono);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .agent-answer {
   display: grid;
   grid-template-columns: 1fr 1fr;
