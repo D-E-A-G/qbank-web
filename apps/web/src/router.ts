@@ -86,6 +86,9 @@ export function deletedPath(courseId: string): string {
   return `/course/${courseId}/deleted`;
 }
 
+/** Home's Recently deleted: the courses and study topics Undo can still bring back. */
+export const DELETED_COURSES_PATH = "/deleted";
+
 export interface ExamMatch {
   courseId: string;
   examId: string;

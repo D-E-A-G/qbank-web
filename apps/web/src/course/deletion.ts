@@ -1,26 +1,33 @@
 import { useSyncExternalStore } from "react";
 import { refreshCatalog } from "../catalog";
-import { ApiError, api, type ExamDeletion, type FolderDeletion, type RecentlyDeleted, type SetDeletion } from "../api";
+import { ApiError, api, type CourseDeletion, type ExamDeletion, type FolderDeletion, type RecentlyDeleted, type RecentlyDeletedCourses, type SetDeletion } from "../api";
 
 /**
  * Deleting takes three steps, each the server's: the preview names what goes and gives a `confirm`
  * token, the delete sends that token back so it deletes exactly what she was shown, and Undo brings
- * it back as it was for 30 days. Nothing is deleted except by her confirmed delete.
+ * it back as it was for 30 days. Nothing is deleted except by her confirmed delete. A course or
+ * study topic is deleted from Home the same way, with everything in it.
  */
-export type Doomed = { kind: "set"; id: string } | { kind: "folder"; id: string } | { kind: "exam"; id: string };
+export type Doomed = { kind: "set"; id: string } | { kind: "folder"; id: string } | { kind: "exam"; id: string } | { kind: "course"; id: string };
 
-export type DeletionPreview = { kind: "set"; preview: SetDeletion } | { kind: "folder"; preview: FolderDeletion } | { kind: "exam"; preview: ExamDeletion };
+export type DeletionPreview =
+  | { kind: "set"; preview: SetDeletion }
+  | { kind: "folder"; preview: FolderDeletion }
+  | { kind: "exam"; preview: ExamDeletion }
+  | { kind: "course"; preview: CourseDeletion };
 
 const BASE: Record<Doomed["kind"], string> = {
   set: "/api/practice-sets",
   folder: "/api/folders",
   exam: "/api/exams",
+  course: "/api/courses",
 };
 
 export async function previewDeletion(item: Doomed): Promise<DeletionPreview> {
   const path = `${BASE[item.kind]}/${item.id}/delete-preview`;
   if (item.kind === "set") return { kind: "set", preview: await api<SetDeletion>(path) };
   if (item.kind === "folder") return { kind: "folder", preview: await api<FolderDeletion>(path) };
+  if (item.kind === "course") return { kind: "course", preview: await api<CourseDeletion>(path) };
   return { kind: "exam", preview: await api<ExamDeletion>(path) };
 }
 
@@ -38,10 +45,16 @@ export async function recentlyDeleted(courseId: string): Promise<RecentlyDeleted
   return api<RecentlyDeleted>(`/api/courses/${courseId}/deleted`);
 }
 
-/** What she is deleting, from her own preview: the set's or folder's name, or "this exam". */
+/** Her courses and study topics deleted in the last 30 days: Home's Recently deleted. */
+export async function recentlyDeletedCourses(): Promise<RecentlyDeletedCourses> {
+  return api<RecentlyDeletedCourses>("/api/deleted-courses");
+}
+
+/** What she is deleting, from her own preview: the set's or folder's name, a course's code, a topic's name, or "this exam". */
 export function doomedName(deletion: DeletionPreview): string {
   if (deletion.kind === "set") return deletion.preview.title;
   if (deletion.kind === "folder") return deletion.preview.name;
+  if (deletion.kind === "course") return deletion.preview.kind === "topic" ? deletion.preview.title : deletion.preview.code;
   return "this exam";
 }
 
@@ -59,8 +72,8 @@ export function warningParts(deletion: DeletionPreview): { title: string; messag
 }
 
 /**
- * What the Undo offer says: "Deleted “Anxiety disorders”.", "Deleted Week 4 and its 3 sets.", or
- * "Deleted 2 sets.", and once Undo worked, the same with "Brought back".
+ * What the Undo offer says: "Deleted “Anxiety disorders”.", "Deleted Week 4 and its 3 sets.",
+ * "Deleted 2 sets.", or "Deleted NURS 220.", and once Undo worked, the same with "Brought back".
  */
 export function deletionSummary(deletions: readonly DeletionPreview[], done: "Deleted" | "Brought back"): string {
   const [only] = deletions;
@@ -68,6 +81,7 @@ export function deletionSummary(deletions: readonly DeletionPreview[], done: "De
   if (deletions.length > 1) return `${done} ${String(deletions.length)} sets.`;
   if (only.kind === "set") return `${done} “${only.preview.title}”.`;
   if (only.kind === "exam") return `${done} the exam.`;
+  if (only.kind === "course") return `${done} ${doomedName(only)}.`;
   const sets = only.preview.setCount;
   return sets === 0 ? `${done} ${only.preview.name}.` : `${done} ${only.preview.name} and its ${sets === 1 ? "set" : `${String(sets)} sets`}.`;
 }
@@ -126,6 +140,7 @@ export function offerUndo(courseId: string, deletions: readonly DeletionPreview[
 export function doomedOf(deletion: DeletionPreview): Doomed {
   if (deletion.kind === "set") return { kind: "set", id: deletion.preview.setId };
   if (deletion.kind === "folder") return { kind: "folder", id: deletion.preview.folderId };
+  if (deletion.kind === "course") return { kind: "course", id: deletion.preview.courseId };
   return { kind: "exam", id: deletion.preview.examId };
 }
 
@@ -172,12 +187,15 @@ export function useUndoOffer(): UndoOffer | null {
 /**
  * A course's version: it goes up when a delete or an Undo changed the course, so every screen
  * showing it (the course, its folders, exam pages, Exam setup, Recently deleted) reads it again.
+ * The version of all courses goes up with each, for Home's Recently deleted.
  */
 const versions = new Map<string, number>();
+let everyCourse = 0;
 const versionListeners = new Set<() => void>();
 
 export function courseChanged(courseId: string): void {
   versions.set(courseId, (versions.get(courseId) ?? 0) + 1);
+  everyCourse += 1;
   for (const listener of versionListeners) listener();
   // Home's course cards count questions and Review too.
   void refreshCatalog();
@@ -194,6 +212,15 @@ export function useCourseVersion(courseId: string): number {
   return useSyncExternalStore(
     subscribeVersion,
     () => versions.get(courseId) ?? 0,
+    () => 0,
+  );
+}
+
+/** Goes up whenever a delete or an Undo changed any course: a course or topic deleted, or brought back. */
+export function useCoursesVersion(): number {
+  return useSyncExternalStore(
+    subscribeVersion,
+    () => everyCourse,
     () => 0,
   );
 }

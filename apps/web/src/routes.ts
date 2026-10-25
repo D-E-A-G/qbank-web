@@ -4,10 +4,11 @@ import type { Role } from "./session";
 import { AGENTS_PATH } from "./agents/agents";
 import { AdminScreen } from "./screens/AdminScreen";
 import { AgentsScreen } from "./screens/AgentsScreen";
+import { DeletedCoursesScreen } from "./screens/DeletedCoursesScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ImportScreen } from "./screens/ImportScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
-import { normalizePath } from "./router";
+import { DELETED_COURSES_PATH, normalizePath } from "./router";
 
 /** A screen at its own address, titled by its label. */
 export interface ScreenRoute {
@@ -33,8 +34,15 @@ export const routes = [
   { id: "settings", path: "/settings", label: "Settings", icon: "settings", nav: "student", width: "reading", Screen: SettingsScreen },
 ] as const satisfies readonly AppRoute[];
 
-/** Screens opened from a section's screen rather than the navigation, under its address, so that section stays selected. */
-export const subRoutes = [{ path: AGENTS_PATH, label: "Connect an agent", width: "reading", Screen: AgentsScreen }] as const satisfies readonly ScreenRoute[];
+/** A screen opened from a section's screen rather than the navigation; that section stays selected. */
+export interface SubRoute extends ScreenRoute {
+  section: string;
+}
+
+export const subRoutes = [
+  { path: AGENTS_PATH, section: "/settings", label: "Connect an agent", width: "reading", Screen: AgentsScreen },
+  { path: DELETED_COURSES_PATH, section: "/", label: "Recently deleted", width: "reading", Screen: DeletedCoursesScreen },
+] as const satisfies readonly SubRoute[];
 
 export function navigationFor(role: Role): readonly AppRoute[] {
   return routes.filter((route) => route.nav === "student" || route.nav === role);
@@ -45,7 +53,8 @@ export function matchRoute(pathname: string): ScreenRoute | undefined {
   return routes.find((route) => route.path === path) ?? subRoutes.find((route) => route.path === path);
 }
 
-/** A section's own screen, or one opened from it (Settings › Connect an agent). Home is only itself. */
+/** A section's own screen, or one opened from it (Settings › Connect an agent, Home › Recently deleted). */
 export function inSection(pathname: string, section: string): boolean {
-  return pathname === section || (section !== "/" && pathname.startsWith(`${section}/`));
+  if (pathname === section || subRoutes.some((route) => route.section === section && route.path === pathname)) return true;
+  return section !== "/" && pathname.startsWith(`${section}/`);
 }

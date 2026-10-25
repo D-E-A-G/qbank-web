@@ -17,3 +17,12 @@ describe("Connect an agent", () => {
     expect(inSection("/", "/")).toBe(true);
   });
 });
+
+describe("Home's Recently deleted", () => {
+  it("opens from Home at its own address, keeps Home selected, and is not in the navigation", () => {
+    expect(matchRoute("/deleted")).toMatchObject({ label: "Recently deleted", width: "reading" });
+    expect(inSection("/deleted", "/")).toBe(true);
+    expect(inSection("/deleted", "/settings")).toBe(false);
+    expect(navigationFor("student").map((route) => route.path)).not.toContain("/deleted");
+  });
+});

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, type ExamDeletion, type FolderDeletion, type SetDeletion } from "../api";
+import { ApiError, type CourseDeletion, type ExamDeletion, type FolderDeletion, type SetDeletion } from "../api";
 import {
   currentUndoOffer,
   deleteConfirmed,
@@ -8,6 +8,8 @@ import {
   doomedOf,
   isDeletionChanged,
   offerUndo,
+  previewDeletion,
+  recentlyDeletedCourses,
   takeUndo,
   warningParts,
   type DeletionPreview,
@@ -82,6 +84,29 @@ function exam(message: string): DeletionPreview {
   return { kind: "exam", preview };
 }
 
+function course(kind: "course" | "topic", message: string): DeletionPreview {
+  const preview: CourseDeletion = {
+    courseId: COURSE,
+    kind,
+    code: kind === "topic" ? "" : "NURS 220",
+    title: kind === "topic" ? "Spanish? Sí" : "Pharmacology",
+    semester: kind === "topic" ? null : { id: SET, number: 1, name: "Semester 1" },
+    folderCount: 4,
+    examPageCount: 1,
+    setCount: 9,
+    questionCount: 146,
+    examQuestionCount: 20,
+    answeredCount: 30,
+    reviewCount: 5,
+    pastExamCount: 2,
+    message,
+    refusal: null,
+    confirm: "course-token",
+    undoDays: 30,
+  };
+  return { kind: "course", preview };
+}
+
 /** Stands in for the API: each request gets the next answer, and is recorded. */
 function fakeApi(...answers: { status: number; body?: unknown }[]) {
   const calls: { url: string; method: string }[] = [];
@@ -116,6 +141,17 @@ describe("warningParts", () => {
     expect(warningParts(warning)).toEqual({ title: "Delete Why? Because?", message: "Its 3 questions go with it. You can undo this for 30 days." });
   });
 
+  it("asks once about a course by its code and question count, and says it can come back", () => {
+    expect(warningParts(course("course", "Delete NURS 220 and its 146 questions? You can bring it back for 30 days."))).toEqual({
+      title: "Delete NURS 220 and its 146 questions?",
+      message: "You can bring it back for 30 days.",
+    });
+    expect(warningParts(course("topic", "Delete Spanish? Sí and its 146 questions? You can bring it back for 30 days."))).toEqual({
+      title: "Delete Spanish? Sí and its 146 questions?",
+      message: "You can bring it back for 30 days.",
+    });
+  });
+
   it("titles a past exam's warning by its question", () => {
     expect(warningParts(exam("Delete this exam? You answered none of its questions, so your progress stays as it is.")).title).toBe("Delete this exam?");
   });
@@ -129,6 +165,8 @@ describe("deletionSummary", () => {
     expect(deletionSummary([folder("Week 4", 0, "")], "Deleted")).toBe("Deleted Week 4.");
     expect(deletionSummary([exam("")], "Brought back")).toBe("Brought back the exam.");
     expect(deletionSummary([set("Anxiety A", ""), set("Anxiety B", "")], "Deleted")).toBe("Deleted 2 sets.");
+    expect(deletionSummary([course("course", "")], "Deleted")).toBe("Deleted NURS 220.");
+    expect(deletionSummary([course("topic", "")], "Brought back")).toBe("Brought back Spanish? Sí.");
   });
 });
 
@@ -137,6 +175,23 @@ describe("deleting", () => {
     const calls = fakeApi({ status: 204 });
     await deleteConfirmed(doomedOf(folder("Week 4", 2, "")), "folder token/1");
     expect(calls).toEqual([{ url: `/api/folders/${FOLDER}?confirm=folder+token%2F1`, method: "DELETE" }]);
+  });
+
+  it("previews and deletes a course or topic at the course's own address", async () => {
+    const calls = fakeApi({ status: 200, body: course("course", "").preview }, { status: 204 });
+    const preview = await previewDeletion({ kind: "course", id: COURSE });
+    expect(preview.kind).toBe("course");
+    await deleteConfirmed(doomedOf(preview), "course-token");
+    expect(calls).toEqual([
+      { url: `/api/courses/${COURSE}/delete-preview`, method: "GET" },
+      { url: `/api/courses/${COURSE}?confirm=course-token`, method: "DELETE" },
+    ]);
+  });
+
+  it("reads Home's Recently deleted", async () => {
+    const calls = fakeApi({ status: 200, body: { undoDays: 30, courses: [] } });
+    expect(await recentlyDeletedCourses()).toEqual({ undoDays: 30, courses: [] });
+    expect(calls).toEqual([{ url: "/api/deleted-courses", method: "GET" }]);
   });
 
   it("tells a changed deletion from another refusal", async () => {
@@ -165,6 +220,29 @@ describe("the Undo offer", () => {
     expect(currentUndoOffer()?.outcome).toEqual({ state: "done", text: "Brought back 2 sets." });
     dismissUndo(offer.id);
     expect(currentUndoOffer()).toBeNull();
+  });
+
+  it("brings a deleted course back, or says why not when its code is taken now", async () => {
+    const calls = fakeApi(
+      { status: 409, body: { error: "request_refused", message: "Semester 1 already has a course with the code NURS 220. Rename one of them, then bring this one back." } },
+      { status: 200, body: {} },
+    );
+    offerUndo(COURSE, [course("course", "")]);
+    const refused = currentUndoOffer();
+    if (refused === null) throw new Error("no offer");
+    expect(refused.text).toBe("Deleted NURS 220.");
+    await takeUndo(refused.id);
+    expect(currentUndoOffer()?.outcome).toEqual({
+      state: "failed",
+      text: "Semester 1 already has a course with the code NURS 220. Rename one of them, then bring this one back.",
+    });
+    offerUndo(COURSE, [course("course", "")]);
+    const offer = currentUndoOffer();
+    if (offer === null) throw new Error("no offer");
+    await takeUndo(offer.id);
+    expect(currentUndoOffer()?.outcome).toEqual({ state: "done", text: "Brought back NURS 220." });
+    expect(calls.filter((call) => call.method === "POST").map((call) => call.url)).toEqual([`/api/courses/${COURSE}/undo-delete`, `/api/courses/${COURSE}/undo-delete`]);
+    dismissUndo(offer.id);
   });
 
   it("shows the server's sentence when Undo is refused", async () => {
