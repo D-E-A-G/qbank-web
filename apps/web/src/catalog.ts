@@ -69,8 +69,13 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+/** Home's list as it is now. */
+export function currentCatalog(): CatalogSnapshot {
+  return snapshot;
+}
+
 export function useCatalog(): CatalogSnapshot {
-  return useSyncExternalStore(subscribe, () => snapshot, () => snapshot);
+  return useSyncExternalStore(subscribe, currentCatalog, currentCatalog);
 }
 
 /** Her course or topic with this id, from Home's list, so a screen can name it before it loads. */
@@ -111,12 +116,23 @@ export function homeLayout(catalog: Pick<CatalogSnapshot, "semesters" | "topics"
   };
 }
 
+// Goes up on sign-out, so an answer asked for by the last account is dropped when it arrives.
+let signOuts = 0;
+
 export async function refreshCatalog(): Promise<void> {
+  const askedFor = signOuts;
   try {
-    publish(fromRecord(await api<CatalogRecord>("/api/semesters")));
+    const record = await api<CatalogRecord>("/api/semesters");
+    if (askedFor === signOuts) publish(fromRecord(record));
   } catch {
-    if (!snapshot.fromServer) publish({ semesters: placeholders(), topics: [], fromServer: false });
+    if (askedFor === signOuts && !snapshot.fromServer) publish({ semesters: placeholders(), topics: [], fromServer: false });
   }
+}
+
+/** Forgets the courses and topics on sign-out, so the next account on this device never sees them. */
+export function forgetCatalog(): void {
+  signOuts += 1;
+  publish({ semesters: placeholders(), topics: [], fromServer: false });
 }
 
 /** What the server answered. A new account has no semester, so none is shown: no placeholders once the server has said so. */

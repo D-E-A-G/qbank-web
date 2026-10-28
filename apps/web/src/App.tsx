@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { forgetCatalog } from "./catalog";
+import { forgetUndo } from "./course/deletion";
 import { ApiError, readSession, type Account } from "./login/api";
 import { ChoosePassword, LoginScreen, PasskeyOffer } from "./login/LoginScreen";
 import { AuthFrame } from "./login/ui";
@@ -109,8 +111,11 @@ export function App() {
         replace: (next) => {
           setGate({ status: "signed-in", user: next, offer: false });
         },
+        // Nothing of this account stays on the screen for the next one on this device.
         signOut: () => {
           forgetStudents();
+          forgetCatalog();
+          forgetUndo();
           navigate("/");
           setGate({ status: "signed-out" });
         },

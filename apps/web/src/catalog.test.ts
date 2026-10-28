@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatalogRecord, SemesterCourse, SemesterRecord } from "./api";
-import { findCourse, fromRecord, homeLayout } from "./catalog";
+import { currentCatalog, findCourse, forgetCatalog, fromRecord, homeLayout, refreshCatalog } from "./catalog";
 
 function card(id: string, kind: SemesterCourse["kind"], title: string, archivedAt: string | null = null): SemesterCourse {
   return {
@@ -71,5 +71,54 @@ describe("Home's groups", () => {
   it("has no Archived group when nothing is archived", () => {
     const layout = homeLayout(fromRecord({ semesters: [semester(1, [card("a", "course", "Fundamentals")])], topics: [card("t1", "topic", "SWE Hire")] }));
     expect(layout.archived).toEqual([]);
+  });
+});
+
+describe("signing out", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Each /api/semesters request waits until the test answers it with that account's catalog. */
+  function heldApi() {
+    const waiting: ((record: CatalogRecord) => void)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            waiting.push((record) => {
+              resolve(new Response(JSON.stringify(record), { status: 200 }));
+            });
+          }),
+      ),
+    );
+    return waiting;
+  }
+
+  const hers: CatalogRecord = { semesters: [semester(1, [card("nurs420", "course", "Health assessment")])], topics: [] };
+  const theirs: CatalogRecord = { semesters: [], topics: [card("t1", "topic", "Spanish")] };
+
+  it("forgets the last account's courses, even from an answer still on its way, and shows the next account's", async () => {
+    const waiting = heldApi();
+    const first = refreshCatalog();
+    waiting[0]?.(hers);
+    await first;
+    expect(findCourse(currentCatalog(), "nurs420")?.title).toBe("Health assessment");
+
+    // Her last read is still on its way when she signs out.
+    const late = refreshCatalog();
+    forgetCatalog();
+    expect(findCourse(currentCatalog(), "nurs420")).toBeUndefined();
+    expect(currentCatalog().fromServer).toBe(false);
+
+    const next = refreshCatalog();
+    waiting[1]?.(hers);
+    await late;
+    expect(findCourse(currentCatalog(), "nurs420")).toBeUndefined();
+    waiting[2]?.(theirs);
+    await next;
+    expect(currentCatalog().topics.map((topic) => topic.title)).toEqual(["Spanish"]);
+    forgetCatalog();
   });
 });

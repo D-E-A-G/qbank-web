@@ -6,6 +6,7 @@ import {
   deletionSummary,
   dismissUndo,
   doomedOf,
+  forgetUndo,
   isDeletionChanged,
   offerUndo,
   previewDeletion,
@@ -243,6 +244,14 @@ describe("the Undo offer", () => {
     expect(currentUndoOffer()?.outcome).toEqual({ state: "done", text: "Brought back NURS 220." });
     expect(calls.filter((call) => call.method === "POST").map((call) => call.url)).toEqual([`/api/courses/${COURSE}/undo-delete`, `/api/courses/${COURSE}/undo-delete`]);
     dismissUndo(offer.id);
+  });
+
+  it("is forgotten on sign-out, so the next account is never offered it", () => {
+    fakeApi();
+    offerUndo(COURSE, [course("course", "")]);
+    expect(currentUndoOffer()?.text).toBe("Deleted NURS 220.");
+    forgetUndo();
+    expect(currentUndoOffer()).toBeNull();
   });
 
   it("shows the server's sentence when Undo is refused", async () => {
