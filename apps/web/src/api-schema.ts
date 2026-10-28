@@ -3021,6 +3021,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete this user account
+         * @description Deletes the signed-in user account and everything it has, for good: its semesters, courses and study topics with their folders, exam pages, sets, questions and terms, its answers, progress, Review and past exams, its Make questions and exam twin jobs, its passkeys, and its agent keys and pairings. Nothing goes to Recently deleted and there is no Undo.
+         *
+         *     The account is always the one signed in: nothing in the request names another, and no other account's content or answers change. Send its current password, checked as sign-in checks it; a wrong one counts toward the same lock as sign-in, and deletes nothing.
+         *
+         *     Once deleted, every session of the account ends, on every device, and every agent key it approved stops working (401 `invalid_agent_key`). The answer also clears this device's session cookie.
+         *
+         *     The admin account is refused, and so is any request that carries an agent key, whatever its scopes.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DeleteAccount"];
+                };
+            };
+            responses: {
+                /** @description The account and everything it had are deleted, and its sessions ended. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountDeleted"];
+                    };
+                };
+                /** @description The password is missing (`invalid_request`). Nothing was deleted. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `unauthenticated`: sign in. `invalid_credentials`: that password is not the account's. Nothing was deleted. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Nothing was deleted: `agent_key_not_allowed` (the request carries an agent key), `must_change_password` (the account has a temporary password; choose a new one first), or `admin_cannot_delete_account`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description `in_use`: QBank is still making a set or writing exam twins in one of its courses. Nothing was deleted; `message` says what to wait for. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Too many wrong passwords (`too_many_attempts`). Nothing was deleted. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Locked"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/student-password": {
         parameters: {
             query?: never;
@@ -3074,7 +3177,7 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
-                /** @description The student account is missing. */
+                /** @description The user account is missing. */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -3218,7 +3321,7 @@ export interface paths {
                         "application/json": components["schemas"]["Error"];
                     };
                 };
-                /** @description That student account is not in the app. */
+                /** @description That user account is not in the app. */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -8262,6 +8365,13 @@ export interface components {
         };
         PaletteUpdate: {
             palette: components["schemas"]["Palette"];
+        };
+        AccountDeleted: {
+            /** @enum {string} */
+            status: "deleted";
+        };
+        DeleteAccount: {
+            password: string;
         };
         TemporaryPasswordSet: {
             /** @enum {string} */
