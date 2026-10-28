@@ -238,7 +238,7 @@ A study topic is a course with no semester, for questions that are not one of he
 
 ### Delete and Undo
 
-Courses, study topics, sets, folders, and past exams can be deleted, and each comes back with Undo for 30 days. Nothing is ever deleted except by her confirmed Delete.
+Courses, study topics, sets, folders, and past exams can be deleted, and each comes back with Undo for 30 days. Nothing is ever deleted except by her confirmed Delete. Deleting her whole user account, in [Settings](#settings), is the one delete with no Undo.
 
 - **What she can delete:** a course or study topic with everything in it (**Delete** in its card's menu on Home), a practice set (Select on its folder, then **Delete**; several at once), a folder with every set in it (**Delete** on the folder), and a past exam (**Edit** on Exam setup's Past exams or an exam page's Past exams, then **Delete** on its row).
 - **The warning** comes from the server, in its words: the question is the title ("Delete Week 4?", or for a course "Delete NURS 220 and its 146 questions?" with "You can bring it back for 30 days." under it), and the rest says everything that goes with it: a folder's sets by name and their questions ("Its 3 sets go with it: Anxiety disorders, Anxiolytics and Panic and phobias, 15 questions in all."), her answers that stop counting and the questions that leave her Review list, the exam page the folder comes off, her past exams that stay, and "You can undo this for 30 days." A past exam's warning says how her answers, Review list, and Wrong questions change. Several sets show each set's warning under "Delete 2 sets?". **Delete** and **Cancel**; Cancel changes nothing.
@@ -320,7 +320,8 @@ Courses, study topics, sets, folders, and past exams can be deleted, and each co
 - **Look:** Match device / Light / Dark, per device.
 - **Color:** Dusk / Slate, saved to the account so it follows it to every device. Every account starts on Dusk.
 - **Export my progress:** downloads her answers and progress as a JSON file.
-- Sign out.
+- Sign out. The next account to sign in on that device sees nothing of hers, not even for a moment.
+- **Delete account**, in red under Sign out, for a user account only (the admin account has none, and the server refuses it): a sheet asks "Delete your user account?" and says in plain words that the account, by its email, and everything in it are deleted for good: her courses and study topics, their sets, her answers, progress and past exams, and her passkeys and agent keys. She is signed out on every device, nothing goes to Recently deleted, and there is no Undo. She enters her current password and taps **Delete account**; Cancel changes nothing. It always deletes the account signed in: nothing she sends names another. Once deleted, she is on the sign-in screen and the device keeps nothing of the account, as after Sign out. A refusal deletes nothing and keeps her signed in, in the server's words: a wrong password ("That password is not right."), a Make questions or twin job still running in one of her courses, or after five wrong passwords here or at sign-in, which lock both for 15 minutes, a lock that keeps Delete account off until it ends. A temporary password leads to choosing a new one first. If her session had already ended (the account deleted or its password reset on another device), she is signed out. The iPhone app's Settings > Delete account works the same way.
 
 ### The owner's admin account
 
@@ -335,7 +336,7 @@ He signs in the same way, with his own login, and lands on the Home of the user 
 - **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
 - **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
 - **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
-- **His Settings:** account, change password, passkeys, Connect an agent (his agent's key imports into the user account he looks after), Look, Color, sign out.
+- **His Settings:** account, change password, passkeys, Connect an agent (his agent's key imports into the user account he looks after), Look, Color, sign out. No Delete account: the admin account can't be deleted.
 
 ## Platforms and layouts
 
@@ -396,7 +397,7 @@ Postgres. Question bodies stay JSON because the eight formats have different sha
 | `question_progress` | Per user and question: attempts, correct attempts, last status, last guessed, last answered at, and whether it is in Review. Written in the same transaction as each attempt; Review is read from here. "Clear the review list" takes the course's questions out of Review without touching her attempts. |
 
 - Her attempts are the only irreplaceable data. The question banks are files she already keeps (the skill's output).
-- A delete hides rows and never removes one: a deleted course or topic, folder, set, or past exam keeps its rows, stamped with when it was deleted and which delete it was, and Undo clears that delete's stamps.
+- A delete hides rows and never removes one: a deleted course or topic, folder, set, or past exam keeps its rows, stamped with when it was deleted and which delete it was, and Undo clears that delete's stamps. Delete account is the exception: it removes every row of the account, for good.
 - Her progress can be exported as JSON at any time from Settings.
 
 ## Stack and hosting
@@ -457,6 +458,7 @@ The deploy job reaches the droplet inside the owner's Tailscale network, for the
 - **Workers never hold production secrets.** The owner creates the DigitalOcean and Cloudflare accounts and keeps their API tokens, the server's SSH keys, the database password, and the backup bucket's key himself. He runs or approves every OpenTofu change to the real server, and he puts the deploy's secrets into GitHub Actions himself. Workers are told variable names, never values, and deploy by merging, not by holding credentials.
 - **Tests never touch her account.** Tests and local development run against seeded fake users and a throwaway database.
 - **No real course content in the repo.** Question banks are imported into the running app, not committed. Fixtures use invented questions.
+- **Her account is hers to delete:** Delete account in Settings, on the web or in the iPhone app, removes her user account and everything in it for good, after her current password (see [Settings](#settings)).
 - **Where her data goes:** the Postgres database on the droplet in DigitalOcean's New York region, DigitalOcean's weekly backups of that droplet, and the nightly dumps in a private R2 bucket. No email, analytics, or other outside service receives her data.
 - **The server is locked down:** only ports 80 and 443 answer the internet, and only Caddy listens there; SSH takes keys only, from the owner's address or his Tailscale network only, with no root login; Postgres has no port outside Docker's internal network; security updates install automatically; `fail2ban` blocks repeated failed logins.
 - **Login safety:** hashed passwords, secure HttpOnly SameSite cookies over HTTPS in the browser, rate-limited sign-in, and password resets only through the owner's admin account, with a temporary password she replaces at her next sign-in.
@@ -532,6 +534,8 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 22. **Admin stays on the web (2026-10-21):** admin tools stay web-only. There is no Admin screen and no sign-up list in the iPhone app. The web Admin page (Sign-up list) is the place, and he can open it in Safari on his phone. No iPhone admin screen is added for parity.
 
 23. **One + per screen (2026-10-25):** each screen that holds things has one + at the right of its title, and it adds into that screen. Home's + adds a course to a semester, a study topic, or the next missing semester; a course's or topic's + imports a question file into it, makes a folder, or makes an exam or study page; an exam or study page's + imports a file with its folders first, makes a folder on it, or adds folders the course already has. Group headers lose their New (Study topics, Exam pages). A course or topic card on Home has a menu (touch and hold on the iPhone; a "…" and a right-click on the web) to open, rename, move, and archive it, with no confirmation, and Unarchive in Archived; and to delete it (red, last), which asks once ("Delete NURS 220 and its 146 questions? You can bring it back for 30 days.") and keeps it 30 days in Home's Recently deleted, a last row on Home that lists her deleted courses and topics with Undo, as the course page's Recently deleted does for sets, folders, and past exams (2026-10-25). The rule that her data is never deleted is about our changes, not an action she takes herself with an Undo. Settings keeps account things and each semester's name and dates, and loses its add controls and the Study topics card. The middle tab stays (Add on the iPhone, Import on the web), study notes are not added, the owner's read-only view has no + and no card menu, and both apps follow this layout. Nothing about her sets, folders, pages, answers, or progress moves; every add and Archive uses an endpoint that already existed, and Delete uses the server's course delete with its preview and Undo.
+
+24. **Delete account on the web too (2026-10-28):** the web's Settings has Delete account for a user account, as the iPhone app's Settings has had since 2026-10-26, rather than staying iPhone-only. Both use the server's `DELETE /api/me` with her current password, which deletes the account signed in and everything in it for good, with no Recently deleted and no Undo, and signs it out on every device. It is her own confirmed action, like a delete with Undo, so the rule that her data is never deleted still holds for our changes. The admin account has none.
 
 ## Open questions
 

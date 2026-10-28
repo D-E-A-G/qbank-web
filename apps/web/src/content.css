@@ -976,6 +976,18 @@ button.review-row:disabled {
   margin-top: 16px;
 }
 
+/* A sheet that asks for something before it acts, such as Delete account's password. */
+.sheet-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sheet-fields .sheet-actions {
+  margin-top: 4px;
+}
+
 .group-head {
   display: flex;
   align-items: baseline;
