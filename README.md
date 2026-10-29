@@ -89,11 +89,11 @@ it came from and the API image built from that commit.
 
 To pin a newer API, pick a commit on qbank-server's `main` whose image was
 published: the Deploy job of its CI run shows
-`IMAGE: ghcr.io/d-e-a-g/nclex-qbank-api@sha256:...`. Then:
+`IMAGE: ghcr.io/d-e-e-g/nclex-qbank-api@sha256:...`. Then:
 
 ```sh
 commit=<the qbank-server commit>
-gh api "repos/D-E-A-G/qbank-server/contents/apps/api/openapi.json?ref=$commit" \
+gh api "repos/D-e-e-g/qbank-server/contents/apps/api/openapi.json?ref=$commit" \
   -H "Accept: application/vnd.github.raw" >apps/web/contract/openapi.json
 # Put the commit and the image in apps/web/contract/pin.json, then:
 pnpm openapi

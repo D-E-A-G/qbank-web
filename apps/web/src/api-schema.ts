@@ -1172,12 +1172,15 @@ export interface paths {
         };
         post?: never;
         /**
-         * Remove an exam page
-         * @description Its folders go back to the end of the course's Folders list, with their sets and progress; her past exams stay, and those it held no longer belong to a page. Refused with 409 when one of its folders has the name of a folder already in the Folders list: rename one of them first. The page has no Undo, so an agent key, even with `manage`, is refused with 403 `agent_key_not_allowed`: it can take every folder off the page with PUT /api/course-exams/{id}, and the user removes the page in QBank.
+         * Delete an exam page
+         * @description Deletes the exam page, as its preview named, and nothing else: no folder, set, question, exam twin, answer, Review clear, progress or past exam is written. While it is deleted, it leaves CourseDetail.exams and Exam setup's `courseExams`, PUT /api/course-exams/{id} answers 404, and its name is free for another page. Its folders read as on no page (Folder.examPageId null): they show at the end of the course's Folders list, in the page's order, with their sets and her progress, and she studies, renames, moves and deletes them as any folder there. Her past exams over it stay in Exam setup and GET /api/exams/{id}, with `courseExamId` null. Without `confirm`, only a page with no folders is deleted (as before), and one with folders is refused with 409 `confirmation_required`. Refused with 409 when one of its folders has the name of a folder already in the Folders list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
          */
         delete: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description `confirm` from the delete preview she was shown. Required for a page with folders on it (409 `confirmation_required` without it); one that no longer matches is refused with 409 `deletion_changed`, and nothing is deleted. */
+                    confirm?: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -1186,56 +1189,65 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description The exam was removed. */
+                /** @description It was deleted. */
                 204: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
                 };
-                /** @description The request was refused. */
+                /** @description The request was refused, with the sentence to show her in `message`. */
                 400: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ContentError"];
+                        "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description Sign in is required. */
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
                 401: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ContentError"];
+                        "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
                 404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ContentError"];
+                        "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The request was refused. */
+                /** @description The request was refused, with the sentence to show her in `message`. */
                 409: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ContentError"];
+                        "application/json": components["schemas"]["DeletionError"];
                     };
                 };
-                /** @description The database is not configured. */
+                /** @description Sign-in is not configured. */
                 503: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ContentError"];
+                        "application/json": components["schemas"]["DeletionError"];
                     };
                 };
             };
@@ -1256,7 +1268,7 @@ export interface paths {
         put?: never;
         /**
          * Make a folder
-         * @description A new, empty folder at the end of its list. A name is unique within its list, ignoring case: one exam page's folders, or the course's Folders list (no exam page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The student and the admin can both do this.
+         * @description A new, empty folder at the end of its list. A name is unique within its list, ignoring case: one exam page's folders, or the course's Folders list (no exam page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -1356,7 +1368,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a folder and its sets
-         * @description Deletes the folder and every set in it, every version, as its preview named; it comes off its exam page. Its sets are hidden as DELETE /api/practice-sets/{id} hides one, and her answers to them stop counting while it is deleted. Her past exams over it stay, without it in their folders. Without `confirm`, only a folder that holds no set is deleted (as before), and one with sets is refused with 409 `confirmation_required`. Refused with 409 `in_use` while a Make questions job is measured against one of its sets or is still filing their exam twins, a twin job is twinning one of them, or an exam in progress asks their questions. A Make questions job that would file into it is not a refusal: its set goes to Unsorted, and the job says so. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         * @description Deletes the folder and every set in it, every version, as its preview named; it comes off its exam page. Its sets are hidden as DELETE /api/practice-sets/{id} hides one, and her answers to them stop counting while it is deleted. Her past exams over it stay, without it in their folders. Without `confirm`, only a folder that holds no set is deleted (as before), and one with sets is refused with 409 `confirmation_required`. Refused with 409 `in_use` while a Make questions job is measured against one of its sets or is still filing their exam twins, a twin job is twinning one of them, or an exam in progress asks their questions. A Make questions job that would file into it is not a refusal: its set goes to Unsorted, and the job says so. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         delete: {
             parameters: {
@@ -1439,7 +1451,7 @@ export interface paths {
         head?: never;
         /**
          * Rename a folder, or put it on an exam page
-         * @description A name is unique within its list, ignoring case: one exam page's folders, or the course's Folders list (no exam page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The student and the admin can both do this. Renaming it to its own name, or putting it on the page it is on, changes nothing.
+         * @description A name is unique within its list, ignoring case: one exam page's folders, or the course's Folders list (no exam page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The user account and the admin can both do this. Renaming it to its own name, or putting it on the page it is on, changes nothing.
          */
         patch: {
             parameters: {
@@ -1534,7 +1546,7 @@ export interface paths {
         put?: never;
         /**
          * Move a set to another folder
-         * @description Moves the set, every version of it, to `folderId` or to a new folder named `newFolderName` (send one of them). Answers and progress move with the set. The new folder follows the folder naming rule (see POST /api/courses/{id}/folders). The student and the admin can both do this.
+         * @description Moves the set, every version of it, to `folderId` or to a new folder named `newFolderName` (send one of them). Answers and progress move with the set. The new folder follows the folder naming rule (see POST /api/courses/{id}/folders). The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -1632,7 +1644,7 @@ export interface paths {
         get?: never;
         /**
          * Put one list of folders in her order
-         * @description Saves the order of one exam page's folders, or of the course's Folders list. A list that does not name exactly the folders it holds is refused with 409, so a stale screen cannot drop or misplace one. The student and the admin can both do this.
+         * @description Saves the order of one exam page's folders, or of the course's Folders list. A list that does not name exactly the folders it holds is refused with 409, so a stale screen cannot drop or misplace one. The user account and the admin can both do this.
          */
         put: {
             parameters: {
@@ -1896,7 +1908,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a set
-         * @description Deletes the set and every version of it, as its preview named. It is hidden everywhere: its folder, Review, exams and their Wrong questions, the course's counts, Import's name check (a new set may take its name), Make questions and exam twins. Her answers to it stay saved and stop counting while it is deleted; Undo makes them count again. Past exams that asked its questions keep them. Refused with 409 `in_use` while a Make questions job is measured against it or is still filing its exam twins, a twin job is twinning it, or an exam in progress asks its questions. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         * @description Deletes the set and every version of it, as its preview named. It is hidden everywhere: its folder, Review, exams and their Wrong questions, the course's counts, Import's name check (a new set may take its name), Make questions and exam twins. Her answers to it stay saved and stop counting while it is deleted; Undo makes them count again. Past exams that asked its questions keep them. Refused with 409 `in_use` while a Make questions job is measured against it or is still filing its exam twins, a twin job is twinning it, or an exam in progress asks its questions. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         delete: {
             parameters: {
@@ -2554,7 +2566,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Make a student account
+         * Make a user account
          * @description Only for an email the owner put on the sign-up list that has no account yet. Signs the new account in. Any other email gets the same refusal, so the list is not revealed. 5 refused tries lock that email's sign-up for 15 minutes. The admin account is never made here.
          */
         post: {
@@ -2570,7 +2582,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The student account was made and signed in. */
+                /** @description The user account was made and signed in. */
                 201: {
                     headers: {
                         [name: string]: unknown;
@@ -3134,8 +3146,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Set the student's temporary password
-         * @description The admin sets a temporary password for the student he is looking at (see /api/admin/students) and gives it to her himself. Her sessions end. She chooses her own password the next time she signs in. No email is sent.
+         * Set the user account's temporary password
+         * @description The admin sets a temporary password for the user account he is looking at (see /api/admin/students) and gives it to her himself. Her sessions end. She chooses her own password the next time she signs in. No email is sent.
          */
         post: {
             parameters: {
@@ -3211,7 +3223,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List the student accounts
+         * List the user accounts
          * @description Oldest first, with the one the admin is looking at. Until he picks one, that is the oldest.
          */
         get: {
@@ -3223,7 +3235,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description The student accounts. */
+                /** @description The user accounts. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -3278,8 +3290,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * Look at another student
-         * @description Points the admin's read-only view of progress, the temporary password, and Repair at this student.
+         * Look at another user account
+         * @description Points the admin's read-only view of progress, the temporary password, and Repair at this user account.
          */
         put: {
             parameters: {
@@ -3294,7 +3306,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The admin now looks at this student. */
+                /** @description The admin now looks at this user account. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -3860,7 +3872,7 @@ export interface paths {
         put?: never;
         /**
          * Record an answer
-         * @description Only the student can record an answer. The server scores it and saves her progress in the same transaction. Repeating the same clientAttemptId returns the saved attempt and does not count it again. The admin is refused even when the question exists. An exam answer names its exam as studySessionId: it is taken only while that exam is running, for a question it drew, once per question. An exam-bank question is answered only on an exam (400 exam_only without one) and never enters Review.
+         * @description Only the user account can record an answer. The server scores it and saves her progress in the same transaction. Repeating the same clientAttemptId returns the saved attempt and does not count it again. The admin is refused even when the question exists. An exam answer names its exam as studySessionId: it is taken only while that exam is running, for a question it drew, once per question. An exam-bank question is answered only on an exam (400 exam_only without one) and never enters Review.
          */
         post: {
             parameters: {
@@ -4266,7 +4278,7 @@ export interface paths {
         };
         /**
          * Remember the course she just opened
-         * @description Only the student can move this. Opening a course as the admin does not change where she lands.
+         * @description Only the user account can move this. Opening a course as the admin does not change where she lands.
          */
         put: {
             parameters: {
@@ -4542,7 +4554,7 @@ export interface paths {
         put?: never;
         /**
          * Rebuild her progress and Review list
-         * @description Writes the preview after confirmation. Her attempts are not changed. The student cannot call this.
+         * @description Writes the preview after confirmation. Her attempts are not changed. The user account cannot call this.
          */
         post: {
             parameters: {
@@ -4850,7 +4862,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a past exam
-         * @description Deletes one of her ended exams, as its preview described: it leaves Exam setup and GET /api/exams/{id} (404). Its answers stay saved but count toward nothing while it is deleted: her progress on the questions she answered on it is rebuilt from her other answers, so her Review list, course scores and Wrong questions are as if she had not taken it. A Review clear she made after it still keeps its questions out of Review. An exam still going is refused with 409 `exam_in_progress`. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the student can do this; the admin is refused with 403.
+         * @description Deletes one of her ended exams, as its preview described: it leaves Exam setup and GET /api/exams/{id} (404). Its answers stay saved but count toward nothing while it is deleted: her progress on the questions she answered on it is rebuilt from her other answers, so her Review list, course scores and Wrong questions are as if she had not taken it. A Review clear she made after it still keeps its questions out of Review. An exam still going is refused with 409 `exam_in_progress`. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account can do this; the admin is refused with 403.
          */
         delete: {
             parameters: {
@@ -5024,7 +5036,7 @@ export interface paths {
         };
         /**
          * What deleting a set takes with it
-         * @description For the warning before a set (a practice set, or an exam set from Folder.examSets) is deleted: its questions, every version of it, her answers to it and how her standing changes. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The id is its current version; an earlier one is refused with 404. The student and the admin can both do this.
+         * @description For the warning before a set (a practice set, or an exam set from Folder.examSets) is deleted: its questions, every version of it, her answers to it and how her standing changes. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The id is its current version; an earlier one is refused with 404. The user account and the admin can both do this.
          */
         get: {
             parameters: {
@@ -5121,7 +5133,7 @@ export interface paths {
         put?: never;
         /**
          * Undo deleting a set
-         * @description Brings back a set she deleted on its own, every version as it was, with her answers counting again. A set that went with its folder comes back with the folder, and is refused here with 409; so is one whose folder is deleted. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         * @description Brings back a set she deleted on its own, every version as it was, with her answers counting again. A set that went with its folder comes back with the folder, and is refused here with 409; so is one whose folder is deleted. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -5214,7 +5226,7 @@ export interface paths {
         };
         /**
          * What deleting a folder takes with it
-         * @description For the warning before a folder is deleted: every set in it (count and titles), their questions, her answers to them, its exam page, her past exams over it, and how her standing changes. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The student and the admin can both do this.
+         * @description For the warning before a folder is deleted: every set in it (count and titles), their questions, her answers to them, its exam page, her past exams over it, and how her standing changes. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both do this.
          */
         get: {
             parameters: {
@@ -5311,7 +5323,7 @@ export interface paths {
         put?: never;
         /**
          * Undo deleting a folder
-         * @description Brings back a folder she deleted and the sets that went with it, as they were: on its exam page if that page is still there, else at its place in the Folders list. A set she had deleted on its own before stays deleted. Refused with 409 when its list has a folder of its name now, naming that list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         * @description Brings back a folder she deleted and the sets that went with it, as they were: on its exam page if that page is still there, else at its place in the Folders list. A set she had deleted on its own before stays deleted. Refused with 409 when its list has a folder of its name now, naming that list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -5331,6 +5343,196 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Folder"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/course-exams/{id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What deleting an exam page changes
+         * @description For the warning before an exam page (a study page, in a topic) is deleted. The page alone goes: its folders (count and names), their sets and exam bank, her answers to them and her past exams over it all stay, and `progress` is the same before and after, since deleting a page changes no answer, Review list, score or Wrong question. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The student and the admin can both do this.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description What changes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExamPageDeletion"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign in, or send a working agent key: `invalid_agent_key` (QBank does not know it) or `agent_key_revoked` (it was revoked). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Refused, with the sentence in `message`: `agent_key_not_allowed` (the key has no `manage` scope, or the admin approved it: the admin account has no content of its own), `must_change_password` (the account has a temporary password), or the role refusal the operation names. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description The request was refused, with the sentence to show her in `message`. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+                /** @description Sign-in is not configured. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeletionError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/course-exams/{id}/undo-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo deleting an exam page
+         * @description Brings back an exam page she deleted, as it was: in its place among the course's pages, with its folders back on it in its order and her past exams over them on it again. A folder she put on another page meanwhile stays there, and one she deleted stays in Recently deleted, coming back to the page with its own Undo. Refused with 409 when the course has another exam page of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The page, as CourseDetail.exams lists it. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseExam"];
                     };
                 };
                 /** @description The request was refused, with the sentence to show her in `message`. */
@@ -5501,7 +5703,7 @@ export interface paths {
         put?: never;
         /**
          * Undo deleting a past exam
-         * @description Brings back her past exam: it is listed again, and her progress is rebuilt with its answers, so it counts as it did before the delete. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the student can do this.
+         * @description Brings back her past exam: it is listed again, and her progress is rebuilt with its answers, so it counts as it did before the delete. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account can do this.
          */
         post: {
             parameters: {
@@ -5873,7 +6075,7 @@ export interface paths {
         };
         /**
          * What she deleted in a course, for Undo
-         * @description The course's folders and sets deleted in the last 30 days, and her past exams deleted in that time, newest first: everything Undo can still bring back. Older deletes stay hidden and are not listed. The admin reads the same, with her exams.
+         * @description The course's exam pages, folders and sets deleted in the last 30 days, and her past exams deleted in that time, newest first: everything Undo can still bring back. Older deletes stay hidden and are not listed. The admin reads the same, with her exams.
          */
         get: {
             parameters: {
@@ -7993,7 +8195,7 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The exam page (CourseDetail.exams) it is on, or null when it is only in the course's Folders list. A folder is on one exam page at most.
+             * @description The exam page (CourseDetail.exams) it is on, or null when it is only in the course's Folders list. A folder is on one exam page at most. A folder of an exam page she deleted is null, in the Folders list after the folders there, until Undo puts it back on the page.
              */
             examPageId: string | null;
             /** @description Its place in its list (its exam page's folders, or the Folders list), smallest first. Her own order: PUT /api/courses/{id}/folder-order. */
@@ -8383,7 +8585,7 @@ export interface components {
         };
         StudentList: {
             students: components["schemas"]["Student"][];
-            /** @description The student the admin is looking at. Null when there is no student yet. */
+            /** @description The user account the admin is looking at. Null when there is no user account yet. */
             viewingId: string | null;
         };
         Student: {
@@ -8820,7 +9022,7 @@ export interface components {
             folderIds: string[] | null;
             /**
              * Format: uuid
-             * @description The exam page (CourseDetail.exams) that holds every folder this exam was over, so exams taken before the page was made belong to it too. Null when no page does.
+             * @description The exam page (CourseDetail.exams) that holds every folder this exam was over, so exams taken before the page was made belong to it too. Null when no page does, as while she has that page deleted: the exam stays, and belongs to the page again once Undo brings it back.
              */
             courseExamId: string | null;
             /** @enum {string} */
@@ -9073,7 +9275,7 @@ export interface components {
             confirm: string;
             undoDays: number;
         };
-        /** @description Her standing in the course now and once it is deleted: answeredCount, fullyRightCount, reviewCount (her Review list), points and maxPoints as CourseDetail has them, and wrongCount, her Wrong questions: what a Wrong questions only exam over every folder draws from (ExamSetup.folders[].wrongCount, added up). For the admin, the student he looks after; all 0 when there is none. */
+        /** @description Her standing in the course now and once it is deleted: answeredCount, fullyRightCount, reviewCount (her Review list), points and maxPoints as CourseDetail has them, and wrongCount, her Wrong questions: what a Wrong questions only exam over every folder draws from (ExamSetup.folders[].wrongCount, added up). For the admin, the user account he looks after; all 0 when there is none. */
         StandingChange: {
             answeredCount: components["schemas"]["CountChange"];
             fullyRightCount: components["schemas"]["CountChange"];
@@ -9133,6 +9335,42 @@ export interface components {
             questionCount: number;
             /** @description Of its questions, the ones she has answered. */
             answeredCount: number;
+        };
+        ExamPageDeletion: {
+            /** Format: uuid */
+            examPageId: string;
+            /** Format: uuid */
+            courseId: string;
+            name: string;
+            /** @description Its folders, in her order on the page. None of them goes: each stays as it is, with its sets, exam bank and her progress, and shows in the course's Folders list until Undo. */
+            folders: components["schemas"]["DeletionFolder"][];
+            folderCount: number;
+            /** @description Sets in those folders, practice and exam. They stay in their folders. */
+            setCount: number;
+            /** @description Practice questions in those folders. */
+            questionCount: number;
+            /** @description Exam-bank questions in those folders, her exam twins among them, asked only on exams. */
+            examQuestionCount: number;
+            /** @description Of those questions, the ones she has answered. Those answers keep counting. */
+            answeredCount: number;
+            /** @description Her ended exams over the page (ExamSummary.courseExamId). They stay, with courseExamId null until Undo. */
+            pastExamCount: number;
+            progress: components["schemas"]["StandingChange"];
+            /** @description The warning, as a few sentences to show her: its folders by name, that they stay, her past exams, and Undo. */
+            message: string;
+            /** @description Set while one of its folders has the name of a folder in the course's Folders list, where it would show: rename one of them first. */
+            refusal: string | null;
+            confirm: string;
+            undoDays: number;
+        };
+        DeletionFolder: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @description Its sets, practice and exam (current versions). */
+            setCount: number;
+            /** @description Their questions, practice and exam bank. */
+            questionCount: number;
         };
         ExamDeletion: {
             /** Format: uuid */
@@ -9239,12 +9477,37 @@ export interface components {
         };
         RecentlyDeleted: {
             undoDays: number;
+            /** @description Exam pages (study pages, in a topic) she deleted, newest first. */
+            examPages: components["schemas"]["DeletedExamPage"][];
             /** @description Folders she deleted, newest first. */
             folders: components["schemas"]["DeletedFolder"][];
             /** @description Sets she deleted on their own, newest first. Sets that went with a folder are under it. */
             sets: components["schemas"]["DeletedSet"][];
             /** @description Her past exams she deleted, newest first. */
             exams: components["schemas"]["DeletedExam"][];
+        };
+        DeletedExamPage: {
+            /**
+             * Format: uuid
+             * @description POST /api/course-exams/{id}/undo-delete.
+             */
+            id: string;
+            name: string;
+            /** @description The folders Undo puts back on it, in its order. They are in the course's Folders list meanwhile (Folder.examPageId null). */
+            folders: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+            }[];
+            /** @description Her ended exams that belong to it again with Undo. */
+            pastExamCount: number;
+            deletedAt: string;
+            /** @description Undo is refused after this. */
+            undoUntil: string;
+            /** @description The agent key that deleted it, such as the user's own AI agent (see the Agents tag): show it as "Deleted by your agent". Null when it was deleted in the app. It stays after the key is revoked. */
+            deletedByAgent: components["schemas"]["DeletingAgent"] | null;
+            /** @description Why Undo would be refused now (the course has another exam page of its name), or null. */
+            undoRefusal: string | null;
         };
         DeletedFolder: {
             /**
