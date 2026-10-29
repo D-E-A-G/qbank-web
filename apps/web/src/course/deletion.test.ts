@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, type CourseDeletion, type ExamDeletion, type FolderDeletion, type SetDeletion } from "../api";
+import { ApiError, type CourseDeletion, type ExamDeletion, type ExamPageDeletion, type FolderDeletion, type SetDeletion } from "../api";
 import {
   currentUndoOffer,
   deleteConfirmed,
@@ -11,6 +11,7 @@ import {
   offerUndo,
   previewDeletion,
   recentlyDeletedCourses,
+  refusalText,
   takeUndo,
   warningParts,
   type DeletionPreview,
@@ -19,6 +20,7 @@ import {
 const SET = "0b9c8d7e-6f5a-4b3c-8d2e-1f0a9b8c7d6e";
 const FOLDER = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
 const EXAM = "2c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f";
+const PAGE = "3e4f5a6b-7c8d-4e9f-8a0b-2c3d4e5f6a7b";
 const COURSE = "8d3c56f1-5f43-4c62-9d0e-7a3b1f2e4c55";
 
 const unchanged = { before: 0, after: 0 };
@@ -83,6 +85,31 @@ function exam(message: string): DeletionPreview {
     undoDays: 30,
   };
   return { kind: "exam", preview };
+}
+
+/** An exam page with Week 3 and Week 4 on it: the page alone goes, and its folders stay. */
+function examPage(name: string, message: string): DeletionPreview {
+  const preview: ExamPageDeletion = {
+    examPageId: PAGE,
+    courseId: COURSE,
+    name,
+    folders: [
+      { id: FOLDER, name: "Week 3", setCount: 2, questionCount: 5 },
+      { id: SET, name: "Week 4", setCount: 1, questionCount: 3 },
+    ],
+    folderCount: 2,
+    setCount: 3,
+    questionCount: 8,
+    examQuestionCount: 0,
+    answeredCount: 1,
+    pastExamCount: 1,
+    progress,
+    message,
+    refusal: null,
+    confirm: "page-token",
+    undoDays: 30,
+  };
+  return { kind: "examPage", preview };
 }
 
 function course(kind: "course" | "topic", message: string): DeletionPreview {
@@ -156,6 +183,17 @@ describe("warningParts", () => {
   it("titles a past exam's warning by its question", () => {
     expect(warningParts(exam("Delete this exam? You answered none of its questions, so your progress stays as it is.")).title).toBe("Delete this exam?");
   });
+
+  it("asks about an exam page by its name, and says its folders stay and it can come back", () => {
+    const warning = examPage(
+      "Exam 2",
+      "Delete Exam 2? Its 2 folders stay, with their sets and your progress, under Folders: Week 3 and Week 4. Your 1 past exam over it stays. You can undo this for 30 days.",
+    );
+    expect(warningParts(warning)).toEqual({
+      title: "Delete Exam 2?",
+      message: "Its 2 folders stay, with their sets and your progress, under Folders: Week 3 and Week 4. Your 1 past exam over it stays. You can undo this for 30 days.",
+    });
+  });
 });
 
 describe("deletionSummary", () => {
@@ -168,6 +206,9 @@ describe("deletionSummary", () => {
     expect(deletionSummary([set("Anxiety A", ""), set("Anxiety B", "")], "Deleted")).toBe("Deleted 2 sets.");
     expect(deletionSummary([course("course", "")], "Deleted")).toBe("Deleted NURS 220.");
     expect(deletionSummary([course("topic", "")], "Brought back")).toBe("Brought back Spanish? Sí.");
+    // Its folders stayed in the course, so only the page is named.
+    expect(deletionSummary([examPage("Exam 2", "")], "Deleted")).toBe("Deleted Exam 2.");
+    expect(deletionSummary([examPage("Exam 2", "")], "Brought back")).toBe("Brought back Exam 2.");
   });
 });
 
@@ -189,6 +230,18 @@ describe("deleting", () => {
     ]);
   });
 
+  it("previews and deletes an exam page at the page's own address, with the preview's confirm", async () => {
+    const calls = fakeApi({ status: 200, body: examPage("Exam 2", "").preview }, { status: 204 });
+    const preview = await previewDeletion({ kind: "examPage", id: PAGE });
+    expect(preview.kind).toBe("examPage");
+    expect(doomedOf(preview)).toEqual({ kind: "examPage", id: PAGE });
+    await deleteConfirmed(doomedOf(preview), preview.preview.confirm);
+    expect(calls).toEqual([
+      { url: `/api/course-exams/${PAGE}/delete-preview`, method: "GET" },
+      { url: `/api/course-exams/${PAGE}?confirm=page-token`, method: "DELETE" },
+    ]);
+  });
+
   it("reads Home's Recently deleted", async () => {
     const calls = fakeApi({ status: 200, body: { undoDays: 30, courses: [] } });
     expect(await recentlyDeletedCourses()).toEqual({ undoDays: 30, courses: [] });
@@ -206,6 +259,19 @@ describe("deleting", () => {
     expect((changed as ApiError).message).toBe("Week 4 changed since you were warned. Look again before deleting it.");
     const inUse = await deleteConfirmed({ kind: "folder", id: FOLDER }, "token").catch((caught: unknown) => caught);
     expect(isDeletionChanged(inUse)).toBe(false);
+  });
+
+  it("gives an exam page's refusals in the server's words: changed since, or a folder name in the Folders list", async () => {
+    fakeApi(
+      { status: 409, body: { error: "deletion_changed", message: "Exam 2 changed since you were warned. Look again before deleting it." } },
+      { status: 409, body: { error: "request_refused", message: "NURS 310 already has a folder named Week 3 in its Folders list. Rename one of them before deleting Exam 2." } },
+    );
+    const changed = await deleteConfirmed({ kind: "examPage", id: PAGE }, "old").catch((caught: unknown) => caught);
+    expect(isDeletionChanged(changed)).toBe(true);
+    expect(refusalText(changed, "Could not delete it.")).toBe("Exam 2 changed since you were warned. Look again before deleting it.");
+    const clash = await deleteConfirmed({ kind: "examPage", id: PAGE }, "page-token").catch((caught: unknown) => caught);
+    expect(isDeletionChanged(clash)).toBe(false);
+    expect(refusalText(clash, "Could not delete it.")).toBe("NURS 310 already has a folder named Week 3 in its Folders list. Rename one of them before deleting Exam 2.");
   });
 });
 
@@ -243,6 +309,32 @@ describe("the Undo offer", () => {
     await takeUndo(offer.id);
     expect(currentUndoOffer()?.outcome).toEqual({ state: "done", text: "Brought back NURS 220." });
     expect(calls.filter((call) => call.method === "POST").map((call) => call.url)).toEqual([`/api/courses/${COURSE}/undo-delete`, `/api/courses/${COURSE}/undo-delete`]);
+    dismissUndo(offer.id);
+  });
+
+  it("brings a deleted exam page back, or says why not: another page has its name, or its 30 days are over", async () => {
+    const calls = fakeApi(
+      { status: 409, body: { error: "request_refused", message: "This course already has an exam named Exam 2. Rename one of them, then bring this one back." } },
+      { status: 409, body: { error: "undo_expired", message: "Exam 2 was deleted more than 30 days ago, so it can't be brought back." } },
+      { status: 200, body: {} },
+    );
+    for (const refusal of [
+      "This course already has an exam named Exam 2. Rename one of them, then bring this one back.",
+      "Exam 2 was deleted more than 30 days ago, so it can't be brought back.",
+    ]) {
+      offerUndo(COURSE, [examPage("Exam 2", "")]);
+      const refused = currentUndoOffer();
+      if (refused === null) throw new Error("no offer");
+      expect(refused.text).toBe("Deleted Exam 2.");
+      await takeUndo(refused.id);
+      expect(currentUndoOffer()?.outcome).toEqual({ state: "failed", text: refusal });
+    }
+    offerUndo(COURSE, [examPage("Exam 2", "")]);
+    const offer = currentUndoOffer();
+    if (offer === null) throw new Error("no offer");
+    await takeUndo(offer.id);
+    expect(currentUndoOffer()?.outcome).toEqual({ state: "done", text: "Brought back Exam 2." });
+    expect(calls.filter((call) => call.method === "POST").map((call) => call.url)).toEqual(Array.from({ length: 3 }, () => `/api/course-exams/${PAGE}/undo-delete`));
     dismissUndo(offer.id);
   });
 

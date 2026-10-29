@@ -1,24 +1,42 @@
 import { useSyncExternalStore } from "react";
 import { refreshCatalog } from "../catalog";
-import { ApiError, api, type CourseDeletion, type ExamDeletion, type FolderDeletion, type RecentlyDeleted, type RecentlyDeletedCourses, type SetDeletion } from "../api";
+import {
+  ApiError,
+  api,
+  type CourseDeletion,
+  type ExamDeletion,
+  type ExamPageDeletion,
+  type FolderDeletion,
+  type RecentlyDeleted,
+  type RecentlyDeletedCourses,
+  type SetDeletion,
+} from "../api";
 
 /**
  * Deleting takes three steps, each the server's: the preview names what goes and gives a `confirm`
  * token, the delete sends that token back so it deletes exactly what she was shown, and Undo brings
  * it back as it was for 30 days. Nothing is deleted except by her confirmed delete. A course or
- * study topic is deleted from Home the same way, with everything in it.
+ * study topic is deleted from Home the same way, with everything in it. An exam page (`examPage`)
+ * goes alone: its folders stay in the course, with their sets, and "exam" is a past exam.
  */
-export type Doomed = { kind: "set"; id: string } | { kind: "folder"; id: string } | { kind: "exam"; id: string } | { kind: "course"; id: string };
+export type Doomed =
+  | { kind: "set"; id: string }
+  | { kind: "folder"; id: string }
+  | { kind: "examPage"; id: string }
+  | { kind: "exam"; id: string }
+  | { kind: "course"; id: string };
 
 export type DeletionPreview =
   | { kind: "set"; preview: SetDeletion }
   | { kind: "folder"; preview: FolderDeletion }
+  | { kind: "examPage"; preview: ExamPageDeletion }
   | { kind: "exam"; preview: ExamDeletion }
   | { kind: "course"; preview: CourseDeletion };
 
 const BASE: Record<Doomed["kind"], string> = {
   set: "/api/practice-sets",
   folder: "/api/folders",
+  examPage: "/api/course-exams",
   exam: "/api/exams",
   course: "/api/courses",
 };
@@ -27,6 +45,7 @@ export async function previewDeletion(item: Doomed): Promise<DeletionPreview> {
   const path = `${BASE[item.kind]}/${item.id}/delete-preview`;
   if (item.kind === "set") return { kind: "set", preview: await api<SetDeletion>(path) };
   if (item.kind === "folder") return { kind: "folder", preview: await api<FolderDeletion>(path) };
+  if (item.kind === "examPage") return { kind: "examPage", preview: await api<ExamPageDeletion>(path) };
   if (item.kind === "course") return { kind: "course", preview: await api<CourseDeletion>(path) };
   return { kind: "exam", preview: await api<ExamDeletion>(path) };
 }
@@ -50,10 +69,10 @@ export async function recentlyDeletedCourses(): Promise<RecentlyDeletedCourses> 
   return api<RecentlyDeletedCourses>("/api/deleted-courses");
 }
 
-/** What she is deleting, from her own preview: the set's or folder's name, a course's code, a topic's name, or "this exam". */
+/** What she is deleting, from her own preview: the set's, folder's or exam page's name, a course's code, a topic's name, or "this exam". */
 export function doomedName(deletion: DeletionPreview): string {
   if (deletion.kind === "set") return deletion.preview.title;
-  if (deletion.kind === "folder") return deletion.preview.name;
+  if (deletion.kind === "folder" || deletion.kind === "examPage") return deletion.preview.name;
   if (deletion.kind === "course") return deletion.preview.kind === "topic" ? deletion.preview.title : deletion.preview.code;
   return "this exam";
 }
@@ -73,7 +92,8 @@ export function warningParts(deletion: DeletionPreview): { title: string; messag
 
 /**
  * What the Undo offer says: "Deleted “Anxiety disorders”.", "Deleted Week 4 and its 3 sets.",
- * "Deleted 2 sets.", or "Deleted NURS 220.", and once Undo worked, the same with "Brought back".
+ * "Deleted 2 sets.", "Deleted Exam 2." (its folders stayed), or "Deleted NURS 220.", and once
+ * Undo worked, the same with "Brought back".
  */
 export function deletionSummary(deletions: readonly DeletionPreview[], done: "Deleted" | "Brought back"): string {
   const [only] = deletions;
@@ -81,7 +101,7 @@ export function deletionSummary(deletions: readonly DeletionPreview[], done: "De
   if (deletions.length > 1) return `${done} ${String(deletions.length)} sets.`;
   if (only.kind === "set") return `${done} “${only.preview.title}”.`;
   if (only.kind === "exam") return `${done} the exam.`;
-  if (only.kind === "course") return `${done} ${doomedName(only)}.`;
+  if (only.kind === "examPage" || only.kind === "course") return `${done} ${doomedName(only)}.`;
   const sets = only.preview.setCount;
   return sets === 0 ? `${done} ${only.preview.name}.` : `${done} ${only.preview.name} and its ${sets === 1 ? "set" : `${String(sets)} sets`}.`;
 }
@@ -140,6 +160,7 @@ export function offerUndo(courseId: string, deletions: readonly DeletionPreview[
 export function doomedOf(deletion: DeletionPreview): Doomed {
   if (deletion.kind === "set") return { kind: "set", id: deletion.preview.setId };
   if (deletion.kind === "folder") return { kind: "folder", id: deletion.preview.folderId };
+  if (deletion.kind === "examPage") return { kind: "examPage", id: deletion.preview.examPageId };
   if (deletion.kind === "course") return { kind: "course", id: deletion.preview.courseId };
   return { kind: "exam", id: deletion.preview.examId };
 }

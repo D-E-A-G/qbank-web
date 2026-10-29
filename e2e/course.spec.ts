@@ -410,7 +410,7 @@ test.describe("exam pages", () => {
     await expect(page.getByRole("checkbox", { name: /^Week 1 / })).not.toBeChecked();
   });
 
-  test("a folder's Exam page sheet moves it between pages, the editor greys another page's folders, and removing a page keeps its folders", async ({ page }) => {
+  test("a folder's Exam page sheet moves it between pages, the editor greys another page's folders, and deleting a page keeps its folders", async ({ page }) => {
     await signIn(page);
     const course = await sevenWeekCourse(page);
     const exam1 = await addExamPage(page, course.id, "Exam 1", folderIds(course, ["Week 1", "Week 2", "Week 3"]));
@@ -468,14 +468,14 @@ test.describe("exam pages", () => {
     await expect(page.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Midterm/, /^Exam 2/]);
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 7/, /^Week 1/]);
 
-    // Removing Exam 2 puts its folders back in the Folders list; their sets are untouched.
+    // Deleting Exam 2 puts its folders at the end of the Folders list; their sets are untouched.
     await page.getByRole("list", { name: "Exam pages" }).getByRole("link", { name: /^Exam 2/ }).click();
     await page.getByRole("button", { name: "Edit the exam page" }).click();
     await page.getByRole("button", { name: "Name and folders" }).click();
-    await sheet(page, "Edit exam page").getByRole("button", { name: "Remove this exam page" }).click();
-    const confirm = page.getByRole("dialog", { name: "Remove Exam 2?" });
-    await expect(confirm).toContainText("Its folders go back to the course’s Folders list. No set moves, and your answers and past exams are kept.");
-    await confirm.getByRole("button", { name: "Remove" }).click();
+    await sheet(page, "Edit exam page").getByRole("button", { name: "Delete this exam page" }).click();
+    const confirm = page.getByRole("dialog", { name: "Delete Exam 2?" });
+    await expect(confirm).toContainText("Its 2 folders stay, with their sets and your progress, under Folders: Week 4 and Week 6. You can undo this for 30 days.");
+    await confirm.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: course.code })).toBeVisible();
     await expect(page.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Midterm/]);
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 7/, /^Week 1/, /^Week 4/, /^Week 6/]);

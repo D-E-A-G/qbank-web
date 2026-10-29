@@ -39,7 +39,7 @@ export function DeletedRow({
   label,
   onUndo,
 }: {
-  /** Folders, courses and topics have their icon; sets and exams have none, as in their own lists. */
+  /** Exam pages, folders, courses and topics have their icon; sets and exams have none, as in their own lists. */
   icon?: IconName | null;
   title: string;
   meta: string;

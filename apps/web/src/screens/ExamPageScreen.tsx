@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, type CourseDetail, type CourseExam, type ExamSetup } from "../api";
+import type { CourseDetail, CourseExam, ExamSetup } from "../api";
 import { refreshCatalog } from "../catalog";
 import { Button } from "../components/Button";
-import { ConfirmSheet } from "../components/ConfirmSheet";
+import { DeleteSheet } from "../components/DeleteSheet";
 import { EmptyState } from "../components/EmptyState";
 import { ExamPageEditor } from "../components/ExamPageEditor";
 import { NewFolderSheet } from "../components/FolderSheets";
@@ -13,7 +13,6 @@ import { RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { pageFolders } from "../course/folders";
 import { courseName, examSetupPath, examTwinsLine, pageMeta, pageSittings } from "../course/pages";
-import { deleteExamPage } from "../course/requests";
 import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useFolderOrder } from "../course/useFolderOrder";
 import { PastExamList } from "../exam/PastExamList";
@@ -26,7 +25,8 @@ import { ShellLink } from "../shell/ShellLink";
  * One exam page: Start exam over its folders, its folders in her order, and the exams she took over
  * them. Its + adds into it: a question file (Import with this page's folders first), a new folder
  * on the page, or folders the course already has. A topic's study page is the same screen, with its
- * primer link when it has one.
+ * primer link when it has one. Its editor ends with Delete: the page goes to Recently deleted, and
+ * its folders stay in the course, with their sets, at the end of its Folders list.
  */
 export function ExamPageScreen({ courseId, examPageId }: { courseId: string; examPageId: string }) {
   const session = useSession();
@@ -35,9 +35,8 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
   const page = course?.exams.find((item) => item.id === examPageId) ?? null;
   const { name, words } = useCourseNaming(courseId, course);
   const [ordering, setOrdering] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [removing, setRemoving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [making, setMaking] = useState(false);
   useRememberPlace(courseId);
 
@@ -50,7 +49,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
   }, []);
 
   const keep = useCallback(() => {
-    setRemoving(false);
+    setDeleting(false);
   }, []);
 
   const closeMaking = useCallback(() => {
@@ -62,20 +61,6 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
   const canEdit = !readOnly && folders.length > 0;
   const edit = ordering && canEdit;
   const order = useFolderOrder({ course, examPageId, folders, replace, reload });
-
-  const remove = () => {
-    if (!page) return;
-    setRemoving(false);
-    deleteExamPage(page.id).then(
-      () => {
-        navigate(`/course/${courseId}`);
-      },
-      (caught: unknown) => {
-        setActionError(caught instanceof ApiError ? caught.message : `Could not remove the ${words.page}.`);
-        reload();
-      },
-    );
-  };
 
   const add =
     course && page && !readOnly ? (
@@ -118,13 +103,15 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
         {name ?? "Course"}
       </ShellLink>
       {error ? <p className="form-error">{error}</p> : null}
-      {actionError ? <p className="form-error">{actionError}</p> : null}
       {order.error ? <p className="form-error">{order.error}</p> : null}
       {course === null ? (
         error ? null : <p className="note">Loading the {words.page}.</p>
       ) : page === null ? (
         <div className="empty-card">
-          <EmptyState icon="layers" message={`This ${words.page} is not in the ${words.container} anymore. It may have been removed on another device.`} />
+          <EmptyState
+            icon="layers"
+            message={`This ${words.page} is not in the ${words.container} anymore. If it was deleted, Recently deleted in the ${words.container} can bring it back.`}
+          />
         </div>
       ) : (
         <>
@@ -212,9 +199,9 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
             setEditing(false);
             reload();
           }}
-          onRemove={() => {
+          onDelete={() => {
             setEditing(false);
-            setRemoving(true);
+            setDeleting(true);
           }}
           onClose={closeEditor}
         />
@@ -231,14 +218,15 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
           onClose={closeMaking}
         />
       ) : null}
-      {removing && page ? (
-        <ConfirmSheet
-          title={`Remove ${page.name}?`}
-          message={`Its folders go back to the ${words.container}’s Folders list. No set moves, and your answers and past exams are kept.`}
-          confirmLabel="Remove"
-          confirmVariant="destructive"
-          onConfirm={remove}
-          onCancel={keep}
+      {deleting && page ? (
+        <DeleteSheet
+          courseId={courseId}
+          items={[{ kind: "examPage", id: page.id }]}
+          title={`Delete ${page.name}?`}
+          onDeleted={() => {
+            navigate(`/course/${courseId}`);
+          }}
+          onClose={keep}
         />
       ) : null}
     </Screen>
