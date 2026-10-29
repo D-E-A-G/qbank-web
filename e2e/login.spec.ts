@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { ADMIN_EMAIL, ADMIN_PASSWORD, signIn, STUDENT_EMAIL, STUDENT_PASSWORD } from "./sign-in";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, newAccount, signIn, signInHere, STUDENT_EMAIL, STUDENT_PASSWORD } from "./sign-in";
 
 test("the sign-in screen offers a passkey and does not send email", async ({ page }) => {
   await page.goto("/");
@@ -15,6 +15,39 @@ test("the sign-in screen offers a passkey and does not send email", async ({ pag
   await expect(page.getByText("This app doesn't send email.")).toBeVisible();
   await expect(page.getByText(/temporary password/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Send reset link" })).toHaveCount(0);
+});
+
+test("signing out leaves none of her courses on screen for the next account", async ({ browser, page }) => {
+  const first = await newAccount(browser, "first");
+  const next = await newAccount(browser, "next");
+  const code = `MINE${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
+  await signIn(page, first.email, first.password);
+  const semester = await page.request.post("/api/semesters", { data: { number: 1 } });
+  expect(semester.status()).toBe(201);
+  const semesterId = ((await semester.json()) as { id: string }).id;
+  expect((await page.request.post("/api/courses", { data: { semesterId, code, title: "Invented course" } })).status()).toBe(201);
+  await page.goto("/");
+  await expect(page.getByText(code).first()).toBeVisible();
+  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("heading", { name: "Qbank" })).toBeVisible();
+
+  // The next account's own courses are slow to arrive; hers never show meanwhile.
+  let release = (): void => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/semesters", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await signInHere(page, next.email, next.password);
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await expect(page.getByText(code)).toHaveCount(0);
+  const answered = page.waitForResponse("**/api/semesters");
+  release();
+  await answered;
+  await expect(page.getByText(code)).toHaveCount(0);
 });
 
 test.describe("signed-in account", () => {

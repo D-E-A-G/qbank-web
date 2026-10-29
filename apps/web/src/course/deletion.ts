@@ -148,6 +148,11 @@ export function dismissUndo(id: number): void {
   if (offer?.id === id) publishOffer(null);
 }
 
+/** Forgets the Undo on offer on sign-out, so the next account on this device is never offered it. */
+export function forgetUndo(): void {
+  publishOffer(null);
+}
+
 /** Undo for the offer: brings each item back, in the order they were deleted, and says how it went. */
 export async function takeUndo(id: number): Promise<void> {
   const current = offer;

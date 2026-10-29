@@ -25,7 +25,8 @@ sync across her iPhone, iPad, and Mac.
   with an iPhone layout and an iPad and Mac layout, in light or dark.
 - **Private.** Only emails the owner approves can sign up. The owner has an
   admin account to import files and fix things, and sees her progress
-  read-only.
+  read-only. Delete account in Settings removes her user account and
+  everything in it for good.
 
 <p align="center">
   <img src="e2e/screenshots/desktop-light.png" alt="Home on a Mac, in light mode: courses by semester, with the sidebar" width="49%">

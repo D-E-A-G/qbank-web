@@ -12,6 +12,9 @@ import {
   type Account,
   type Passkey,
 } from "./api";
+import { DeleteAccountSheet } from "./DeleteAccountSheet";
+import { isDeleteOffered } from "./delete-account";
+import { forgetPasskeyOffer } from "./offer";
 import { savePasskey } from "./passkey";
 import { Button, TextField } from "./ui";
 
@@ -22,6 +25,7 @@ export function AccountSection({ user, onUser, onSignedOut }: { user: Account; o
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -152,7 +156,38 @@ export function AccountSection({ user, onUser, onSignedOut }: { user: Account; o
         >
           Sign out
         </Button>
+        {isDeleteOffered(user) ? (
+          <Button
+            variant="destructive"
+            size="md"
+            icon="trash-2"
+            onClick={() => {
+              setDeleting(true);
+            }}
+          >
+            Delete account
+          </Button>
+        ) : null}
       </div>
+      {deleting ? (
+        <DeleteAccountSheet
+          email={user.email}
+          onDone={(outcome) => {
+            if (outcome.kind === "deleted") {
+              // The server ended its sessions and cleared this device's cookie; the rest goes as a sign-out's does.
+              forgetPasskeyOffer(user.id);
+              onSignedOut();
+            } else if (outcome.kind === "signed-out") {
+              void signOut().finally(onSignedOut);
+            } else {
+              onUser({ ...user, mustChangePassword: true });
+            }
+          }}
+          onClose={() => {
+            setDeleting(false);
+          }}
+        />
+      ) : null}
     </section>
   );
 }
