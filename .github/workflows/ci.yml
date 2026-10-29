@@ -415,7 +415,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           printf '%s' "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-          tag="ghcr.io/d-e-a-g/qbank-web:$GITHUB_SHA"
+          tag="ghcr.io/d-e-e-g/qbank-web:$GITHUB_SHA"
           docker tag qbank-web:ci "$tag"
           docker push --quiet "$tag"
           echo "image=$(docker inspect --format '{{index .RepoDigests 0}}' "$tag")" >>"$GITHUB_OUTPUT"
