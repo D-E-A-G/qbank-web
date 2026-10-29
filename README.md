@@ -9,9 +9,10 @@ sync across her iPhone, iPad, and Mac.
   its course (Unsorted unless she picks one), and arranges the folders herself:
   rename them, move sets between them, put them in her own order, and gather
   the ones an exam covers on an exam page (Exam 1 over Weeks 1-3), with the
-  exams she took over them. Courses, topics, sets, folders, and past exams can
-  be deleted after a warning naming everything that goes, and Undo brings them
-  back for 30 days.
+  exams she took over them. Courses, topics, exam pages, sets, folders, and past
+  exams can be deleted after a warning naming everything that goes (an exam
+  page goes alone, and its folders stay), and Undo brings them back for 30
+  days.
 - **Eight NCLEX question formats.** Single answer, priority, select all that
   apply, highlight, ordering, matching, matrix, and drop-down, scored with
   partial credit. Every option explains why it is right or wrong.
@@ -89,11 +90,11 @@ it came from and the API image built from that commit.
 
 To pin a newer API, pick a commit on qbank-server's `main` whose image was
 published: the Deploy job of its CI run shows
-`IMAGE: ghcr.io/d-e-a-g/nclex-qbank-api@sha256:...`. Then:
+`IMAGE: ghcr.io/d-e-e-g/nclex-qbank-api@sha256:...`. Then:
 
 ```sh
 commit=<the qbank-server commit>
-gh api "repos/D-E-A-G/qbank-server/contents/apps/api/openapi.json?ref=$commit" \
+gh api "repos/D-e-e-g/qbank-server/contents/apps/api/openapi.json?ref=$commit" \
   -H "Accept: application/vnd.github.raw" >apps/web/contract/openapi.json
 # Put the commit and the image in apps/web/contract/pin.json, then:
 pnpm openapi

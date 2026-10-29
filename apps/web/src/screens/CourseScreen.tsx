@@ -233,7 +233,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   );
 }
 
-/** How many folders, sets and past exams of the course Undo can still bring back, and for how long; null until it is read. */
+/** How many exam pages, folders, sets and past exams of the course Undo can still bring back, and for how long; null until it is read. */
 function useRecentlyDeleted(courseId: string): { count: number; undoDays: number } | null {
   const version = useCourseVersion(courseId);
   const [loaded, setLoaded] = useState<{ courseId: string; count: number; undoDays: number } | null>(null);
@@ -241,7 +241,10 @@ function useRecentlyDeleted(courseId: string): { count: number; undoDays: number
     let cancel = false;
     recentlyDeleted(courseId).then(
       (deleted) => {
-        if (!cancel) setLoaded({ courseId, count: deleted.folders.length + deleted.sets.length + deleted.exams.length, undoDays: deleted.undoDays });
+        if (!cancel) {
+          const count = deleted.examPages.length + deleted.folders.length + deleted.sets.length + deleted.exams.length;
+          setLoaded({ courseId, count, undoDays: deleted.undoDays });
+        }
       },
       (caught: unknown) => {
         console.error(caught);

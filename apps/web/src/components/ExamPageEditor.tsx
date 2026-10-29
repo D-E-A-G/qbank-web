@@ -10,21 +10,21 @@ import { Icon } from "./Icon";
 /**
  * A new exam page, or an existing one's name and folders, with the course's folders as chips. A
  * folder on another exam page is greyed and names it, so no folder is on two. A topic's study page
- * also takes its primer link. Nothing is saved until Done.
+ * also takes its primer link. Nothing is saved until Done. An existing page ends with Delete.
  */
 export function ExamPageEditor({
   course,
   page,
   onSaved,
-  onRemove,
+  onDelete,
   onClose,
 }: {
   course: CourseDetail;
   /** The exam page to edit, or null for a new one. */
   page: CourseExam | null;
   onSaved: (page: CourseExam) => void;
-  /** Asks to remove the exam page; only for an existing one. */
-  onRemove?: () => void;
+  /** Asks to delete the exam page, after its warning; only for an existing one. */
+  onDelete?: () => void;
   onClose: () => void;
 }) {
   const words = kindWords(course.kind);
@@ -115,10 +115,10 @@ export function ExamPageEditor({
           <span className="field-hint">Where you wrote this page up. The page opens it; leave it empty for none.</span>
         </label>
       ) : null}
-      {onRemove === undefined ? null : (
-        <Button variant="secondary" fullWidth className="text-danger" disabled={busy} onClick={onRemove}>
+      {onDelete === undefined ? null : (
+        <Button variant="secondary" fullWidth className="text-danger" disabled={busy} onClick={onDelete}>
           <Icon name="trash-2" size={18} />
-          Remove this {words.page}
+          Delete this {words.page}
         </Button>
       )}
     </FormSheet>

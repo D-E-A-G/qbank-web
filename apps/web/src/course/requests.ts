@@ -35,11 +35,6 @@ export async function updateExamPage(examPageId: string, name: string, folderIds
   return api<CourseExam>(`/api/course-exams/${examPageId}`, { method: "PUT", json: { name, folderIds, linkUrl } });
 }
 
-/** Its folders go back to the course's Folders list. No set moves. */
-export async function deleteExamPage(examPageId: string): Promise<void> {
-  await api(`/api/course-exams/${examPageId}`, { method: "DELETE" });
-}
-
 /** A study topic of hers, after her other topics. A name another of her topics has is refused. */
 export async function createTopic(title: string): Promise<SemesterCourse> {
   return api<SemesterCourse>("/api/topics", { method: "POST", json: { title } });

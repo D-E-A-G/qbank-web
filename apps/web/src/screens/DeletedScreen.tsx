@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import type { DeletedExam, DeletedFolder, DeletedSet, RecentlyDeleted } from "../api";
+import type { DeletedExam, DeletedExamPage, DeletedFolder, DeletedSet, RecentlyDeleted } from "../api";
 import { DeletedGroup, DeletedRow, UndoOutcome } from "../components/DeletedList";
 import { EmptyState } from "../components/EmptyState";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
@@ -14,9 +14,10 @@ import { ShellLink } from "../shell/ShellLink";
 import { when } from "../when";
 
 /**
- * Recently deleted: the course's folders, sets and past exams she deleted in the last 30 days,
- * newest first, each with Undo until its 30 days run out. A set that went with its folder comes
- * back with the folder, so it is listed under the folder, not on its own.
+ * Recently deleted: the course's exam pages, folders, sets and past exams she deleted in the last
+ * 30 days, newest first, each with Undo until its 30 days run out. A set that went with its folder
+ * comes back with the folder, so it is listed under the folder, not on its own. An exam page went
+ * alone: its folders are in the course meanwhile, and Undo puts them back on it.
  */
 export function DeletedScreen({ courseId }: { courseId: string }) {
   const session = useSession();
@@ -33,7 +34,7 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
     if (course) document.title = `Recently deleted · ${courseName(course)} · Qbank`;
   }, [course]);
 
-  const empty = deleted !== null && deleted.folders.length + deleted.sets.length + deleted.exams.length === 0;
+  const empty = deleted !== null && deleted.examPages.length + deleted.folders.length + deleted.sets.length + deleted.exams.length === 0;
   const days = deleted?.undoDays ?? 30;
 
   return (
@@ -56,6 +57,25 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
         </div>
       ) : (
         <>
+          {deleted.examPages.length > 0 ? (
+            <DeletedGroup title={words.pages}>
+              {deleted.examPages.map((page) => (
+                <DeletedRow
+                  key={page.id}
+                  icon="layers"
+                  title={page.name}
+                  meta={`${pageFolders(page)} · Deleted ${when(page.deletedAt)}`}
+                  refusal={page.undoRefusal}
+                  readOnly={readOnly}
+                  busy={busy.has(page.id)}
+                  label={`Undo deleting ${page.name}`}
+                  onUndo={() => {
+                    undo({ kind: "examPage", id: page.id }, page.name);
+                  }}
+                />
+              ))}
+            </DeletedGroup>
+          ) : null}
           {deleted.folders.length > 0 ? (
             <DeletedGroup title="Folders">
               {deleted.folders.map((folder) => (
@@ -116,6 +136,12 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
       )}
     </Screen>
   );
+}
+
+/** The folders Undo puts back on the page: "Week 3, Week 4", or "No folders". */
+function pageFolders(page: DeletedExamPage): string {
+  if (page.folders.length === 0) return "No folders";
+  return foldersText(page.folders.map((folder) => folder.name));
 }
 
 /** "Anxiety disorders, Harder A", or "No sets" for an empty folder. */

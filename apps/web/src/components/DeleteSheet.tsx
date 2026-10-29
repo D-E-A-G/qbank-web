@@ -4,11 +4,12 @@ import { Button } from "./Button";
 
 /**
  * Asks before a delete, in the server's words: its preview names everything that goes (a folder's
- * sets by name, her answers, its exam page) and the 30 days of Undo. Delete sends the preview's
- * `confirm`, so exactly what she read is deleted. When the server refuses, its sentence shows and
- * the preview is read again, so a change since (another device, an exam started) is what she sees
- * next. Once deleted, Undo is offered at the bottom of the screen, for every set this sheet
- * deleted, even when a refusal stopped it partway and she then closed it.
+ * sets by name, her answers, its exam page; for an exam page, the folders that stay) and the 30
+ * days of Undo. Delete sends the preview's `confirm`, so exactly what she read is deleted. When the
+ * server refuses, its sentence shows and the preview is read again, so a change since (another
+ * device, an exam started) is what she sees next. Once deleted, Undo is offered at the bottom of
+ * the screen, for every set this sheet deleted, even when a refusal stopped it partway and she then
+ * closed it.
  */
 export function DeleteSheet({
   courseId,

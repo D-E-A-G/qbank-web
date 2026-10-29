@@ -60,10 +60,13 @@ export type TwinExam = Schemas["QuestionTwinExam"];
 export type SetDeletion = Schemas["SetDeletion"];
 export type FolderDeletion = Schemas["FolderDeletion"];
 export type ExamDeletion = Schemas["ExamDeletion"];
+/** What deleting an exam page changes: the page alone goes, and its folders stay, with their sets and her progress, under Folders. */
+export type ExamPageDeletion = Schemas["ExamPageDeletion"];
 /** What deleting a course or study topic takes with it, and the question to ask her once. */
 export type CourseDeletion = Schemas["CourseDeletion"];
-/** A course's folders, sets and past exams deleted in the last 30 days: everything Undo can still bring back. */
+/** A course's exam pages, folders, sets and past exams deleted in the last 30 days: everything Undo can still bring back. */
 export type RecentlyDeleted = Schemas["RecentlyDeleted"];
+export type DeletedExamPage = Schemas["DeletedExamPage"];
 export type DeletedFolder = Schemas["DeletedFolder"];
 export type DeletedSet = Schemas["DeletedSet"];
 export type DeletedExam = Schemas["DeletedExam"];
