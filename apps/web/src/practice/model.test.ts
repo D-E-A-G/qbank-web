@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { clozeParts, draftFromResponse, initialDraft, makeLayout, moveOrder, readLayout, readPracticeSet, toResponse, togglePick, type Question } from "./model";
+import {
+  choiceLetter,
+  clozeParts,
+  draftFromResponse,
+  initialDraft,
+  makeLayout,
+  moveOrder,
+  readLayout,
+  readPracticeSet,
+  toggleStrike,
+  toResponse,
+  togglePick,
+  type Question,
+} from "./model";
 
 const sata: Question = {
   type: "sata",
@@ -161,6 +174,29 @@ describe("readPracticeSet", () => {
     expect(readPracticeSet({ ...set, questions: [{ ...question, body: { options: [] } }] })).toBeNull();
     expect(readPracticeSet({ ...set, questions: [{ ...question, terms: undefined }] })).toBeNull();
     expect(readPracticeSet(null)).toBeNull();
+  });
+});
+
+describe("toggleStrike", () => {
+  it("strikes a choice out, and the same gesture restores it", () => {
+    const draft = { type: "single", choice: null } as const;
+    const struck = toggleStrike(draft, [], 2);
+    expect(struck).toEqual({ draft, struck: [2] });
+    expect(toggleStrike(struck.draft, struck.struck, 2)).toEqual({ draft, struck: [] });
+  });
+
+  it("unpicks a choice she had picked when she strikes it, and leaves her other picks", () => {
+    expect(toggleStrike({ type: "priority", choice: 1 }, [], 1).draft).toEqual({ type: "priority", choice: null });
+    expect(toggleStrike({ type: "single", choice: 0 }, [], 1).draft).toEqual({ type: "single", choice: 0 });
+    expect(toggleStrike({ type: "sata", picks: [0, 2, 3] }, [1], 2)).toEqual({ draft: { type: "sata", picks: [0, 3] }, struck: [1, 2] });
+  });
+
+  it("restores a choice without picking it again", () => {
+    expect(toggleStrike({ type: "sata", picks: [0] }, [2], 2)).toEqual({ draft: { type: "sata", picks: [0] }, struck: [] });
+  });
+
+  it("letters choices in the order she sees them", () => {
+    expect([0, 1, 2, 3].map(choiceLetter)).toEqual(["A", "B", "C", "D"]);
   });
 });
 

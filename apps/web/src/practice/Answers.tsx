@@ -1,5 +1,6 @@
 import { Icon } from "../components/Icon";
 import {
+  choiceLetter,
   clozeParts,
   FORMAT_LABELS,
   moveOrder,
@@ -11,18 +12,26 @@ import {
   type QuestionOption,
 } from "./model";
 
+/**
+ * The answer in the question's format. With onStrike, each choice of a choice-list question gets a
+ * control to strike it out; struck choices are drawn crossed out and cannot be picked.
+ */
 export function AnswerArea({
   loaded,
   layout,
   draft,
+  struck = [],
   revealed,
   onDraft,
+  onStrike,
 }: {
   loaded: LoadedQuestion;
   layout: Layout;
   draft: Draft;
+  struck?: readonly number[];
   revealed: boolean;
   onDraft: (draft: Draft) => void;
+  onStrike?: ((index: number) => void) | undefined;
 }) {
   const question = loaded.question;
   switch (question.type) {
@@ -38,8 +47,11 @@ export function AnswerArea({
           options={question.options}
           order={layout.order}
           picked={draft.type === "sata" ? draft.picks : draft.choice === null ? [] : [draft.choice]}
+          struck={revealed ? [] : struck}
           revealed={revealed}
+          onStrike={revealed ? undefined : onStrike}
           onPick={(index) => {
+            if (struck.includes(index)) return;
             if (question.type === "sata" && draft.type === "sata") {
               onDraft({ type: "sata", picks: togglePick(draft.picks, index) });
               return;
@@ -131,39 +143,74 @@ function OptionList({
   options,
   order,
   picked,
+  struck,
   revealed,
   onPick,
+  onStrike,
 }: {
   label: string;
   multi: boolean;
   options: readonly QuestionOption[];
   order: readonly number[];
   picked: readonly number[];
+  struck: readonly number[];
   revealed: boolean;
   onPick: (index: number) => void;
+  onStrike: ((index: number) => void) | undefined;
 }) {
   return (
     <div role={multi ? "group" : "radiogroup"} aria-label={label} className="choice-list">
-      {order.map((original) => {
+      {order.map((original, position) => {
         const option = options[original];
         if (!option) return null;
         const selected = picked.includes(original);
         const correct = option.ok === true;
+        const out = struck.includes(original);
+        const letter = choiceLetter(position);
+        const strikeLabel = `${out ? "Restore" : "Strike out"} ${letter}`;
         return (
-          <button
-            key={original}
-            type="button"
-            role={multi ? "checkbox" : "radio"}
-            aria-checked={selected}
-            className={choiceClass(revealed, selected, correct)}
-            onClick={() => {
-              if (!revealed) onPick(original);
-            }}
-          >
-            <span className="choice-text">{option.t}</span>
-            {revealed ? <ChoiceMark selected={selected} correct={correct} /> : null}
-            {revealed && option.why ? <span className="choice-reason">{option.why}</span> : null}
-          </button>
+          <div key={original} className={out ? "choice-row choice-row-struck" : "choice-row"}>
+            <button
+              type="button"
+              role={multi ? "checkbox" : "radio"}
+              aria-checked={selected}
+              aria-disabled={out || undefined}
+              className={[choiceClass(revealed, selected, correct), onStrike ? "choice-strikeable" : ""].filter(Boolean).join(" ")}
+              onClick={() => {
+                if (!revealed && !out) onPick(original);
+              }}
+              onContextMenu={
+                onStrike
+                  ? (event) => {
+                      event.preventDefault();
+                      onStrike(original);
+                    }
+                  : undefined
+              }
+            >
+              <span className="choice-letter" aria-hidden="true">
+                {letter}
+              </span>
+              <span className="choice-body">
+                <span className="choice-text">{option.t}</span>
+                {revealed ? <ChoiceMark selected={selected} correct={correct} /> : null}
+                {revealed && option.why ? <span className="choice-reason">{option.why}</span> : null}
+              </span>
+            </button>
+            {onStrike ? (
+              <button
+                type="button"
+                className="choice-strike"
+                aria-label={strikeLabel}
+                title={strikeLabel}
+                onClick={() => {
+                  onStrike(original);
+                }}
+              >
+                <Icon name={out ? "rotate-ccw" : "strikethrough"} size={18} />
+              </button>
+            ) : null}
+          </div>
         );
       })}
     </div>

@@ -9,7 +9,17 @@ import { navigate } from "../router";
 import type { Role } from "../session";
 import { AnswerArea } from "../practice/Answers";
 import { StemExhibits } from "../practice/Exhibits";
-import { FORMAT_LABELS, initialDraft, makeLayout, readPracticeSet, toResponse, type Draft, type Layout, type LoadedQuestion } from "../practice/model";
+import {
+  FORMAT_LABELS,
+  initialDraft,
+  makeLayout,
+  readPracticeSet,
+  toggleStrike,
+  toResponse,
+  type Draft,
+  type Layout,
+  type LoadedQuestion,
+} from "../practice/model";
 import { RunnerShell } from "../practice/RunnerShell";
 import { submitAttempt } from "../submit-attempt";
 import { ExamResultView } from "./ExamResult";
@@ -84,6 +94,8 @@ export function ExamScreen({ courseId, examId, role, wide }: { courseId: string;
 interface ItemState {
   layout: Layout;
   draft: Draft;
+  /** Choices she has struck out, as original option indexes. Kept for this sitting only, never sent. */
+  struck: readonly number[];
   guessed: boolean;
   clientAttemptId: string;
   submitted: boolean;
@@ -110,6 +122,7 @@ function ExamRunner({ exam, wide, onEnded }: { exam: LoadedExam; wide: boolean; 
       return {
         layout,
         draft: initialDraft(question.question, layout),
+        struck: [],
         guessed: false,
         clientAttemptId: crypto.randomUUID(),
         submitted: answered.has(question.id),
@@ -327,10 +340,17 @@ function ExamRunner({ exam, wide, onEnded }: { exam: LoadedExam; wide: boolean; 
         loaded={loaded}
         layout={item.layout}
         draft={item.draft}
+        struck={item.struck}
         revealed={false}
         onDraft={(draft) => {
           if (busy) return;
           setItems((current) => current.map((entry, position) => (position === index ? { ...entry, draft } : entry)));
+        }}
+        onStrike={(option) => {
+          if (busy) return;
+          setItems((current) =>
+            current.map((entry, position) => (position === index ? { ...entry, ...toggleStrike(entry.draft, entry.struck, option) } : entry)),
+          );
         }}
       />
       <label className="guess-row">

@@ -6,39 +6,11 @@ import { navigate } from "../router";
 import type { Role } from "../session";
 import { AnswerArea } from "./Answers";
 import { RationaleImages, StemExhibits } from "./Exhibits";
-import {
-  FORMAT_LABELS,
-  initialDraft,
-  makeLayout,
-  readPracticeSet,
-  toResponse,
-  type Draft,
-  type Layout,
-  type LoadedQuestion,
-  type LoadedSet,
-} from "./model";
+import { FORMAT_LABELS, readPracticeSet, toResponse } from "./model";
 import type { PracticeSource } from "./source";
 import { recordPracticeAnswer, type Feedback } from "./recordPracticeAnswer";
 import { RunnerShell } from "./RunnerShell";
-
-interface AttemptState {
-  layout: Layout;
-  draft: Draft;
-  guessed: boolean;
-  clientAttemptId: string;
-  score: Feedback | null;
-}
-
-interface Session {
-  title: string;
-  kind: PracticeSource["kind"];
-  courseId: string;
-  questions: LoadedQuestion[];
-  attempts: AttemptState[];
-  index: number;
-  startedAt: number;
-  finishedAt: number | null;
-}
+import { advance, beginSession, reveal, strike, updateAttempt, type Session } from "./session";
 
 export function PracticeScreen({ courseId, source, role, wide }: { courseId: string; source: PracticeSource; role: Role; wide: boolean }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -205,11 +177,19 @@ export function PracticeScreen({ courseId, source, role, wide }: { courseId: str
         loaded={loaded}
         layout={attempt.layout}
         draft={attempt.draft}
+        struck={attempt.struck}
         revealed={revealed}
         onDraft={(draft) => {
           if (revealed) return;
           setSession((current) => updateAttempt(current, session.index, (item) => ({ ...item, draft })));
         }}
+        onStrike={
+          revealed
+            ? undefined
+            : (option) => {
+                setSession((current) => strike(current, session.index, option));
+              }
+        }
       />
       {revealed ? null : (
         <label className="guess-row">
@@ -360,53 +340,6 @@ function Results({ session, wide, closeLabel, onClose }: { session: Session; wid
       </div>
     </div>
   );
-}
-
-function beginSession(loaded: LoadedSet, kind: PracticeSource["kind"]): Session {
-  return {
-    title: loaded.title,
-    kind,
-    courseId: loaded.courseId,
-    questions: loaded.questions,
-    index: 0,
-    startedAt: Date.now(),
-    finishedAt: null,
-    attempts: loaded.questions.map((question) => {
-      const layout = makeLayout(question.question);
-      return {
-        layout,
-        draft: initialDraft(question.question, layout),
-        guessed: false,
-        clientAttemptId: crypto.randomUUID(),
-        score: null,
-      };
-    }),
-  };
-}
-
-function updateAttempt(session: Session | null, index: number, edit: (attempt: AttemptState) => AttemptState): Session | null {
-  if (!session) return session;
-  const attempt = session.attempts[index];
-  if (!attempt || attempt.score) return session;
-  const attempts = session.attempts.slice();
-  attempts[index] = edit(attempt);
-  return { ...session, attempts };
-}
-
-function reveal(session: Session | null, index: number, guessed: boolean, score: Feedback): Session | null {
-  if (!session) return session;
-  const attempt = session.attempts[index];
-  if (!attempt || attempt.score) return session;
-  const attempts = session.attempts.slice();
-  attempts[index] = { ...attempt, guessed, score };
-  return { ...session, attempts };
-}
-
-function advance(session: Session | null): Session | null {
-  if (!session) return session;
-  if (session.index < session.questions.length - 1) return { ...session, index: session.index + 1 };
-  if (session.finishedAt !== null) return session;
-  return { ...session, finishedAt: Date.now() };
 }
 
 function judgmentRows(session: Session): { label: string; right: number; total: number }[] {
