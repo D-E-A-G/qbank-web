@@ -232,7 +232,7 @@ test.describe("deleting a page", () => {
 
     // A new Exam 2 takes its name: Undo says why it can't, and is off in Recently deleted.
     await addExamPage(page, course.id, "Exam 2", []);
-    const taken = "This course already has an exam named Exam 2. Rename one of them, then bring this one back.";
+    const taken = "This course already has a page named Exam 2. Rename one of them, then bring this one back.";
     await toast(page).getByRole("button", { name: "Undo", exact: true }).click();
     await expect(toast(page)).toContainText(taken);
     await page.goto(`/course/${course.id}/deleted`);
