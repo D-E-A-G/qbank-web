@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { ApiError, type CourseDetail, type CourseExam, type CourseFolder } from "../api";
+import { ApiError, type CourseDetail, type CourseExam, type CourseFolder, type PageBadge } from "../api";
 import { looseFolders, pageFolders } from "../course/folders";
-import { chipState, kindWords, nextPageName, pickedSummary } from "../course/pages";
+import { BADGE_CHOICES, chipState, kindWords, nextPageName, pageBadge, pickedSummary } from "../course/pages";
 import { createExamPage, updateExamPage } from "../course/requests";
 import { Button } from "./Button";
 import { FormSheet } from "./FormSheet";
 import { Icon } from "./Icon";
+import { SegmentedControl } from "./SegmentedControl";
 
 /**
- * A new exam page, or an existing one's name and folders, with the course's folders as chips. A
- * folder on another exam page is greyed and names it, so no folder is on two. A topic's study page
- * also takes its primer link. Nothing is saved until Done. An existing page ends with Delete.
+ * A new page, or an existing one's name, folders and badge, with the course's folders as chips. A
+ * folder on another page is greyed and names it, so no folder is on two. A topic's page also takes
+ * its primer link. A new page asks for no badge: it has none until she sets one here. Nothing is
+ * saved until Done. An existing page ends with Delete.
  */
 export function ExamPageEditor({
   course,
@@ -20,48 +22,51 @@ export function ExamPageEditor({
   onClose,
 }: {
   course: CourseDetail;
-  /** The exam page to edit, or null for a new one. */
+  /** The page to edit, or null for a new one. */
   page: CourseExam | null;
   onSaved: (page: CourseExam) => void;
-  /** Asks to delete the exam page, after its warning; only for an existing one. */
+  /** Asks to delete the page, after its warning; only for an existing one. */
   onDelete?: () => void;
   onClose: () => void;
 }) {
   const words = kindWords(course.kind);
   const topic = course.kind === "topic";
-  const [name, setName] = useState(page?.name ?? nextPageName(course.exams, course.kind));
+  const [name, setName] = useState(page?.name ?? nextPageName(course.exams));
   const [link, setLink] = useState(page?.linkUrl ?? "");
+  const [badge, setBadge] = useState<PageBadge | null>(page === null ? null : pageBadge(page));
   const [picked, setPicked] = useState<string[]>(() => (page === null ? [] : pageFolders(course, page.id).map((folder) => folder.id)));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editing = page?.id ?? null;
-  // Its own folders first, then the ones on no exam page, then the ones other exam pages hold.
+  // A server from before badges sends no badge field and would drop a choice, so Badge waits for one that does.
+  const badged = page?.badge !== undefined;
+  // Its own folders first, then the ones on no page, then the ones other pages hold.
   const others = course.exams.filter((other) => other.id !== editing).flatMap((other) => pageFolders(course, other.id));
   const chips: CourseFolder[] = [...(editing === null ? [] : pageFolders(course, editing)), ...looseFolders(course), ...others];
 
   const save = () => {
     const next = name.trim();
     if (next === "") {
-      setError(`Give the ${words.page} a name.`);
+      setError("Give the page a name.");
       return;
     }
     setBusy(true);
     setError(null);
-    // A course's exam page has no link field, so saving it leaves its link as it is.
+    // A course's page has no link field, so saving it leaves its link as it is.
     const linkUrl = topic ? link.trim() || null : undefined;
-    const saving = page === null ? createExamPage(course.id, next, picked, linkUrl) : updateExamPage(page.id, next, picked, linkUrl);
+    const saving = page === null ? createExamPage(course.id, next, picked, linkUrl) : updateExamPage(page.id, next, picked, linkUrl, badged ? badge : undefined);
     saving.then(onSaved, (caught: unknown) => {
       setBusy(false);
-      setError(caught instanceof ApiError ? caught.message : `Could not save the ${words.page}.`);
+      setError(caught instanceof ApiError ? caught.message : "Could not save the page.");
     });
   };
 
   return (
-    <FormSheet title={page === null ? `New ${words.page}` : `Edit ${words.page}`} busy={busy} error={error} onDone={save} onClose={onClose}>
+    <FormSheet title={page === null ? "New page" : "Edit page"} busy={busy} error={error} onDone={save} onClose={onClose}>
       <div className="exam-edit">
         <input
           className="control exam-edit-input"
-          aria-label={`${words.Page} name`}
+          aria-label="Page name"
           value={name}
           maxLength={80}
           onChange={(event) => {
@@ -69,7 +74,7 @@ export function ExamPageEditor({
           }}
         />
         {chips.length > 0 ? (
-          <div className="folder-chips" role="group" aria-label={`Folders on this ${words.page}`}>
+          <div className="folder-chips" role="group" aria-label="Folders on this page">
             {chips.map((folder) => {
               const state = chipState(course, editing, picked, folder.id);
               return (
@@ -94,7 +99,7 @@ export function ExamPageEditor({
         )}
         <p className="exam-edit-summary">{pickedSummary(course, picked)}</p>
       </div>
-      <p className="sheet-hint">Tap the folders on this page. A folder on another {words.page} is greyed and says which.</p>
+      <p className="sheet-hint">Tap the folders on this page. A folder on another page is greyed and says which.</p>
       {topic ? (
         <label className="field">
           <span className="field-label">Primer link</span>
@@ -115,10 +120,24 @@ export function ExamPageEditor({
           <span className="field-hint">Where you wrote this page up. The page opens it; leave it empty for none.</span>
         </label>
       ) : null}
+      {badged ? (
+        <div className="field">
+          <span className="field-label">Badge</span>
+          <SegmentedControl
+            label="Badge"
+            value={badge ?? "none"}
+            options={BADGE_CHOICES}
+            onChange={(value) => {
+              setBadge(value === "none" ? null : value);
+            }}
+          />
+          <span className="field-hint">Says what the page is for</span>
+        </div>
+      ) : null}
       {onDelete === undefined ? null : (
         <Button variant="secondary" fullWidth className="text-danger" disabled={busy} onClick={onDelete}>
           <Icon name="trash-2" size={18} />
-          Delete this {words.page}
+          Delete this page
         </Button>
       )}
     </FormSheet>

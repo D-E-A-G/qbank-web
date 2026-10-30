@@ -43,7 +43,7 @@ const REVIEW_PRACTICE_PATH = new RegExp(`^\\/course\\/(${UUID})\\/review\\/pract
 export type DetailMatch =
   | { courseId: string; label: "Course" | "Terms" | "Review" | "Exam"; width: "reading"; kind: "course" | "terms" | "review" | "exam" }
   | { courseId: string; label: "Recently deleted"; width: "reading"; kind: "deleted" }
-  | { courseId: string; label: "Exam page"; width: "reading"; kind: "exam-page"; examPageId: string }
+  | { courseId: string; label: "Page"; width: "reading"; kind: "exam-page"; examPageId: string }
   | { courseId: string; label: "Folder"; width: "reading"; kind: "folder"; folderId: string }
   | { courseId: string; label: "Exam twins"; width: "reading"; kind: "twins"; jobId: string };
 
@@ -123,7 +123,7 @@ export function matchDetail(pathname: string): DetailMatch | null {
     const kind = page[2]?.toLowerCase();
     if (kind === "folder") return { courseId, label: "Folder", width: "reading", kind: "folder", folderId: page[3] };
     if (kind === "twins") return { courseId, label: "Exam twins", width: "reading", kind: "twins", jobId: page[3] };
-    return { courseId, label: "Exam page", width: "reading", kind: "exam-page", examPageId: page[3] };
+    return { courseId, label: "Page", width: "reading", kind: "exam-page", examPageId: page[3] };
   }
   const match = COURSE_PATH.exec(path);
   const courseId = match?.[1];

@@ -130,12 +130,12 @@ test.describe("study topics", () => {
     await page.goto(`/course/${topicId}`);
 
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Study pages" })).toBeVisible();
-    await expect(page.getByText("No study pages yet. Tap + to make Page 1.")).toBeVisible();
-    await addFromMenu(page, `Add to ${name}`, "New study page");
-    const editor = sheet(page, "New study page");
-    await expect(editor.getByRole("textbox", { name: "Study page name" })).toHaveValue("Page 1");
-    await editor.getByRole("group", { name: "Folders on this study page" }).getByRole("button", { name: /^Unsorted/ }).click();
+    await expect(page.getByRole("heading", { name: "Pages" })).toBeVisible();
+    await expect(page.getByText("No pages yet. Tap + to make Page 1.")).toBeVisible();
+    await addFromMenu(page, `Add to ${name}`, "New page");
+    const editor = sheet(page, "New page");
+    await expect(editor.getByRole("textbox", { name: "Page name" })).toHaveValue("Page 1");
+    await editor.getByRole("group", { name: "Folders on this page" }).getByRole("button", { name: /^Unsorted/ }).click();
     await expect(editor.getByText("1 folder · 3 questions")).toBeVisible();
 
     // The primer is a link: the server takes a web address and nothing else.
@@ -145,7 +145,7 @@ test.describe("study topics", () => {
     await editor.getByRole("textbox", { name: "Primer link" }).fill("https://notes.example.com/stage-1");
     await editor.getByRole("button", { name: "Done" }).click();
 
-    // Done opens the study page: its primer, Start exam, its folders, and no past exam yet.
+    // Done opens the page: its primer, Start exam, its folders, and no past exam yet.
     await expect(page.getByRole("heading", { level: 1, name: "Page 1" })).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/course/${topicId}/exam-page/[0-9a-f-]{36}$`));
     await expect(page.getByText("1 folder · 1 practice set · 3 questions")).toBeVisible();
@@ -158,14 +158,14 @@ test.describe("study topics", () => {
     await expect(page.getByText("Exams you finish over Page 1 show up here with their scores.")).toBeVisible();
 
     // Its editor keeps the link; the topic lists the page.
-    await page.getByRole("button", { name: "Edit the study page" }).click();
+    await page.getByRole("button", { name: "Edit the page" }).click();
     await page.getByRole("button", { name: "Name and folders" }).click();
-    await expect(sheet(page, "Edit study page").getByRole("textbox", { name: "Primer link" })).toHaveValue("https://notes.example.com/stage-1");
-    await sheet(page, "Edit study page").getByRole("button", { name: "Cancel" }).click();
-    await page.getByRole("button", { name: "Done editing the study page" }).click();
+    await expect(sheet(page, "Edit page").getByRole("textbox", { name: "Primer link" })).toHaveValue("https://notes.example.com/stage-1");
+    await sheet(page, "Edit page").getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Done editing the page" }).click();
     await main(page).getByRole("link", { name, exact: true }).click();
-    await expect(page.getByRole("list", { name: "Study pages" }).getByRole("link")).toHaveText([/^Page 1/]);
-    await page.getByRole("list", { name: "Study pages" }).getByRole("link", { name: /^Page 1/ }).click();
+    await expect(page.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Page 1/]);
+    await page.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Page 1/ }).click();
 
     // The timed exam is the course's: Start exam ticks the page's folders, and the exam runs as in a course.
     await page.getByRole("link", { name: "Start exam" }).click();
@@ -182,12 +182,12 @@ test.describe("study topics", () => {
     await page.getByRole("button", { name: "Back to topic" }).click();
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
 
-    // The exam over its folder is the study page's past exam.
-    await page.getByRole("list", { name: "Study pages" }).getByRole("link", { name: /^Page 1/ }).click();
+    // The exam over its folder is the page's past exam.
+    await page.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Page 1/ }).click();
     await expect(page.getByRole("button", { name: /^Unsorted · today/ })).toContainText("3 of 3");
   });
 
-  test("her course says exam pages, as it always did, next to a topic that says study pages", async ({ page }) => {
+  test("her course and a topic both say pages, and differ only in what they are called", async ({ page }) => {
     const code = `C${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
     const name = topicName();
     await signIn(page);
@@ -201,11 +201,6 @@ test.describe("study topics", () => {
         heading: code,
         back: "Courses",
         note: `${code} course · 2 questions · 1 folder`,
-        pages: "Exam pages",
-        empty: "No exam pages yet. Tap + to make Exam 1.",
-        page: "exam page",
-        Page: "Exam page",
-        first: "Exam 1",
         container: "course",
         Container: "Course",
         setupNote: `${code} · ${code} course`,
@@ -217,11 +212,6 @@ test.describe("study topics", () => {
         heading: name,
         back: "Topics",
         note: "2 questions · 1 folder",
-        pages: "Study pages",
-        empty: "No study pages yet. Tap + to make Page 1.",
-        page: "study page",
-        Page: "Study page",
-        first: "Page 1",
         container: "topic",
         Container: "Topic",
         setupNote: name,
@@ -233,25 +223,25 @@ test.describe("study topics", () => {
       await expect(page.getByRole("heading", { level: 1, name: screen.heading })).toBeVisible();
       await expect(main(page).getByRole("link", { name: screen.back, exact: true })).toBeVisible();
       await expect(main(page).getByText(screen.note, { exact: true })).toBeVisible();
-      await expect(page.getByRole("heading", { name: screen.pages })).toBeVisible();
-      await expect(page.getByText(screen.empty)).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Pages" })).toBeVisible();
+      await expect(page.getByText("No pages yet. Tap + to make Page 1.")).toBeVisible();
       await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveCount(1);
       await expect(page.getByText("Open a folder to see its sets.")).toBeVisible();
 
-      await addFromMenu(page, `Add to ${screen.heading}`, `New ${screen.page}`);
-      const editor = sheet(page, `New ${screen.page}`);
-      await expect(editor.getByRole("textbox", { name: `${screen.Page} name` })).toHaveValue(screen.first);
-      await expect(editor.getByText(`Tap the folders on this page. A folder on another ${screen.page} is greyed and says which.`)).toBeVisible();
+      await addFromMenu(page, `Add to ${screen.heading}`, "New page");
+      const editor = sheet(page, "New page");
+      await expect(editor.getByRole("textbox", { name: "Page name" })).toHaveValue("Page 1");
+      await expect(editor.getByText("Tap the folders on this page. A folder on another page is greyed and says which.")).toBeVisible();
       await expect(editor.getByRole("textbox", { name: "Primer link" })).toHaveCount(screen.primer);
       await editor.getByRole("button", { name: "Cancel" }).click();
 
       await page.goto(`/course/${screen.id}/folder/${screen.folderId}`);
-      await expect(page.getByText(`On no ${screen.page} · 1 set · 2 questions`)).toBeVisible();
+      await expect(page.getByText("On no page · 1 set · 2 questions")).toBeVisible();
       await expect(main(page).getByRole("link", { name: screen.heading, exact: true })).toBeVisible();
-      await page.getByRole("button", { name: `${screen.Page}: none` }).click();
-      const pick = sheet(page, screen.Page);
-      await expect(pick.getByRole("radio", { name: `No ${screen.page} Stays in the ${screen.container}’s Folders list` })).toBeChecked();
-      await expect(pick.getByRole("radio", { name: `New ${screen.page} ${screen.first}` })).toBeVisible();
+      await page.getByRole("button", { name: "Page: none" }).click();
+      const pick = sheet(page, "Page");
+      await expect(pick.getByRole("radio", { name: `No page Stays in the ${screen.container}’s Folders list` })).toBeChecked();
+      await expect(pick.getByRole("radio", { name: "New page Page 1" })).toBeVisible();
       await pick.getByRole("button", { name: "Cancel" }).click();
 
       await page.goto(`/course/${screen.id}/exam`);
@@ -320,7 +310,7 @@ test.describe("study topics", () => {
     await expect(topics).toHaveText(starts(second, renamed));
   });
 
-  test("the admin sees her topic and its study pages read-only", async ({ page, browser }, testInfo) => {
+  test("the admin sees her topic and its pages read-only", async ({ page, browser }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-chrome", "admin on the wide layout");
     const name = topicName();
     await signIn(page);
@@ -335,9 +325,9 @@ test.describe("study topics", () => {
     await main(admin).getByRole("link", { name: new RegExp(`^${name}`) }).click();
     await expect(admin.getByText(/progress, read-only\./)).toBeVisible();
     await expect(admin.getByRole("heading", { level: 1, name })).toBeVisible();
-    await expect(admin.getByRole("list", { name: "Study pages" }).getByRole("link")).toHaveText([/^Page 1/]);
+    await expect(admin.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Page 1/]);
     await expect(admin.getByRole("button", { name: `Add to ${name}` })).toHaveCount(0);
-    await admin.getByRole("list", { name: "Study pages" }).getByRole("link", { name: /^Page 1/ }).click();
+    await admin.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Page 1/ }).click();
     await expect(admin.getByRole("link", { name: "Start exam" })).toHaveCount(0);
     await expect(admin.getByRole("heading", { name: "Her past exams" })).toBeVisible();
     await admin.context().close();

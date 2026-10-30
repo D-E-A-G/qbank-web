@@ -1,5 +1,4 @@
 import type { CourseDetail, CourseExam, CourseFolder, SetSummary } from "../api";
-import { kindWords } from "./pages";
 
 /** How far she is through some practice sets: nothing answered, some, or every question. */
 export type FolderState = "fresh" | "started" | "done";
@@ -64,7 +63,7 @@ export function pageFolders(course: CourseDetail, examPageId: string): CourseFol
 export function folderGroups(course: CourseDetail, firstPageId: string | null = null): { key: string; title: string; folders: CourseFolder[] }[] {
   const pages = [...course.exams].sort((a, b) => Number(b.id === firstPageId) - Number(a.id === firstPageId));
   const groups = pages.map((page) => ({ key: page.id, title: page.name, folders: pageFolders(course, page.id) }));
-  groups.push({ key: "loose", title: `On no ${kindWords(course.kind).page}`, folders: looseFolders(course) });
+  groups.push({ key: "loose", title: "On no page", folders: looseFolders(course) });
   return groups.filter((group) => group.folders.length > 0);
 }
 
@@ -83,7 +82,7 @@ export function folderLabel(course: CourseDetail, folderId: string, name: string
   const key = folder.name.trim().toLowerCase();
   const shared = course.folders.some((item) => item.id !== folder.id && item.name.trim().toLowerCase() === key);
   if (!shared) return folder.name;
-  return `${folder.name} · ${examPageOf(course, folder)?.name ?? `No ${kindWords(course.kind).page}`}`;
+  return `${folder.name} · ${examPageOf(course, folder)?.name ?? "No page"}`;
 }
 
 /** The list a folder belongs to: an exam page's id, or null for the course's Folders list. */

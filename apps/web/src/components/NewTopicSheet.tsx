@@ -44,7 +44,7 @@ export function NewTopicSheet({ onMade, onClose }: { onMade: (topic: SemesterCou
           }}
         />
       </label>
-      <p className="sheet-hint">A topic has folders and study pages, like a course, without a semester.</p>
+      <p className="sheet-hint">A topic has folders and pages, like a course, without a semester.</p>
     </FormSheet>
   );
 }

@@ -93,7 +93,7 @@ test.describe("adding where she is", () => {
     await archiveCourses(page);
   });
 
-  test("Home's + makes a course in a semester, and the course's and exam page's + fill it", async ({ page }) => {
+  test("Home's + makes a course in a semester, and the course's and page's + fill it", async ({ page }) => {
     const code = courseCode();
     await signIn(page);
     const [, second] = await twoSemesters(page);
@@ -118,7 +118,7 @@ test.describe("adding where she is", () => {
     await expect(page.getByRole("menu", { name: `Add to ${code}` }).getByRole("menuitem")).toHaveText([
       /^Import a question file/,
       "New folder",
-      "New exam page",
+      "New page",
     ]);
     await page.getByRole("menuitem", { name: "New folder" }).click();
     const folder = sheet(page, "New folder");
@@ -128,45 +128,45 @@ test.describe("adding where she is", () => {
     await folder.getByRole("button", { name: "Done" }).click();
     await expect(folder).toBeHidden();
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 1/]);
-    await expect(page.getByText("No exam pages yet. Tap + to make Exam 1.")).toBeVisible();
+    await expect(page.getByText("No pages yet. Tap + to make Page 1.")).toBeVisible();
 
-    // Course + › New exam page: today's editor, then the page.
-    await addFromMenu(page, `Add to ${code}`, "New exam page");
-    const editor = sheet(page, "New exam page");
-    await editor.getByRole("group", { name: "Folders on this exam page" }).getByRole("button", { name: /^Week 1/ }).click();
+    // Course + › New page: today's editor, then the page.
+    await addFromMenu(page, `Add to ${code}`, "New page");
+    const editor = sheet(page, "New page");
+    await editor.getByRole("group", { name: "Folders on this page" }).getByRole("button", { name: /^Week 1/ }).click();
     await editor.getByRole("button", { name: "Done" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Exam 1" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Page 1" })).toBeVisible();
 
-    // Exam page + › New folder on this page: made on the page in one step.
-    await page.getByRole("button", { name: "Add to Exam 1", exact: true }).click();
-    await expect(page.getByRole("menu", { name: "Add to Exam 1" }).getByRole("menuitem")).toHaveText([
+    // Page + › New folder on this page: made on the page in one step.
+    await page.getByRole("button", { name: "Add to Page 1", exact: true }).click();
+    await expect(page.getByRole("menu", { name: "Add to Page 1" }).getByRole("menuitem")).toHaveText([
       /^Import a question file here/,
       "New folder on this page",
       "Add existing folders",
     ]);
     await page.getByRole("menuitem", { name: "New folder on this page" }).click();
-    const onPage = sheet(page, "New folder on Exam 1");
+    const onPage = sheet(page, "New folder on Page 1");
     await onPage.getByRole("textbox", { name: "Folder name" }).fill("Week 2");
     await onPage.getByRole("button", { name: "Done" }).click();
-    await expect(page.getByRole("list", { name: "Study material on Exam 1" }).getByRole("link")).toHaveText([/^Week 1/, /^Week 2/]);
+    await expect(page.getByRole("list", { name: "Study material on Page 1" }).getByRole("link")).toHaveText([/^Week 1/, /^Week 2/]);
 
     // Add existing folders is the page's editor.
-    await addFromMenu(page, "Add to Exam 1", "Add existing folders");
-    await expect(sheet(page, "Edit exam page")).toBeVisible();
-    await sheet(page, "Edit exam page").getByRole("button", { name: "Cancel" }).click();
+    await addFromMenu(page, "Add to Page 1", "Add existing folders");
+    await expect(sheet(page, "Edit page")).toBeVisible();
+    await sheet(page, "Edit page").getByRole("button", { name: "Cancel" }).click();
 
     // Import a question file here: Import with the course picked and this page's folders first.
-    await addFromMenu(page, "Add to Exam 1", "Import a question file here");
+    await addFromMenu(page, "Add to Page 1", "Import a question file here");
     await expect(page).toHaveURL(new RegExp(`/import\\?course=${courseId}&page=[0-9a-f-]{36}$`));
     await expect(page.getByLabel("Course", { exact: true })).toHaveValue(courseId);
     const picker = page.getByRole("radiogroup", { name: "Folder" });
     await expect(picker.getByRole("radio", { name: /^Unsorted/ })).toBeChecked();
-    await expect(picker.locator(".folder-picker-title").first()).toHaveText("Exam 1");
+    await expect(picker.locator(".folder-picker-title").first()).toHaveText("Page 1");
     await picker.getByRole("radio", { name: "Week 2", exact: true }).check();
     await page.getByLabel("Paste JSON").fill(set("Week 2 - Set 1", 2));
     await page.getByRole("button", { name: "Check file" }).click();
     await page.getByRole("button", { name: "Import", exact: true }).click();
-    await expect(page.getByText(`“Week 2 - Set 1” · 2 questions in ${code}, Week 2. It is on Exam 1.`)).toBeVisible();
+    await expect(page.getByText(`“Week 2 - Set 1” · 2 questions in ${code}, Week 2. It is on Page 1.`)).toBeVisible();
 
     // The course's Import a question file: the course picked, Unsorted picked.
     await page.goto(`/course/${courseId}`);

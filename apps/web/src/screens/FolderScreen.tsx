@@ -95,7 +95,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
       ) : (
         <>
           <p className="note">
-            {page === null ? `On no ${words.page}` : `On ${page.name}`} · {folderMeta(folder)}
+            {page === null ? "On no page" : `On ${page.name}`} · {folderMeta(folder)}
           </p>
           {readOnly ? null : (
             <div className="folder-actions">
@@ -112,13 +112,13 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
               <button
                 type="button"
                 className="folder-action"
-                aria-label={page === null ? `${words.Page}: none` : `${words.Page}: ${page.name}`}
+                aria-label={page === null ? "Page: none" : `Page: ${page.name}`}
                 onClick={() => {
                   setSheet("page");
                 }}
               >
                 <Icon name="layers" size={16} strokeWidth={2} />
-                {page === null ? words.Page : page.name}
+                {page === null ? "Page" : page.name}
               </button>
               <ShellLink to={importPath(courseId, { folderId: folder.id })} className="folder-action" current={false}>
                 <Icon name="file-input" size={16} strokeWidth={2} />
@@ -258,7 +258,7 @@ export function FolderScreen({ courseId, folderId }: { courseId: string; folderI
           ) : null}
         </>
       )}
-      {sheet === "rename" && folder ? <RenameFolderSheet kind={course?.kind ?? "course"} folder={folder} onSaved={saved} onClose={close} /> : null}
+      {sheet === "rename" && folder ? <RenameFolderSheet folder={folder} onSaved={saved} onClose={close} /> : null}
       {sheet === "page" && course && folder ? <FolderPageSheet course={course} folder={folder} onSaved={saved} onChanged={reload} onClose={close} /> : null}
       {sheet === "move" && course && folder ? (
         <MoveSetsSheet

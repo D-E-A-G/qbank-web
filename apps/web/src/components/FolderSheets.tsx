@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { ApiError, type CourseDetail, type CourseExam, type CourseFolder, type CourseKind } from "../api";
+import { ApiError, type CourseDetail, type CourseExam, type CourseFolder } from "../api";
 import { folderGroups, folderMeta } from "../course/folders";
 import { kindWords, nextPageName, pageMeta } from "../course/pages";
 import { createExamPage, createFolder, moveSet, putOnExamPage, renameFolder } from "../course/requests";
@@ -7,13 +7,10 @@ import { FormSheet } from "./FormSheet";
 
 /** Rename folder: only the name changes. A name another folder in the same list has is refused by the server. */
 export function RenameFolderSheet({
-  kind,
   folder,
   onSaved,
   onClose,
 }: {
-  /** Whether the folder is in a course or a topic, which names its page. */
-  kind: CourseKind;
   folder: CourseFolder;
   onSaved: () => void;
   onClose: () => void;
@@ -55,13 +52,13 @@ export function RenameFolderSheet({
           }}
         />
       </label>
-      <p className="sheet-hint">Only the name changes. Its sets, their progress, its {kindWords(kind).page}, and your past exams stay with it.</p>
+      <p className="sheet-hint">Only the name changes. Its sets, their progress, its page, and your past exams stay with it.</p>
     </FormSheet>
   );
 }
 
 /**
- * New folder, from the + of a course (it goes at the end of its Folders list) or of an exam page
+ * New folder, from the + of a course (it goes at the end of its Folders list) or of a page
  * (made on that page, in one step). A name another folder in the same list has is refused by the server.
  */
 export function NewFolderSheet({
@@ -71,7 +68,7 @@ export function NewFolderSheet({
   onClose,
 }: {
   course: CourseDetail;
-  /** The exam page to make it on, or null for the course's Folders list. */
+  /** The page to make it on, or null for the course's Folders list. */
   page: CourseExam | null;
   onMade: () => void;
   onClose: () => void;
@@ -115,7 +112,7 @@ export function NewFolderSheet({
   );
 }
 
-/** Exam page: which exam page the folder is on, if any. "New exam page" makes one with just this folder. */
+/** Page: which page the folder is on, if any. "New page" makes one with just this folder. */
 export function FolderPageSheet({
   course,
   folder,
@@ -139,7 +136,7 @@ export function FolderPageSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const words = kindWords(course.kind);
-  const newName = nextPageName(course.exams, course.kind);
+  const newName = nextPageName(course.exams);
 
   const save = async () => {
     if (picked === current) {
@@ -167,7 +164,7 @@ export function FolderPageSheet({
       }
     } catch (caught: unknown) {
       setBusy(false);
-      setError(refusal(caught, `Could not change the folder's ${words.page}.`));
+      setError(refusal(caught, "Could not change the folder's page."));
       return;
     }
     onSaved();
@@ -197,7 +194,7 @@ export function FolderPageSheet({
 
   return (
     <FormSheet
-      title={words.Page}
+      title="Page"
       busy={busy}
       error={error}
       onDone={() => {
@@ -206,13 +203,13 @@ export function FolderPageSheet({
       onClose={onClose}
     >
       <p className="sheet-hint">
-        {folder.name} can be on one {words.page}. Its sets and their progress stay in the folder.
+        {folder.name} can be on one page. Its sets and their progress stay in the folder.
       </p>
-      <ul className="radio-list" aria-label={words.pages}>
+      <ul className="radio-list" aria-label="Pages">
         {/* The page an earlier try made is offered once, as the new one, after the course is read again. */}
         {course.exams.filter((page) => page.id !== made?.id).map((page) => option(page.id, page.name, pageMeta(course, page)))}
-        {option("none", `No ${words.page}`, `Stays in the ${words.container}’s Folders list`)}
-        {made === null ? option("new", `New ${words.page}`, newName) : option("new", made.name, "Made just now")}
+        {option("none", "No page", `Stays in the ${words.container}’s Folders list`)}
+        {made === null ? option("new", "New page", newName) : option("new", made.name, "Made just now")}
       </ul>
     </FormSheet>
   );

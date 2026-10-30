@@ -22,7 +22,7 @@ import { navigate } from "../router";
 import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 import { folderLabel } from "../course/folders";
-import { courseLine, courseName, kindWords, type ExamPreset } from "../course/pages";
+import { courseLine, courseName, type ExamPreset } from "../course/pages";
 import { useCourseVersion } from "../course/deletion";
 import { useCourse, useCourseNaming } from "../course/useCourse";
 import { when } from "../when";
@@ -438,7 +438,7 @@ function groupByPage(folders: readonly ExamSetupFolder[], course: CourseDetail |
   const known = new Set(pages.map((page) => page.id));
   groups.push({
     key: "loose",
-    title: `On no ${kindWords(course.kind).page}`,
+    title: "On no page",
     folders: folders.filter((folder) => folder.examPageId === null || !known.has(folder.examPageId)),
   });
   return groups.filter((group) => group.folders.length > 0);

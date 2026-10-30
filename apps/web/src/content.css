@@ -382,6 +382,26 @@ label.list-row:active {
   font-weight: var(--weight-semibold);
 }
 
+/* A page's name with its badge beside it; a long name wraps and the tag follows it. */
+.list-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+
+.list-tag {
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--tint-soft);
+  box-shadow: inset 0 0 0 0.5px var(--tint-soft-border);
+  color: var(--tint);
+  font: var(--weight-medium) var(--size-caption-1) / var(--lh-caption-1) var(--font-mono);
+  white-space: nowrap;
+}
+
 .list-meta {
   font: var(--text-footnote);
   color: var(--text-2);
