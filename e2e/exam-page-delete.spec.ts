@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { ADMIN_EMAIL, ADMIN_PASSWORD, signIn } from "./sign-in";
 
-// Deleting an exam page (a study page, in a topic) from its editor: the server's warning says its
+// Deleting a page, in a course or a topic, from its editor: the server's warning says its
 // folders stay, the delete sends the warning's confirm, and Undo is offered right away and in the
 // course's Recently deleted for 30 days. The page goes alone: its folders stay in the course, at
 // the end of its Folders list, with their sets, her answers and her past exams, and Undo puts them
@@ -104,22 +104,22 @@ function links(page: Page, list: string) {
 }
 
 /** On the page's screen: Edit (unless a Cancel left it on), then Name and folders, then the editor's last button. */
-async function deleteFromEditor(page: Page, word: "exam page" | "study page"): Promise<void> {
-  const toggle = page.getByRole("button", { name: new RegExp(`^(Edit|Done editing) the ${word}$`) });
+async function deleteFromEditor(page: Page): Promise<void> {
+  const toggle = page.getByRole("button", { name: /^(Edit|Done editing) the page$/ });
   await expect(toggle).toBeVisible();
-  if ((await toggle.getAttribute("aria-label")) === `Edit the ${word}`) await toggle.click();
+  if ((await toggle.getAttribute("aria-label")) === "Edit the page") await toggle.click();
   await page.getByRole("button", { name: "Name and folders" }).click();
-  const editor = sheet(page, word === "exam page" ? "Edit exam page" : "Edit study page");
-  await editor.getByRole("button", { name: `Delete this ${word}` }).click();
+  const editor = sheet(page, "Edit page");
+  await editor.getByRole("button", { name: "Delete this page" }).click();
   await expect(editor).toBeHidden();
 }
 
-test.describe("deleting an exam page", () => {
+test.describe("deleting a page", () => {
   test.afterEach(async ({ page }) => {
     await archiveEverything(page);
   });
 
-  test("she deletes an exam page after its warning: its folders stay with their sets and her past exam, and Undo puts them back on it", async ({ page }) => {
+  test("she deletes a page after its warning: its folders stay with their sets and her past exam, and Undo puts them back on it", async ({ page }) => {
     await signIn(page);
     const course = await importInto(page, newCourse(), [
       ["Week 3", "Psychosis", 3],
@@ -135,7 +135,7 @@ test.describe("deleting an exam page", () => {
 
     // The editor ends with Delete; the warning names the folders that stay. Cancel changes nothing.
     await page.goto(`/course/${course.id}/exam-page/${examPageId}`);
-    await deleteFromEditor(page, "exam page");
+    await deleteFromEditor(page);
     const warning = sheet(page, "Delete Exam 2?");
     await expect(warning).toContainText(warningText);
     await warning.getByRole("button", { name: "Cancel" }).click();
@@ -143,30 +143,30 @@ test.describe("deleting an exam page", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Exam 2" })).toBeVisible();
 
     // Delete: back on the course, without the page, and its folders last in the Folders list.
-    await deleteFromEditor(page, "exam page");
+    await deleteFromEditor(page);
     await warning.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: course.code })).toBeVisible();
     await expect(toast(page)).toContainText("Deleted Exam 2.");
-    await expect(page.getByText("No exam pages yet. Tap + to make Exam 1.")).toBeVisible();
+    await expect(page.getByText("No pages yet. Tap + to make Page 1.")).toBeVisible();
     await expect(links(page, "Folders")).toHaveText([/^Week 5/, /^Week 3/, /^Week 4/]);
     await expect(links(page, "Folders").filter({ hasText: /^Week 3/ })).toContainText("2 sets · 1 of 5 answered");
 
     // Undo, right away: the page is back with its folders on it.
     await toast(page).getByRole("button", { name: "Undo", exact: true }).click();
     await expect(toast(page)).toContainText("Brought back Exam 2.");
-    await expect(links(page, "Exam pages")).toHaveText([/^Exam 2/]);
-    await expect(links(page, "Exam pages")).toContainText("2 folders · 8 questions");
+    await expect(links(page, "Pages")).toHaveText([/^Exam 2/]);
+    await expect(links(page, "Pages")).toContainText("2 folders · 8 questions");
     await expect(links(page, "Folders")).toHaveText([/^Week 5/]);
     await toast(page).getByRole("button", { name: "Dismiss" }).click();
 
-    // Deleted again, its folder opens from the Folders list with its sets, on no exam page.
-    await links(page, "Exam pages").filter({ hasText: /^Exam 2/ }).click();
-    await deleteFromEditor(page, "exam page");
+    // Deleted again, its folder opens from the Folders list with its sets, on no page.
+    await links(page, "Pages").filter({ hasText: /^Exam 2/ }).click();
+    await deleteFromEditor(page);
     await warning.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(toast(page)).toContainText("Deleted Exam 2.");
     await toast(page).getByRole("button", { name: "Dismiss" }).click();
     await links(page, "Folders").filter({ hasText: /^Week 3/ }).click();
-    await expect(page.getByText("On no exam page · 2 sets · 1 of 5 answered")).toBeVisible();
+    await expect(page.getByText("On no page · 2 sets · 1 of 5 answered")).toBeVisible();
     await expect(page.getByRole("list", { name: "Sets in Week 3" }).getByRole("link")).toHaveText([/^Antipsychotics/, /^Psychosis/]);
 
     // Her past exam over it stays in Exam setup.
@@ -180,7 +180,7 @@ test.describe("deleting an exam page", () => {
     await expect(recent).toContainText("1 item · Undo for 30 days");
     await recent.click();
     await expect(page.getByRole("heading", { level: 1, name: "Recently deleted" })).toBeVisible();
-    const pages = page.getByRole("list", { name: "Deleted exam pages" });
+    const pages = page.getByRole("list", { name: "Deleted pages" });
     await expect(pages.getByRole("listitem")).toHaveCount(1);
     await expect(pages).toContainText("Exam 2");
     await expect(pages).toContainText("Week 3, Week 4 · Deleted today");
@@ -208,7 +208,7 @@ test.describe("deleting an exam page", () => {
     expect(made.status()).toBe(201);
     const looseId = ((await made.json()) as { id: string }).id;
     await page.goto(`/course/${course.id}/exam-page/${examPageId}`);
-    await deleteFromEditor(page, "exam page");
+    await deleteFromEditor(page);
     const warning = sheet(page, "Delete Exam 2?");
     await expect(warning.getByRole("alert")).toHaveText(`${course.code} already has a folder named Week 3 in its Folders list. Rename one of them before deleting Exam 2.`);
     await expect(warning.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0);
@@ -218,7 +218,7 @@ test.describe("deleting an exam page", () => {
 
     // Renamed, it can go; but another device puts Week 5 on the page while the warning is open.
     expect((await page.request.patch(`/api/folders/${looseId}`, { data: { name: "Week 3 recap" } })).status()).toBe(200);
-    await deleteFromEditor(page, "exam page");
+    await deleteFromEditor(page);
     await expect(warning).toContainText("Its 2 folders stay, with their sets and your progress, under Folders: Week 3 and Week 4. You can undo this for 30 days.");
     expect((await page.request.patch(`/api/folders/${folderId(course, "Week 5")}`, { data: { examPageId } })).status()).toBe(200);
     await warning.getByRole("button", { name: "Delete", exact: true }).click();
@@ -236,34 +236,34 @@ test.describe("deleting an exam page", () => {
     await toast(page).getByRole("button", { name: "Undo", exact: true }).click();
     await expect(toast(page)).toContainText(taken);
     await page.goto(`/course/${course.id}/deleted`);
-    const row = page.getByRole("list", { name: "Deleted exam pages" }).getByRole("listitem");
+    const row = page.getByRole("list", { name: "Deleted pages" }).getByRole("listitem");
     await expect(row).toContainText("Week 3, Week 4, Week 5 · Deleted today");
     await expect(row).toContainText(taken);
     await expect(row.getByRole("button", { name: "Undo deleting Exam 2" })).toBeDisabled();
   });
 
-  test("a study page is deleted the same way, in a topic's words", async ({ page }) => {
+  test("a topic's page is deleted the same way", async ({ page }) => {
     await signIn(page);
     const topic = await importInto(page, { newTopic: { title: `Topic ${Math.random().toString(36).slice(2, 8)}` } }, [["Unit 1", "Unit 1 - Set 1", 2]]);
     const pageId = await addExamPage(page, topic.id, "Page 1", [folderId(topic, "Unit 1")]);
 
     await page.goto(`/course/${topic.id}/exam-page/${pageId}`);
-    await deleteFromEditor(page, "study page");
+    await deleteFromEditor(page);
     const warning = sheet(page, "Delete Page 1?");
     await expect(warning).toContainText("Its folder Unit 1 stays, with its sets and your progress, under Folders. You can undo this for 30 days.");
     await warning.getByRole("button", { name: "Delete", exact: true }).click();
-    await expect(page.getByText("No study pages yet. Tap + to make Page 1.")).toBeVisible();
+    await expect(page.getByText("No pages yet. Tap + to make Page 1.")).toBeVisible();
     await expect(links(page, "Folders")).toHaveText([/^Unit 1/]);
     await expect(toast(page)).toContainText("Deleted Page 1.");
     await toast(page).getByRole("button", { name: "Dismiss" }).click();
 
     await page.getByRole("link", { name: /^Recently deleted/ }).click();
-    await expect(page.getByRole("list", { name: "Deleted study pages" })).toContainText("Unit 1 · Deleted today");
+    await expect(page.getByRole("list", { name: "Deleted pages" })).toContainText("Unit 1 · Deleted today");
     await page.getByRole("button", { name: "Undo deleting Page 1" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Brought back" })).toHaveText("Brought back Page 1.");
   });
 
-  test("the admin sees a deleted exam page in Recently deleted without Undo, and no Delete", async ({ page, browser }, testInfo) => {
+  test("the admin sees a deleted page in Recently deleted without Undo, and no Delete", async ({ page, browser }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop-chrome", "admin on the wide layout");
     await signIn(page);
     const course = await importInto(page, newCourse(), [
@@ -278,15 +278,15 @@ test.describe("deleting an exam page", () => {
     const admin = await signedInPage(browser, ADMIN_EMAIL, ADMIN_PASSWORD);
     await admin.goto(`/course/${course.id}/exam-page/${exam1}`);
     await expect(admin.getByRole("heading", { level: 1, name: "Exam 1" })).toBeVisible();
-    await expect(admin.getByRole("button", { name: "Edit the exam page" })).toHaveCount(0);
-    await expect(admin.getByRole("button", { name: "Delete this exam page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Edit the page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Delete this page" })).toHaveCount(0);
 
     await admin.goto(`/course/${course.id}`);
-    await expect(links(admin, "Exam pages")).toHaveText([/^Exam 1/]);
+    await expect(links(admin, "Pages")).toHaveText([/^Exam 1/]);
     await expect(links(admin, "Folders")).toHaveText([/^Week 2/]);
     await admin.getByRole("link", { name: /^Recently deleted/ }).click();
     await expect(admin.getByText("What she deleted in this course in the last 30 days. She can bring each back as it was.")).toBeVisible();
-    await expect(admin.getByRole("list", { name: "Deleted exam pages" })).toContainText("Week 2 · Deleted today");
+    await expect(admin.getByRole("list", { name: "Deleted pages" })).toContainText("Week 2 · Deleted today");
     await expect(admin.getByRole("button", { name: /^Undo deleting/ })).toHaveCount(0);
     await admin.context().close();
   });

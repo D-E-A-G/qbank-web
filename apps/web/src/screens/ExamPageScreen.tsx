@@ -97,7 +97,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
     ) : undefined;
 
   return (
-    <Screen title={page?.name ?? words.Page} action={add}>
+    <Screen title={page?.name ?? "Page"} action={add}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to={`/course/${courseId}`} className="text-action" current={false}>
         {name ?? "Course"}
@@ -105,12 +105,12 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
       {error ? <p className="form-error">{error}</p> : null}
       {order.error ? <p className="form-error">{order.error}</p> : null}
       {course === null ? (
-        error ? null : <p className="note">Loading the {words.page}.</p>
+        error ? null : <p className="note">Loading the page.</p>
       ) : page === null ? (
         <div className="empty-card">
           <EmptyState
             icon="layers"
-            message={`This ${words.page} is not in the ${words.container} anymore. If it was deleted, Recently deleted in the ${words.container} can bring it back.`}
+            message={`This page is not in the ${words.container} anymore. If it was deleted, Recently deleted in the ${words.container} can bring it back.`}
           />
         </div>
       ) : (
@@ -125,7 +125,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
                 <button
                   type="button"
                   className="group-action"
-                  aria-label={edit ? `Done editing the ${words.page}` : `Edit the ${words.page}`}
+                  aria-label={edit ? "Done editing the page" : "Edit the page"}
                   onClick={() => {
                     setOrdering(!edit);
                   }}
@@ -150,7 +150,7 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
               <div className="empty-card">
                 <EmptyState
                   icon="folder"
-                  message={readOnly ? "No folders on this page yet." : `No folders on this page yet. ${words.addFolders}`}
+                  message={readOnly ? "No folders on this page yet." : "No folders on this page yet. Add the folders this page covers."}
                   action={
                     readOnly ? null : (
                       <Button

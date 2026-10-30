@@ -1,4 +1,4 @@
-import { api, type CourseExam, type CourseFolder, type SemesterCourse } from "../api";
+import { api, type CourseExam, type CourseFolder, type PageBadge, type SemesterCourse } from "../api";
 
 /** Only the name changes: its sets, their progress, its exam page and her past exams stay with it. */
 export async function renameFolder(folderId: string, name: string): Promise<void> {
@@ -25,14 +25,23 @@ export async function saveFolderOrder(courseId: string, examPageId: string | nul
   await api(`/api/courses/${courseId}/folder-order`, { method: "PUT", json: { examPageId, folderIds } });
 }
 
-/** `linkUrl` is a study page's primer link; left out, the page has none. */
+/** `linkUrl` is a topic page's primer link; left out, the page has none. A new page has no badge. */
 export async function createExamPage(courseId: string, name: string, folderIds: readonly string[], linkUrl?: string | null): Promise<CourseExam> {
   return api<CourseExam>(`/api/courses/${courseId}/course-exams`, { method: "POST", json: { name, folderIds, linkUrl } });
 }
 
-/** `linkUrl` null takes the primer link off; left out, the page keeps it. */
-export async function updateExamPage(examPageId: string, name: string, folderIds: readonly string[], linkUrl?: string | null): Promise<CourseExam> {
-  return api<CourseExam>(`/api/course-exams/${examPageId}`, { method: "PUT", json: { name, folderIds, linkUrl } });
+/**
+ * `linkUrl` null takes the primer link off, and `badge` null its badge; left out, the page keeps
+ * each. A server from before badges ignores `badge`.
+ */
+export async function updateExamPage(
+  examPageId: string,
+  name: string,
+  folderIds: readonly string[],
+  linkUrl?: string | null,
+  badge?: PageBadge | null,
+): Promise<CourseExam> {
+  return api<CourseExam>(`/api/course-exams/${examPageId}`, { method: "PUT", json: { name, folderIds, linkUrl, badge } });
 }
 
 /** A study topic of hers, after her other topics. A name another of her topics has is refused. */

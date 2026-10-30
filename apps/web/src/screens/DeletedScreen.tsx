@@ -58,7 +58,7 @@ export function DeletedScreen({ courseId }: { courseId: string }) {
       ) : (
         <>
           {deleted.examPages.length > 0 ? (
-            <DeletedGroup title={words.pages}>
+            <DeletedGroup title="Pages">
               {deleted.examPages.map((page) => (
                 <DeletedRow
                   key={page.id}

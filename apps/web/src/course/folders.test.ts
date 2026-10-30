@@ -101,24 +101,24 @@ describe("her lists", () => {
     expect(pageFolders(detail, "p2").map((item) => item.name)).toEqual(["First Pass", "Second Pass"]);
   });
 
-  it("groups them by exam page, then the ones on no exam page", () => {
+  it("groups them by page, then the ones on no page", () => {
     expect(folderGroups(detail).map((group) => [group.title, group.folders.map((item) => item.name)])).toEqual([
       ["Exam 2", ["First Pass", "Second Pass"]],
-      ["On no exam page", ["Week 1", "ABG Practice", "Week 2"]],
+      ["On no page", ["Week 1", "ABG Practice", "Week 2"]],
     ]);
   });
 
   it("puts the exam page Import was opened from first, and the rest in her order", () => {
     const exam1 = page("p1", "Exam 1");
     const two = course([...folders, folder("Week 9", [], { examPageId: "p1" })], [exam1, exam2]);
-    expect(folderGroups(two).map((group) => group.title)).toEqual(["Exam 1", "Exam 2", "On no exam page"]);
-    expect(folderGroups(two, "p2").map((group) => group.title)).toEqual(["Exam 2", "Exam 1", "On no exam page"]);
-    expect(folderGroups(two, "gone").map((group) => group.title)).toEqual(["Exam 1", "Exam 2", "On no exam page"]);
+    expect(folderGroups(two).map((group) => group.title)).toEqual(["Exam 1", "Exam 2", "On no page"]);
+    expect(folderGroups(two, "p2").map((group) => group.title)).toEqual(["Exam 2", "Exam 1", "On no page"]);
+    expect(folderGroups(two, "gone").map((group) => group.title)).toEqual(["Exam 1", "Exam 2", "On no page"]);
   });
 
-  it("calls a topic's pages study pages", () => {
+  it("words a topic's pages as a course's", () => {
     const topic = course(folders, [page("p2", "Page 1")], "topic");
-    expect(folderGroups(topic).map((group) => group.title)).toEqual(["Page 1", "On no study page"]);
+    expect(folderGroups(topic).map((group) => group.title)).toEqual(["Page 1", "On no page"]);
   });
 
   it("moves one folder and keeps the rest in order", () => {
@@ -154,10 +154,10 @@ describe("folderLabel", () => {
     expect(folderLabel(detail, "gone", "Week 9")).toBe("Week 9");
   });
 
-  it("says No exam page for a course's loose folder, and No study page for a topic's", () => {
+  it("says No page for a loose folder, in a course and a topic alike", () => {
     const onPage = folder("Unsorted", [], { examPageId: "p1" });
     const loose = folder("unsorted", []);
-    expect(folderLabel(course([onPage, loose], [page("p1", "Exam 1")]), loose.id, "unsorted")).toBe("unsorted · No exam page");
-    expect(folderLabel(course([onPage, loose], [page("p1", "Page 1")], "topic"), loose.id, "unsorted")).toBe("unsorted · No study page");
+    expect(folderLabel(course([onPage, loose], [page("p1", "Exam 1")]), loose.id, "unsorted")).toBe("unsorted · No page");
+    expect(folderLabel(course([onPage, loose], [page("p1", "Page 1")], "topic"), loose.id, "unsorted")).toBe("unsorted · No page");
   });
 });

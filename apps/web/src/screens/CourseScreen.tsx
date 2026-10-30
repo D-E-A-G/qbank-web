@@ -11,7 +11,7 @@ import { NavRow, RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { recentlyDeleted, useCourseVersion } from "../course/deletion";
 import { looseFolders } from "../course/folders";
-import { courseName, nextPageName, pageProgress, pageRowMeta } from "../course/pages";
+import { badgeLabel, courseName, nextPageName, pageBadge, pageProgress, pageRowMeta } from "../course/pages";
 import { useCourse, useCourseNaming, useRememberPlace } from "../course/useCourse";
 import { useFolderOrder } from "../course/useFolderOrder";
 import { useSession } from "../login/session-context";
@@ -20,10 +20,10 @@ import { Screen } from "../shell/Screen";
 import { ShellLink } from "../shell/ShellLink";
 
 /**
- * A course, as in the iPhone's Files app: the study tiles, then two lists. Exam pages, one row
- * each, and the folders on no exam page, one row each, in her order. Each opens its own screen.
- * Its + adds into it: a question file (Import with the course picked), a folder, or an exam page.
- * A study topic is the same screen, called by its name, with study pages for exam pages.
+ * A course, as in the iPhone's Files app: the study tiles, then two lists. Pages, one row each with
+ * its badge, and the folders on no page, one row each, in her order. Each opens its own screen.
+ * Its + adds into it: a question file (Import with the course picked), a folder, or a page. A
+ * study topic is the same screen, called by its name.
  */
 export function CourseScreen({ courseId }: { courseId: string }) {
   const session = useSession();
@@ -72,7 +72,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
           },
           {
             key: "page",
-            label: `New ${words.page}`,
+            label: "New page",
             icon: "layers",
             onSelect: () => {
               setMaking("page");
@@ -135,27 +135,27 @@ export function CourseScreen({ courseId }: { courseId: string }) {
           ) : (
             <>
               <section className="group">
-                <h2 className="group-header">{words.pages}</h2>
+                <h2 className="group-header">Pages</h2>
                 {course.exams.length === 0 ? (
-                  <p className="folder-empty">
-                    {readOnly
-                      ? `No ${words.pages.toLowerCase()} yet.`
-                      : `No ${words.pages.toLowerCase()} yet. Tap + to make ${nextPageName(course.exams, course.kind)}.`}
-                  </p>
+                  <p className="folder-empty">{readOnly ? "No pages yet." : `No pages yet. Tap + to make ${nextPageName(course.exams)}.`}</p>
                 ) : (
-                  <ul className="list-group" aria-label={words.pages}>
-                    {course.exams.map((page) => (
-                      <li key={page.id}>
-                        <NavRow
-                          to={examPagePath(course.id, page.id)}
-                          icon="layers"
-                          title={page.name}
-                          strong
-                          meta={pageRowMeta(course, page)}
-                          progress={pageProgress(course, page)}
-                        />
-                      </li>
-                    ))}
+                  <ul className="list-group" aria-label="Pages">
+                    {course.exams.map((page) => {
+                      const badge = pageBadge(page);
+                      return (
+                        <li key={page.id}>
+                          <NavRow
+                            to={examPagePath(course.id, page.id)}
+                            icon="layers"
+                            title={page.name}
+                            strong
+                            tag={badge === null ? null : badgeLabel(badge)}
+                            meta={pageRowMeta(course, page)}
+                            progress={pageProgress(course, page)}
+                          />
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
               </section>
@@ -183,7 +183,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
                       ? "Drag a folder by its handle, or move it up or down."
                       : course.exams.length === 0
                         ? "Open a folder to see its sets."
-                        : `Folders on no ${words.page}. Open one to see its sets.`}
+                        : "Folders on no page. Open one to see its sets."}
                   </p>
                 </section>
               ) : null}
@@ -233,7 +233,7 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   );
 }
 
-/** How many exam pages, folders, sets and past exams of the course Undo can still bring back, and for how long; null until it is read. */
+/** How many pages, folders, sets and past exams of the course Undo can still bring back, and for how long; null until it is read. */
 function useRecentlyDeleted(courseId: string): { count: number; undoDays: number } | null {
   const version = useCourseVersion(courseId);
   const [loaded, setLoaded] = useState<{ courseId: string; count: number; undoDays: number } | null>(null);

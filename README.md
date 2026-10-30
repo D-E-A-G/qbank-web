@@ -8,11 +8,11 @@ sync across her iPhone, iPad, and Mac.
 - **Practice sets in folders.** She imports a question file into a folder of
   its course (Unsorted unless she picks one), and arranges the folders herself:
   rename them, move sets between them, put them in her own order, and gather
-  the ones an exam covers on an exam page (Exam 1 over Weeks 1-3), with the
-  exams she took over them. Courses, topics, exam pages, sets, folders, and past
-  exams can be deleted after a warning naming everything that goes (an exam
-  page goes alone, and its folders stay), and Undo brings them back for 30
-  days.
+  the ones an exam covers on a page (Exam 1 over Weeks 1-3), with the exams
+  she took over them. A page can carry a badge, Exam, Concept, or Study, that
+  says what it is for. Courses, topics, pages, sets, folders, and past exams
+  can be deleted after a warning naming everything that goes (a page goes
+  alone, and its folders stay), and Undo brings them back for 30 days.
 - **Eight NCLEX question formats.** Single answer, priority, select all that
   apply, highlight, ordering, matching, matrix, and drop-down, scored with
   partial credit. Every option explains why it is right or wrong.

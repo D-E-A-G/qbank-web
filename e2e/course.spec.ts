@@ -124,8 +124,8 @@ test.describe("course page", () => {
     await page.goto(`/course/${course.id}`);
 
     await expect(page.getByText(`${course.code} folders · 17 questions · 7 folders`)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Exam pages" })).toBeVisible();
-    await expect(page.getByText("No exam pages yet. Tap + to make Exam 1.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pages" })).toBeVisible();
+    await expect(page.getByText("No pages yet. Tap + to make Page 1.")).toBeVisible();
     const folders = page.getByRole("list", { name: "Folders", exact: true }).getByRole("link");
     await expect(folders).toHaveText([/^Week 1/, /^Week 2/, /^Week 3/, /^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
     await expect(page.getByText("Open a folder to see its sets.")).toBeVisible();
@@ -142,7 +142,7 @@ test.describe("course page", () => {
     await folderLink(page, "Folders", "Week 3").click();
     await expect(page).toHaveURL(new RegExp(`/course/${course.id}/folder/${course.folders["Week 3"] ?? ""}$`));
     await expect(page.getByRole("heading", { level: 1, name: "Week 3" })).toBeVisible();
-    await expect(page.getByText("On no exam page · 2 sets · 3 of 5 answered")).toBeVisible();
+    await expect(page.getByText("On no page · 2 sets · 3 of 5 answered")).toBeVisible();
     // On the phone, Home stays selected on the screens under a course.
     if (testInfo.project.name === "iphone-safari") {
       await expect(page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
@@ -186,7 +186,7 @@ test.describe("course page", () => {
     await rename.getByRole("textbox", { name: "Folder name" }).press("Enter");
     await expect(rename).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Psychosis" })).toBeVisible();
-    await expect(page.getByText("On no exam page · 2 sets · 3 of 5 answered")).toBeVisible();
+    await expect(page.getByText("On no page · 2 sets · 3 of 5 answered")).toBeVisible();
     await expect(page.getByRole("list", { name: "Sets in Psychosis" }).getByRole("link")).toHaveCount(2);
 
     // Same id, same place in her list, new name.
@@ -231,7 +231,7 @@ test.describe("course page", () => {
     await expect(move).toBeHidden();
     await expect(page.getByRole("status").filter({ hasText: "Moved" })).toHaveText("Moved “Week 3 - Set 2: Antipsychotics” to Week 4.");
     await expect(page.getByRole("list", { name: "Sets in Week 3" }).getByRole("link")).toHaveText([/^Week 3 - Set 1: Psychosis/]);
-    await expect(page.getByText("On no exam page · 1 set · 2 of 2 fully right")).toBeVisible();
+    await expect(page.getByText("On no page · 1 set · 2 of 2 fully right")).toBeVisible();
 
     // The last set goes to a new folder, made at the end of her Folders list.
     await page.getByRole("button", { name: "Select sets" }).click();
@@ -344,10 +344,10 @@ async function addExamPage(page: Page, courseId: string, name: string, folderIdL
 }
 
 function chip(page: Page, title: string, name: string) {
-  return sheet(page, title).getByRole("group", { name: "Folders on this exam page" }).getByRole("button", { name: new RegExp(`^${name}`) });
+  return sheet(page, title).getByRole("group", { name: "Folders on this page" }).getByRole("button", { name: new RegExp(`^${name}`) });
 }
 
-test.describe("exam pages", () => {
+test.describe("pages", () => {
   test("she makes Exam 1 from her folders, finds the exam she already took over them, and starts one with them ticked", async ({ page }) => {
     await signIn(page);
     const course = await sevenWeekCourse(page);
@@ -356,13 +356,16 @@ test.describe("exam pages", () => {
     await page.goto(`/course/${course.id}`);
 
     await page.getByRole("button", { name: `Add to ${course.code}` }).click();
-    await page.getByRole("menuitem", { name: "New exam page" }).click();
-    const editor = sheet(page, "New exam page");
-    await expect(editor.getByRole("textbox", { name: "Exam page name" })).toHaveValue("Exam 1");
+    await page.getByRole("menuitem", { name: "New page" }).click();
+    const editor = sheet(page, "New page");
+    // A new page is Page 1 in a course too, and asks for no badge; she names it Exam 1.
+    await expect(editor.getByRole("textbox", { name: "Page name" })).toHaveValue("Page 1");
+    await expect(editor.getByRole("tablist", { name: "Badge" })).toHaveCount(0);
+    await editor.getByRole("textbox", { name: "Page name" }).fill("Exam 1");
     await expect(editor.getByText("No folders yet")).toBeVisible();
-    for (const week of ["Week 1", "Week 2", "Week 3"]) await chip(page, "New exam page", week).click();
-    await expect(chip(page, "New exam page", "Week 2")).toHaveAttribute("aria-pressed", "true");
-    await expect(chip(page, "New exam page", "Week 4")).toHaveAttribute("aria-pressed", "false");
+    for (const week of ["Week 1", "Week 2", "Week 3"]) await chip(page, "New page", week).click();
+    await expect(chip(page, "New page", "Week 2")).toHaveAttribute("aria-pressed", "true");
+    await expect(chip(page, "New page", "Week 4")).toHaveAttribute("aria-pressed", "false");
     await expect(editor.getByText("3 folders · 9 questions")).toBeVisible();
     await editor.getByRole("button", { name: "Done" }).click();
 
@@ -380,16 +383,16 @@ test.describe("exam pages", () => {
 
     // On the course page, Exam 1 is a row and its folders have left the Folders list.
     await page.getByRole("link", { name: course.code, exact: true }).click();
-    await expect(page.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
-    await expect(page.getByRole("list", { name: "Exam pages" }).getByRole("link")).toContainText("3 folders · 9 questions");
+    await expect(page.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
+    await expect(page.getByRole("list", { name: "Pages" }).getByRole("link")).toContainText("3 folders · 9 questions");
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
-    await expect(page.getByText("Folders on no exam page. Open one to see its sets.")).toBeVisible();
+    await expect(page.getByText("Folders on no page. Open one to see its sets.")).toBeVisible();
 
     // A folder on the page goes back to the page.
-    await page.getByRole("list", { name: "Exam pages" }).getByRole("link", { name: /^Exam 1/ }).click();
+    await page.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Exam 1/ }).click();
     await folderLink(page, "Study material on Exam 1", "Week 2").click();
     await expect(page.getByText("On Exam 1 · 1 set · 2 of 2 fully right")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Exam page: Exam 1" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Page: Exam 1" })).toBeVisible();
     await page.getByRole("link", { name: "Exam 1", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Exam 1" })).toBeVisible();
 
@@ -399,7 +402,7 @@ test.describe("exam pages", () => {
     const exam1 = page.getByRole("list", { name: "Exam 1", exact: true });
     await expect(exam1.getByRole("checkbox")).toHaveCount(3);
     for (const week of ["Week 1", "Week 2", "Week 3"]) await expect(exam1.getByRole("checkbox", { name: new RegExp(`^${week} `) })).toBeChecked();
-    await expect(page.getByRole("list", { name: "On no exam page" }).getByRole("checkbox", { name: /^Week 4 / })).not.toBeChecked();
+    await expect(page.getByRole("list", { name: "On no page" }).getByRole("checkbox", { name: /^Week 4 / })).not.toBeChecked();
     await expect(page.getByText("2 from Week 1 · 2 from Week 2 · 5 from Week 3")).toBeVisible();
     await page.getByRole("button", { name: "Start exam" }).click();
     await expect(page).toHaveURL(new RegExp(`/course/${course.id}/exam/[0-9a-f-]{36}$`));
@@ -410,54 +413,54 @@ test.describe("exam pages", () => {
     await expect(page.getByRole("checkbox", { name: /^Week 1 / })).not.toBeChecked();
   });
 
-  test("a folder's Exam page sheet moves it between pages, the editor greys another page's folders, and deleting a page keeps its folders", async ({ page }) => {
+  test("a folder's Page sheet moves it between pages, the editor greys another page's folders, and deleting a page keeps its folders", async ({ page }) => {
     await signIn(page);
     const course = await sevenWeekCourse(page);
     const exam1 = await addExamPage(page, course.id, "Exam 1", folderIds(course, ["Week 1", "Week 2", "Week 3"]));
 
-    // From Week 4's page she makes Exam 2 with it on.
+    // From Week 4's page she makes Page 2 with it on.
     await page.goto(`/course/${course.id}/folder/${course.folders["Week 4"] ?? ""}`);
-    await page.getByRole("button", { name: "Exam page: none" }).click();
-    const pick = sheet(page, "Exam page");
-    await expect(pick.getByRole("radio", { name: /^No exam page/ })).toBeChecked();
+    await page.getByRole("button", { name: "Page: none" }).click();
+    const pick = sheet(page, "Page");
+    await expect(pick.getByRole("radio", { name: /^No page/ })).toBeChecked();
     await expect(pick.getByRole("radio", { name: /^Exam 1 / })).toHaveAccessibleName("Exam 1 3 folders · 4 practice sets · 9 questions");
-    await pick.getByRole("radio", { name: /^New exam page Exam 2$/ }).check();
+    await pick.getByRole("radio", { name: /^New page Page 2$/ }).check();
     await pick.getByRole("button", { name: "Done" }).click();
     await expect(pick).toBeHidden();
-    await expect(page.getByText("On Exam 2 · 1 set · 2 questions")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Exam 2", exact: true })).toBeVisible();
+    await expect(page.getByText("On Page 2 · 1 set · 2 questions")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Page 2", exact: true })).toBeVisible();
 
     // Week 5 goes on Exam 1 the same way.
     await page.goto(`/course/${course.id}/folder/${course.folders["Week 5"] ?? ""}`);
-    await page.getByRole("button", { name: "Exam page: none" }).click();
+    await page.getByRole("button", { name: "Page: none" }).click();
     await pick.getByRole("radio", { name: /^Exam 1 / }).check();
     await pick.getByRole("button", { name: "Done" }).click();
     await expect(page.getByText("On Exam 1 · 1 set · 2 questions")).toBeVisible();
 
-    // On Exam 1, Edit then Name and folders: Week 4 is greyed and names Exam 2.
+    // On Exam 1, Edit then Name and folders: Week 4 is greyed and names Page 2.
     await page.goto(`/course/${course.id}/exam-page/${exam1}`);
     await expect(page.getByRole("list", { name: "Study material on Exam 1" }).getByRole("link")).toHaveText([/^Week 1/, /^Week 2/, /^Week 3/, /^Week 5/]);
-    await page.getByRole("button", { name: "Edit the exam page" }).click();
+    await page.getByRole("button", { name: "Edit the page" }).click();
     await page.getByRole("button", { name: "Move Week 5 up" }).click();
     await expect(listRows(page, "Study material on Exam 1")).toHaveText([/^Week 1/, /^Week 2/, /^Week 5/, /^Week 3/]);
     await page.getByRole("button", { name: "Name and folders" }).click();
-    const editor = sheet(page, "Edit exam page");
-    await expect(chip(page, "Edit exam page", "Week 4")).toBeDisabled();
-    await expect(chip(page, "Edit exam page", "Week 4")).toHaveText("Week 4Exam 2");
-    await editor.getByRole("textbox", { name: "Exam page name" }).fill("Midterm");
-    await chip(page, "Edit exam page", "Week 1").click();
+    const editor = sheet(page, "Edit page");
+    await expect(chip(page, "Edit page", "Week 4")).toBeDisabled();
+    await expect(chip(page, "Edit page", "Week 4")).toHaveText("Week 4Page 2");
+    await editor.getByRole("textbox", { name: "Page name" }).fill("Midterm");
+    await chip(page, "Edit page", "Week 1").click();
     await expect(editor.getByText("3 folders · 9 questions")).toBeVisible();
 
-    // Another device puts Week 6 on Exam 2 while the sheet is open: Done shows the refusal and keeps her edits.
-    await chip(page, "Edit exam page", "Week 6").click();
+    // Another device puts Week 6 on Page 2 while the sheet is open: Done shows the refusal and keeps her edits.
+    await chip(page, "Edit page", "Week 6").click();
     const week6 = await page.request.patch(`/api/folders/${course.folders["Week 6"] ?? ""}`, {
       data: { examPageId: (await courseDetail(page, course.id)).folders.find((folder) => folder.name === "Week 4")?.examPageId },
     });
     expect(week6.status()).toBe(200);
     await editor.getByRole("button", { name: "Done" }).click();
-    await expect(editor.getByRole("alert")).toHaveText("Week 6 is in Exam 2.");
-    await expect(chip(page, "Edit exam page", "Week 6")).toHaveAttribute("aria-pressed", "true");
-    await chip(page, "Edit exam page", "Week 6").click();
+    await expect(editor.getByRole("alert")).toHaveText("Week 6 is in Page 2.");
+    await expect(chip(page, "Edit page", "Week 6")).toHaveAttribute("aria-pressed", "true");
+    await chip(page, "Edit page", "Week 6").click();
     await editor.getByRole("button", { name: "Done" }).click();
     await expect(editor).toBeHidden();
     await expect(page.getByRole("heading", { level: 1, name: "Midterm" })).toBeVisible();
@@ -465,32 +468,32 @@ test.describe("exam pages", () => {
 
     // Week 1 left the page for the end of the course's Folders list.
     await page.getByRole("link", { name: course.code, exact: true }).click();
-    await expect(page.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Midterm/, /^Exam 2/]);
+    await expect(page.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Midterm/, /^Page 2/]);
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 7/, /^Week 1/]);
 
-    // Deleting Exam 2 puts its folders at the end of the Folders list; their sets are untouched.
-    await page.getByRole("list", { name: "Exam pages" }).getByRole("link", { name: /^Exam 2/ }).click();
-    await page.getByRole("button", { name: "Edit the exam page" }).click();
+    // Deleting Page 2 puts its folders at the end of the Folders list; their sets are untouched.
+    await page.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Page 2/ }).click();
+    await page.getByRole("button", { name: "Edit the page" }).click();
     await page.getByRole("button", { name: "Name and folders" }).click();
-    await sheet(page, "Edit exam page").getByRole("button", { name: "Delete this exam page" }).click();
-    const confirm = page.getByRole("dialog", { name: "Delete Exam 2?" });
+    await sheet(page, "Edit page").getByRole("button", { name: "Delete this page" }).click();
+    const confirm = page.getByRole("dialog", { name: "Delete Page 2?" });
     await expect(confirm).toContainText("Its 2 folders stay, with their sets and your progress, under Folders: Week 4 and Week 6. You can undo this for 30 days.");
     await confirm.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: course.code })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Midterm/]);
+    await expect(page.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Midterm/]);
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 7/, /^Week 1/, /^Week 4/, /^Week 6/]);
     await folderLink(page, "Folders", "Week 4").click();
     await expect(page.getByRole("list", { name: "Sets in Week 4" }).getByRole("link", { name: /^Week 4 - Set 1: Substance use/ })).toBeVisible();
 
-    // A folder already on a page can start a new one: it leaves Midterm for the new Exam 2.
+    // A folder already on a page can start a new one: it leaves Midterm for the new Page 2.
     await page.goto(`/course/${course.id}/folder/${course.folders["Week 5"] ?? ""}`);
-    await page.getByRole("button", { name: "Exam page: Midterm" }).click();
-    await pick.getByRole("radio", { name: /^New exam page Exam 2$/ }).check();
+    await page.getByRole("button", { name: "Page: Midterm" }).click();
+    await pick.getByRole("radio", { name: /^New page Page 2$/ }).check();
     await pick.getByRole("button", { name: "Done" }).click();
     await expect(pick).toBeHidden();
-    await expect(page.getByText("On Exam 2 · 1 set · 2 questions")).toBeVisible();
-    await page.getByRole("link", { name: "Exam 2", exact: true }).click();
-    await expect(page.getByRole("list", { name: "Study material on Exam 2" }).getByRole("link")).toHaveText([/^Week 5/]);
+    await expect(page.getByText("On Page 2 · 1 set · 2 questions")).toBeVisible();
+    await page.getByRole("link", { name: "Page 2", exact: true }).click();
+    await expect(page.getByRole("list", { name: "Study material on Page 2" }).getByRole("link")).toHaveText([/^Week 5/]);
   });
 
   test("the admin sees the same pages and folders, read-only", async ({ page, browser }) => {
@@ -501,7 +504,7 @@ test.describe("exam pages", () => {
     const admin = await signedInPage(browser, ADMIN_EMAIL, ADMIN_PASSWORD);
     await admin.goto(`/course/${course.id}`);
     await expect(admin.getByText(/progress, read-only\./)).toBeVisible();
-    await expect(admin.getByRole("list", { name: "Exam pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
+    await expect(admin.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
     await expect(admin.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
     await expect(admin.getByRole("button", { name: `Add to ${course.code}` })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Edit folder order" })).toHaveCount(0);
@@ -509,7 +512,7 @@ test.describe("exam pages", () => {
     await admin.goto(`/course/${course.id}/exam-page/${exam1}`);
     await expect(admin.getByRole("heading", { level: 1, name: "Exam 1" })).toBeVisible();
     await expect(admin.getByRole("link", { name: "Start exam" })).toHaveCount(0);
-    await expect(admin.getByRole("button", { name: "Edit the exam page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Edit the page" })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Add to Exam 1" })).toHaveCount(0);
     await expect(admin.getByRole("heading", { name: "Her past exams" })).toBeVisible();
 
@@ -517,7 +520,7 @@ test.describe("exam pages", () => {
     await expect(admin.getByText("On Exam 1 · 2 sets · 3 of 5 answered")).toBeVisible();
     await expect(admin.getByText("Week 3 - Set 2: Antipsychotics")).toBeVisible();
     await expect(admin.getByRole("link", { name: /^Week 3 - Set/ })).toHaveCount(0);
-    for (const action of ["Rename", "Select sets", "Exam page: Exam 1"]) await expect(admin.getByRole("button", { name: action })).toHaveCount(0);
+    for (const action of ["Rename", "Select sets", "Page: Exam 1"]) await expect(admin.getByRole("button", { name: action })).toHaveCount(0);
     await expect(admin.getByRole("link", { name: "Import here" })).toHaveCount(0);
     await admin.context().close();
   });

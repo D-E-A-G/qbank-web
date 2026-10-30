@@ -1,10 +1,9 @@
-import type { CourseDetail, CourseExam, CourseFolder, CourseKind, ExamSummary } from "../api";
+import type { CourseDetail, CourseExam, CourseFolder, CourseKind, ExamSummary, PageBadge } from "../api";
 import { pageFolders, setsProgress, type FolderProgress } from "./folders";
 
 /**
- * Every word a study topic says differently from a course, from the kind the server sends. Her
- * courses keep the words she knows; a topic calls its exam pages study pages. Everything inside
- * works the same, timed exam included, so nothing else differs.
+ * Every word a study topic says differently from a course, from the kind the server sends. Both
+ * hold pages, and everything inside works the same, timed exam included, so only these differ.
  */
 export interface KindWords {
   /** "course" or "topic", inside a sentence: "This topic has no question sets yet." */
@@ -13,39 +12,11 @@ export interface KindWords {
   Container: string;
   /** The back link from it to Home: "Courses" or "Topics". */
   home: string;
-  /** "exam page" or "study page", inside a sentence. */
-  page: string;
-  /** "Exam page" or "Study page", at the start of a line. */
-  Page: string;
-  /** Its list of them: "Exam pages" or "Study pages". */
-  pages: string;
-  /** What New names them, with a number: "Exam" (Exam 1) or "Page" (Page 1). */
-  numbered: string;
-  /** What an empty page asks for. */
-  addFolders: string;
 }
 
-const COURSE_WORDS: KindWords = {
-  container: "course",
-  Container: "Course",
-  home: "Courses",
-  page: "exam page",
-  Page: "Exam page",
-  pages: "Exam pages",
-  numbered: "Exam",
-  addFolders: "Add the folders this exam covers.",
-};
+const COURSE_WORDS: KindWords = { container: "course", Container: "Course", home: "Courses" };
 
-const TOPIC_WORDS: KindWords = {
-  container: "topic",
-  Container: "Topic",
-  home: "Topics",
-  page: "study page",
-  Page: "Study page",
-  pages: "Study pages",
-  numbered: "Page",
-  addFolders: "Add the folders this page covers.",
-};
+const TOPIC_WORDS: KindWords = { container: "topic", Container: "Topic", home: "Topics" };
 
 export function kindWords(kind: CourseKind): KindWords {
   return kind === "topic" ? TOPIC_WORDS : COURSE_WORDS;
@@ -61,19 +32,19 @@ export function courseLine(course: { kind: CourseKind; code: string; title: stri
   return course.kind === "topic" ? course.title : `${course.code} · ${course.title}`;
 }
 
-/** How far she is through an exam page's folders, added up from their practice sets. */
+/** How far she is through a page's folders, added up from their practice sets. */
 export function pageProgress(course: CourseDetail, page: CourseExam): FolderProgress {
   return setsProgress(pageFolders(course, page.id).flatMap((folder) => folder.sets));
 }
 
-/** An exam page's row on the course page: "5 folders · 217 questions", or "No folders yet". */
+/** A page's row on the course page: "5 folders · 217 questions", or "No folders yet". */
 export function pageRowMeta(course: CourseDetail, page: CourseExam): string {
   const folders = pageFolders(course, page.id);
   if (folders.length === 0) return "No folders yet";
   return `${plural(folders.length, "folder")} · ${plural(pageProgress(course, page).questionCount, "question")}`;
 }
 
-/** The line under an exam page's name: "5 folders · 16 practice sets · 217 questions", or "No folders yet". */
+/** The line under a page's name: "5 folders · 16 practice sets · 217 questions", or "No folders yet". */
 export function pageMeta(course: CourseDetail, page: CourseExam): string {
   const folders = pageFolders(course, page.id);
   if (folders.length === 0) return "No folders yet";
@@ -93,27 +64,48 @@ export function examTwinsLine(folders: readonly CourseFolder[]): string {
   return `Exam twins: ${String(count)} in ${joined(banks.map((folder) => folder.name))} · exams draw from these first`;
 }
 
-/** Her finished exams that belong to an exam page: the server names the page that holds all their folders. */
+/** Her finished exams that belong to a page: the server names the page that holds all their folders. */
 export function pageSittings(sittings: readonly ExamSummary[], examPageId: string): ExamSummary[] {
   return sittings.filter((sitting) => sitting.courseExamId === examPageId);
 }
 
-/** "Exam 3" for a course with two exam pages, or "Page 3" for a topic with two study pages, skipping a name already used. */
-export function nextPageName(pages: readonly { name: string }[], kind: CourseKind): string {
-  const word = kindWords(kind).numbered;
+/** "Page 3" for a course or a topic with two pages, skipping a name already used. */
+export function nextPageName(pages: readonly { name: string }[]): string {
   const used = new Set(pages.map((page) => page.name.trim().toLowerCase()));
   let number = pages.length + 1;
-  while (used.has(`${word.toLowerCase()} ${String(number)}`)) number += 1;
-  return `${word} ${String(number)}`;
+  while (used.has(`page ${String(number)}`)) number += 1;
+  return `Page ${String(number)}`;
 }
 
-/** Where an exam page's Start exam goes: Exam setup with its folders ticked and its name shown. */
+/** A page's badge choices, in the editor's order. */
+export const PAGE_BADGES: readonly PageBadge[] = ["exam", "concept", "study"];
+
+const BADGE_WORDS: Record<PageBadge, string> = { exam: "Exam", concept: "Concept", study: "Study" };
+
+/** "Exam", "Concept" or "Study": a badge's tag and its choice in the editor. */
+export function badgeLabel(badge: PageBadge): string {
+  return BADGE_WORDS[badge];
+}
+
+/** The editor's Badge choices: Exam, Concept and Study, then None for no badge. */
+export const BADGE_CHOICES: readonly { value: PageBadge | "none"; label: string }[] = [
+  ...PAGE_BADGES.map((badge) => ({ value: badge, label: badgeLabel(badge) })),
+  { value: "none", label: "None" },
+];
+
+/** A page's badge, or null for none. A server from before badges sends none, and one it does not know reads as none. */
+export function pageBadge(page: CourseExam): PageBadge | null {
+  const badge = page.badge ?? null;
+  return badge !== null && PAGE_BADGES.includes(badge) ? badge : null;
+}
+
+/** Where a page's Start exam goes: Exam setup with its folders ticked and its name shown. */
 export function examSetupPath(courseId: string, name: string, folderIds: readonly string[]): string {
   const query = new URLSearchParams([["exam", name], ...folderIds.map((id): [string, string] => ["folder", id])]);
   return `/course/${courseId}/exam?${query.toString()}`;
 }
 
-/** The exam page and folders Exam setup arrives with, from the address Start exam opened. */
+/** The page and folders Exam setup arrives with, from the address Start exam opened. */
 export interface ExamPreset {
   name: string;
   folderIds: string[];
@@ -126,7 +118,7 @@ export function readExamPreset(search: string): ExamPreset | null {
   return name === "" || folderIds.length === 0 ? null : { name, folderIds };
 }
 
-/** A folder chip in the exam page editor: on this page, on another one (named), or free to tap. */
+/** A folder chip in the page editor: on this page, on another one (named), or free to tap. */
 export type ChipState = { kind: "on" } | { kind: "off" } | { kind: "taken"; pageName: string };
 
 /** `editing` is the page being edited, or null for a new one; `picked` is what the editor has ticked. */
@@ -135,7 +127,7 @@ export function chipState(course: CourseDetail, editing: string | null, picked: 
   const holder = course.folders.find((item) => item.id === folderId)?.examPageId ?? null;
   if (holder === null || holder === editing) return { kind: "off" };
   const owner = course.exams.find((page) => page.id === holder);
-  return { kind: "taken", pageName: owner?.name ?? `another ${kindWords(course.kind).page}` };
+  return { kind: "taken", pageName: owner?.name ?? "another page" };
 }
 
 /** The live line under the chips: "3 folders · 83 questions", or "No folders yet". */
