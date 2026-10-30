@@ -251,12 +251,16 @@
   list-style: none;
 }
 
+/* A choice and, beside it, the control that strikes it out. */
+.choice-row {
+  position: relative;
+}
+
 .choice {
   box-sizing: border-box;
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 12px;
   width: 100%;
   min-height: 44px;
   padding: 12px 14px;
@@ -295,7 +299,93 @@
   opacity: 0.72;
 }
 
+/* Room for the strike control, which sits over the card's trailing edge. */
+.choice-strikeable {
+  padding-right: 52px;
+}
+
+.choice-letter {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: calc((var(--lh-body) - 24px) / 2);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--separator-strong);
+  font: var(--weight-semibold) var(--size-footnote) / 1 var(--font-mono);
+  color: var(--text-2);
+}
+
+.choice-selected .choice-letter {
+  background: var(--tint);
+  box-shadow: none;
+  color: var(--text-on-tint);
+}
+
+.choice-correct .choice-letter,
+.choice-missed .choice-letter {
+  box-shadow: inset 0 0 0 1px var(--correct);
+  color: var(--correct);
+}
+
+.choice-wrong .choice-letter {
+  box-shadow: inset 0 0 0 1px var(--wrong);
+  color: var(--wrong);
+}
+
+.choice-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.choice-strike {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.choice-strike:hover {
+  color: var(--text-1);
+}
+
+/* Struck out: her letter and text crossed out and dimmed, and the card no longer picks. */
+.choice-row-struck .choice {
+  cursor: default;
+}
+
+.choice-row-struck .choice-letter,
+.choice-row-struck .choice-text {
+  color: var(--text-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.choice-row-struck .choice-letter {
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.choice-row-struck .choice-strike {
+  color: var(--tint);
+}
+
 .choice:focus-visible,
+.choice-strike:focus-visible,
 .passage-segment:focus-visible,
 .order-move:focus-visible,
 .matrix-choice:focus-visible,

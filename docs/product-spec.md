@@ -252,6 +252,7 @@ Courses, study topics, exam and study pages, sets, folders, and past exams can b
 
 - One question at a time: stem, ask, the answer area for its format, and an "I'm guessing (flag for review)" checkbox.
 - Options, order items, match choices, and drop-down choices are shuffled on every attempt; the layout she saw is saved with the attempt.
+- **Strike out.** On a single answer, priority, or select-all question, each choice shows a letter, A, B, C in the order she sees them, and a strike-out control ("Strike out B"; a right-click on the web does the same). A struck choice shows its letter and text crossed out and dimmed, is unpicked if she had picked it, and cannot be picked until she restores it with the same control ("Restore B"). Strikes stay with each question while she moves through the set and are gone when it ends. They stay on her device: never sent, saved, or scored, and never part of Review or progress. Once she checks the answer, the marks show as without strikes.
 - "Check answer" shows feedback at once: Correct / Partly correct / Not correct with points for multi-part formats, the reason for every option, the rationale, the key takeaway, and "Terms in this question" with plain definitions.
 - A set ends on a results screen: points, fully-right count, time used, a breakdown by clinical judgment step, and each question with its mark.
 
@@ -287,6 +288,7 @@ Courses, study topics, exam and study pages, sets, folders, and past exams can b
 ### Exam
 
 - The runner's timed mode: a countdown, "Submit and continue", "Skip for now", and feedback only at the end.
+- Strike out works as in practice. A skipped question keeps its strikes when she comes back to it, and they are gone when the exam ends.
 - At the last question with skipped ones left, she is taken back to the first skipped one and told how many remain; "Finish exam" again ends it.
 - When time runs out, the exam ends automatically.
 - **Leaving midway ends the exam** (after a confirming second tap, as the runner does): what she answered is scored, the exam goes into her history, and the misses and guesses among what she answered go to Review.
@@ -540,6 +542,8 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 26. **No passkeys (2026-10-29):** sign-in is a password only. The browser saves it, and on the iPhone Face ID fills it in, so "Sign in with a passkey", the "Save a passkey" sheet after sign-in, and the passkeys in Settings are gone from the web and the iPhone app. The server and what it stores are unchanged: passkeys saved before stay stored, unused, and go with an account when it is deleted. Every account has a password (the setup command and Sign up both set one), so no one loses their way in.
 
 27. **Pages, with a badge (2026-10-30):** a course's and a topic's pages are one kind of page, rather than exam pages in a course and study pages in a topic set by where they live, because a page's name usually says what it is for. Both lists are **Pages**, + has **New page**, and a new page is "Page N" in both, asking for nothing more. A page carries one badge, Exam, Concept, or Study, or none, set later in its editor under **Badge** and shown as a small tag in the lists. A page may have no badge, rather than always one, and Study is a badge alongside Exam and Concept. The server stores the badge; her course pages keep their names, folders, and progress and get Exam, a topic's get none, and nothing is deleted, moved, or renamed. Building an exam from a page works the same whatever its badge. The web and the iPhone app ship together with the same words.
+
+28. **Strike out choices (2026-10-30):** while a choice question (single answer, priority, select all that apply) is unanswered, in practice and in an exam, she can strike out the choices she has ruled out, as the big NCLEX question banks let her, and undo a strike in one tap. Each choice gets a letter and a visible strike-out control, on the web and the iPhone alike. A strike is per question for the sitting only: never sent to the server, saved, scored, or part of Review or progress. The other formats have no strike-out.
 
 ## Open questions
 

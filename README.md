@@ -15,7 +15,9 @@ sync across her iPhone, iPad, and Mac.
   alone, and its folders stay), and Undo brings them back for 30 days.
 - **Eight NCLEX question formats.** Single answer, priority, select all that
   apply, highlight, ordering, matching, matrix, and drop-down, scored with
-  partial credit. Every option explains why it is right or wrong.
+  partial credit. Every option explains why it is right or wrong. While she
+  answers a choice question, she can strike out the choices she has ruled
+  out, and restore one with the same tap.
 - **Timed exams** drawn from the folders she picks, in proportion to each
   folder. A folder can have its own exam-only question bank, and an exam can be
   limited to the questions she got wrong.

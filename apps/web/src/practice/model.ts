@@ -261,6 +261,32 @@ export function togglePick(picks: readonly number[], index: number): number[] {
   return picks.includes(index) ? picks.filter((item) => item !== index) : [...picks, index];
 }
 
+/**
+ * Strikes out a choice she has ruled out, or restores one she struck. Striking a choice she had
+ * picked unpicks it. Strikes stay on her device and never become part of her answer.
+ */
+export function toggleStrike(draft: Draft, struck: readonly number[], index: number): { draft: Draft; struck: number[] } {
+  if (struck.includes(index)) return { draft, struck: struck.filter((item) => item !== index) };
+  return { draft: unpick(draft, index), struck: [...struck, index] };
+}
+
+/** The letter shown beside a choice: A for the first one she sees, then B, C, and on. */
+export function choiceLetter(position: number): string {
+  return String.fromCharCode(65 + position);
+}
+
+function unpick(draft: Draft, index: number): Draft {
+  switch (draft.type) {
+    case "single":
+    case "priority":
+      return draft.choice === index ? { ...draft, choice: null } : draft;
+    case "sata":
+      return draft.picks.includes(index) ? { ...draft, picks: draft.picks.filter((item) => item !== index) } : draft;
+    default:
+      return draft;
+  }
+}
+
 export function moveOrder(positions: readonly number[], index: number, direction: -1 | 1): number[] {
   const next = index + direction;
   const copy = [...positions];
