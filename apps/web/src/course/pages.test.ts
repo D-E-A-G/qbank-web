@@ -42,7 +42,7 @@ function folder(id: string, name: string, sets: SetSummary[], examPageId: string
 }
 
 function page(id: string, name: string): CourseExam {
-  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [], linkUrl: null };
+  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [], linkUrl: null, badge: null };
 }
 
 const exam1 = page("p1", "Exam 1");
@@ -121,7 +121,7 @@ describe("a page's badge", () => {
   });
 
   it("is none from a server from before badges, or for one it does not know", () => {
-    expect(pageBadge(exam1)).toBeNull();
+    expect(pageBadge({ ...exam1, badge: undefined } as unknown as CourseExam)).toBeNull();
     expect(pageBadge({ ...exam1, badge: "midterm" as PageBadge })).toBeNull();
   });
 });

@@ -50,7 +50,7 @@ export interface paths {
         };
         /**
          * List her semesters, courses and study topics
-         * @description Every semester, course and topic belongs to one account, with everything in it: its folders, exam pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.
+         * @description Every semester, course and topic belongs to one account, with everything in it: its folders, pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.
          */
         get: {
             parameters: {
@@ -74,7 +74,7 @@ export interface paths {
                                 /** Format: uuid */
                                 id: string;
                                 /**
-                                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                                  * @enum {string}
                                  */
                                 kind: "course" | "topic";
@@ -362,7 +362,7 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             /**
-                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                              * @enum {string}
                              */
                             kind: "course" | "topic";
@@ -457,7 +457,7 @@ export interface paths {
         put?: never;
         /**
          * Make a study topic
-         * @description A topic is a course with no semester, for questions that are not a course: a certification, a language, her own notes. It has folders, study pages (exam pages), sets, Review, terms and exams as a course does, and opens with GET /api/courses/{id}. Its name is unique among her topics, ignoring case (409). Her first import into it with no folder makes its Unsorted folder.
+         * @description A topic is a course with no semester, for questions that are not a course: a certification, a language, her own notes. It has folders, pages, sets, Review, terms and exams as a course does, and opens with GET /api/courses/{id}. Its name is unique among her topics, ignoring case (409). Her first import into it with no folder makes its Unsorted folder.
          */
         post: {
             parameters: {
@@ -484,7 +484,7 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             /**
-                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                              * @enum {string}
                              */
                             kind: "course" | "topic";
@@ -606,7 +606,7 @@ export interface paths {
                                 /** Format: uuid */
                                 id: string;
                                 /**
-                                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                                  * @enum {string}
                                  */
                                 kind: "course" | "topic";
@@ -700,8 +700,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * A course or topic, its folders, its exam pages, and its sets
-         * @description Every semester, course and topic belongs to one account, with everything in it: its folders, exam pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.
+         * A course or topic, its folders, its pages, and its sets
+         * @description Every semester, course and topic belongs to one account, with everything in it: its folders, pages, sets, questions and terms. A user account reaches its own; the admin reaches the user account he looks after (GET /api/admin/students/viewing), as his read-only view does. Anyone else's answers 404, as an id that names nothing does.
          */
         get: {
             parameters: {
@@ -783,7 +783,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a course or topic
-         * @description Deletes a course or study topic with everything in it, as its preview named. It leaves Home (GET /api/semesters), the topic order, its own reads and everything in it (404, as an id that names nothing), study, Review, exams, Make questions and exam twins, the last course she used, and what an agent reads (GET /api/me/standing, and `courses` and `questions` of GET /api/me/export). Nothing in it is written: its folders, exam pages, sets, her answers, progress and past exams stay saved as they are, her answers count toward nothing while it is deleted, and an answer still on its way to one of its questions is saved. Its code, or a topic's name, is free again meanwhile. Refused with 409 `in_use` while a Make questions or twin job is still working in it, or an exam in it is in progress. GET /api/deleted-courses lists it for Undo. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this, itself or with its own agent key with the `manage` scope; the admin is refused with 403 `admin_cannot_delete_course`, and any other agent key with 403 `agent_key_not_allowed`.
+         * @description Deletes a course or study topic with everything in it, as its preview named. It leaves Home (GET /api/semesters), the topic order, its own reads and everything in it (404, as an id that names nothing), study, Review, exams, Make questions and exam twins, the last course she used, and what an agent reads (GET /api/me/standing, and `courses` and `questions` of GET /api/me/export). Nothing in it is written: its folders, pages, sets, her answers, progress and past exams stay saved as they are, her answers count toward nothing while it is deleted, and an answer still on its way to one of its questions is saved. Its code, or a topic's name, is free again meanwhile. Refused with 409 `in_use` while a Make questions or twin job is still working in it, or an exam in it is in progress. GET /api/deleted-courses lists it for Undo. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this, itself or with its own agent key with the `manage` scope; the admin is refused with 403 `admin_cannot_delete_course`, and any other agent key with 403 `agent_key_not_allowed`.
          */
         delete: {
             parameters: {
@@ -899,7 +899,7 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             /**
-                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                              * @enum {string}
                              */
                             kind: "course" | "topic";
@@ -989,8 +989,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Add an exam to a course
-         * @description An exam page (a course exam; a study page, in a topic) is a name, an optional primer link, and the course's folders on it. A folder is on one exam page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). Its owner and the admin can both do this.
+         * Add a page to a course or topic
+         * @description A page of a course or topic is a name, an optional primer link, an optional badge, and the course's folders on it. A folder is on one page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). Its owner and the admin can both do this.
          */
         post: {
             parameters: {
@@ -1007,7 +1007,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The new exam, after the course's other exams. */
+                /** @description The new page, after the course's other pages. */
                 201: {
                     headers: {
                         [name: string]: unknown;
@@ -1087,8 +1087,8 @@ export interface paths {
         };
         get?: never;
         /**
-         * Rename an exam page and set its folders
-         * @description An exam page (a course exam; a study page, in a topic) is a name, an optional primer link, and the course's folders on it. A folder is on one exam page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). Its owner and the admin can both do this. The folders sent replace the page's folders, in the order sent.
+         * Rename a page, set its badge and set its folders
+         * @description A page of a course or topic is a name, an optional primer link, an optional badge, and the course's folders on it. A folder is on one page at most: a folder of another page is refused with 409, naming it ("First Pass is in Exam 2."), as is a second page with the same name, and a folder whose name another folder on the page already has ("Exam 3 already has a folder named First Pass."). A folder taken off the page goes back to the end of the course's Folders list, refused with 409 when a folder there has its name. A folder id or name the course does not have is refused with 400. Her past exams belong to the page holding every folder they were over (ExamSummary.courseExamId). Its owner and the admin can both do this. The folders sent replace the page's folders, in the order sent.
          */
         put: {
             parameters: {
@@ -1105,7 +1105,7 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The exam. */
+                /** @description The page. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -1172,8 +1172,8 @@ export interface paths {
         };
         post?: never;
         /**
-         * Delete an exam page
-         * @description Deletes the exam page, as its preview named, and nothing else: no folder, set, question, exam twin, answer, Review clear, progress or past exam is written. While it is deleted, it leaves CourseDetail.exams and Exam setup's `courseExams`, PUT /api/course-exams/{id} answers 404, and its name is free for another page. Its folders read as on no page (Folder.examPageId null): they show at the end of the course's Folders list, in the page's order, with their sets and her progress, and she studies, renames, moves and deletes them as any folder there. Her past exams over it stay in Exam setup and GET /api/exams/{id}, with `courseExamId` null. Without `confirm`, only a page with no folders is deleted (as before), and one with folders is refused with 409 `confirmation_required`. Refused with 409 when one of its folders has the name of a folder already in the Folders list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         * Delete a page
+         * @description Deletes the page, as its preview named, and nothing else: no folder, set, question, exam twin, answer, Review clear, progress or past exam is written. While it is deleted, it leaves CourseDetail.exams and Exam setup's `courseExams`, PUT /api/course-exams/{id} answers 404, and its name is free for another page. Its folders read as on no page (Folder.examPageId null): they show at the end of the course's Folders list, in the page's order, with their sets and her progress, and she studies, renames, moves and deletes them as any folder there. Her past exams over it stay in Exam setup and GET /api/exams/{id}, with `courseExamId` null. Without `confirm`, only a page with no folders is deleted (as before), and one with folders is refused with 409 `confirmation_required`. Refused with 409 when one of its folders has the name of a folder already in the Folders list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         delete: {
             parameters: {
@@ -1268,7 +1268,7 @@ export interface paths {
         put?: never;
         /**
          * Make a folder
-         * @description A new, empty folder at the end of its list. A name is unique within its list, ignoring case: one exam page's folders, or the course's Folders list (no exam page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The user account and the admin can both do this.
+         * @description A new, empty folder at the end of its list. A name is unique within its list, ignoring case: one page's folders, or the course's Folders list (no page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -1368,7 +1368,7 @@ export interface paths {
         post?: never;
         /**
          * Delete a folder and its sets
-         * @description Deletes the folder and every set in it, every version, as its preview named; it comes off its exam page. Its sets are hidden as DELETE /api/practice-sets/{id} hides one, and her answers to them stop counting while it is deleted. Her past exams over it stay, without it in their folders. Without `confirm`, only a folder that holds no set is deleted (as before), and one with sets is refused with 409 `confirmation_required`. Refused with 409 `in_use` while a Make questions job is measured against one of its sets or is still filing their exam twins, a twin job is twinning one of them, or an exam in progress asks their questions. A Make questions job that would file into it is not a refusal: its set goes to Unsorted, and the job says so. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
+         * @description Deletes the folder and every set in it, every version, as its preview named; it comes off its page. Its sets are hidden as DELETE /api/practice-sets/{id} hides one, and her answers to them stop counting while it is deleted. Her past exams over it stay, without it in their folders. Without `confirm`, only a folder that holds no set is deleted (as before), and one with sets is refused with 409 `confirmation_required`. Refused with 409 `in_use` while a Make questions job is measured against one of its sets or is still filing their exam twins, a twin job is twinning one of them, or an exam in progress asks their questions. A Make questions job that would file into it is not a refusal: its set goes to Unsorted, and the job says so. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         delete: {
             parameters: {
@@ -1450,8 +1450,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a folder, or put it on an exam page
-         * @description A name is unique within its list, ignoring case: one exam page's folders, or the course's Folders list (no exam page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The user account and the admin can both do this. Renaming it to its own name, or putting it on the page it is on, changes nothing.
+         * Rename a folder, or put it on a page
+         * @description A name is unique within its list, ignoring case: one page's folders, or the course's Folders list (no page). A clash is refused with 409, naming the list ("Exam 3 already has a folder named First Pass.", "NURS 402 already has a folder named Second Pass."). Two pages may each have a folder of the same name. The user account and the admin can both do this. Renaming it to its own name, or putting it on the page it is on, changes nothing.
          */
         patch: {
             parameters: {
@@ -1644,7 +1644,7 @@ export interface paths {
         get?: never;
         /**
          * Put one list of folders in her order
-         * @description Saves the order of one exam page's folders, or of the course's Folders list. A list that does not name exactly the folders it holds is refused with 409, so a stale screen cannot drop or misplace one. The user account and the admin can both do this.
+         * @description Saves the order of one page's folders, or of the course's Folders list. A list that does not name exactly the folders it holds is refused with 409, so a stale screen cannot drop or misplace one. The user account and the admin can both do this.
          */
         put: {
             parameters: {
@@ -2080,7 +2080,7 @@ export interface paths {
                          * @description A folder of the course (CourseDetail.folders). Not with newCourse.
                          */
                         folderId?: string;
-                        /** @description A folder by name: the course's folder of that name on no exam page, else its only folder of that name, else a new folder at the end of its Folders list. */
+                        /** @description A folder by name: the course's folder of that name on no page, else its only folder of that name, else a new folder at the end of its Folders list. */
                         folderName?: string;
                         /** @description Legacy: the same as folderName. */
                         weekLabel?: string;
@@ -2283,7 +2283,7 @@ export interface paths {
         put?: never;
         /**
          * Rename a week's label
-         * @description Legacy: renames the course's folder named fromLabel (the one on no exam page, else its only folder of that name), as PATCH /api/folders/{id} does. A name its list already has is refused with 409.
+         * @description Legacy: renames the course's folder named fromLabel (the one on no page, else its only folder of that name), as PATCH /api/folders/{id} does. A name its list already has is refused with 409.
          */
         post: {
             parameters: {
@@ -2387,7 +2387,7 @@ export interface paths {
         put?: never;
         /**
          * Move a set to another week in the same course
-         * @description Legacy: moves the set, every version of it, to the folder named weekLabel (on the set's exam page, else on no exam page, else its only folder of that name), or to a new folder of that name in the Folders list, as POST /api/practice-sets/{id}/move does.
+         * @description Legacy: moves the set, every version of it, to the folder named weekLabel (on the set's page, else on no page, else its only folder of that name), or to a new folder of that name in the Folders list, as POST /api/practice-sets/{id}/move does.
          */
         post: {
             parameters: {
@@ -3045,7 +3045,7 @@ export interface paths {
         post?: never;
         /**
          * Delete this user account
-         * @description Deletes the signed-in user account and everything it has, for good: its semesters, courses and study topics with their folders, exam pages, sets, questions and terms, its answers, progress, Review and past exams, its Make questions and exam twin jobs, its passkeys, and its agent keys and pairings. Nothing goes to Recently deleted and there is no Undo.
+         * @description Deletes the signed-in user account and everything it has, for good: its semesters, courses and study topics with their folders, pages, sets, questions and terms, its answers, progress, Review and past exams, its Make questions and exam twin jobs, its passkeys, and its agent keys and pairings. Nothing goes to Recently deleted and there is no Undo.
          *
          *     The account is always the one signed in: nothing in the request names another, and no other account's content or answers change. Send its current password, checked as sign-in checks it; a wrong one counts toward the same lock as sign-in, and deletes nothing.
          *
@@ -4640,7 +4640,7 @@ export interface paths {
         };
         /**
          * Exam setup: the course's folders and her exams
-         * @description Every folder with a current question: how many questions an exam over it draws from (its exam bank when it has one, otherwise its practice questions), how many of those she last answered not fully right, and which source it uses. Then her running exam in this course and her ended exams, newest first. An exam whose time has run out is ended first. The admin reads the same, read-only. Then what every exam follows (`rules`), what each exam page would draw (`courseExams`), and, when `folderIds` (or legacy `weeks`) are given, what starting an exam over them would draw (`preview`), worked out as POST does.
+         * @description Every folder with a current question: how many questions an exam over it draws from (its exam bank when it has one, otherwise its practice questions), how many of those she last answered not fully right, and which source it uses. Then her running exam in this course and her ended exams, newest first. An exam whose time has run out is ended first. The admin reads the same, read-only. Then what every exam follows (`rules`), what each page would draw (`courseExams`), and, when `folderIds` (or legacy `weeks`) are given, what starting an exam over them would draw (`preview`), worked out as POST does.
          */
         get: {
             parameters: {
@@ -5226,7 +5226,7 @@ export interface paths {
         };
         /**
          * What deleting a folder takes with it
-         * @description For the warning before a folder is deleted: every set in it (count and titles), their questions, her answers to them, its exam page, her past exams over it, and how her standing changes. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both do this.
+         * @description For the warning before a folder is deleted: every set in it (count and titles), their questions, her answers to them, its page, her past exams over it, and how her standing changes. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both do this.
          */
         get: {
             parameters: {
@@ -5323,7 +5323,7 @@ export interface paths {
         put?: never;
         /**
          * Undo deleting a folder
-         * @description Brings back a folder she deleted and the sets that went with it, as they were: on its exam page if that page is still there, else at its place in the Folders list. A set she had deleted on its own before stays deleted. Refused with 409 when its list has a folder of its name now, naming that list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
+         * @description Brings back a folder she deleted and the sets that went with it, as they were: on its page if that page is still there, else at its place in the Folders list. A set she had deleted on its own before stays deleted. Refused with 409 when its list has a folder of its name now, naming that list: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -5415,8 +5415,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * What deleting an exam page changes
-         * @description For the warning before an exam page (a study page, in a topic) is deleted. The page alone goes: its folders (count and names), their sets and exam bank, her answers to them and her past exams over it all stay, and `progress` is the same before and after, since deleting a page changes no answer, Review list, score or Wrong question. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The student and the admin can both do this.
+         * What deleting a page changes
+         * @description For the warning before a page is deleted. The page alone goes: its folders (count and names), their sets and exam bank, her answers to them and her past exams over it all stay, and `progress` is the same before and after, since deleting a page changes no answer, Review list, score or Wrong question. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both do this.
          */
         get: {
             parameters: {
@@ -5512,8 +5512,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Undo deleting an exam page
-         * @description Brings back an exam page she deleted, as it was: in its place among the course's pages, with its folders back on it in its order and her past exams over them on it again. A folder she put on another page meanwhile stays there, and one she deleted stays in Recently deleted, coming back to the page with its own Undo. Refused with 409 when the course has another exam page of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The student and the admin can both do this.
+         * Undo deleting a page
+         * @description Brings back a page she deleted, as it was: in its place among the course's pages, with its folders back on it in its order and her past exams over them on it again. A folder she put on another page meanwhile stays there, and one she deleted stays in Recently deleted, coming back to the page with its own Undo. Refused with 409 when the course has another page of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. The user account and the admin can both do this.
          */
         post: {
             parameters: {
@@ -5796,7 +5796,7 @@ export interface paths {
         };
         /**
          * What deleting a course or topic takes with it
-         * @description For the one question before a course or study topic is deleted: its folders, exam pages, sets, questions, her answers and past exams in it, and `message`, the question to ask her. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both read this.
+         * @description For the one question before a course or study topic is deleted: its folders, pages, sets, questions, her answers and past exams in it, and `message`, the question to ask her. Show her `message` (or your own words from the counts), and send `confirm` with the delete: it deletes exactly what this named. `refusal` is the sentence the delete would be refused with right now (a job or an exam in progress still uses it), or null. The user account and the admin can both read this.
          */
         get: {
             parameters: {
@@ -5893,7 +5893,7 @@ export interface paths {
         put?: never;
         /**
          * Undo deleting a course or topic
-         * @description Brings back a course or study topic she deleted, whole: its folders, exam pages, sets (one she had deleted on its own before stays in its Recently deleted), her answers counting again, and her past exams, in its semester or her topics as before. Refused with 409 when its semester has a course of its code now, or she has a topic of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this, itself or with its own agent key with the `manage` scope; the admin is refused with 403 `admin_cannot_delete_course`, and any other agent key with 403 `agent_key_not_allowed`.
+         * @description Brings back a course or study topic she deleted, whole: its folders, pages, sets (one she had deleted on its own before stays in its Recently deleted), her answers counting again, and her past exams, in its semester or her topics as before. Refused with 409 when its semester has a course of its code now, or she has a topic of its name now: rename one of them first. Undo brings it back exactly as it was for 30 days (`undoDays`); after that it stays hidden and Undo is refused with 409 `undo_expired`. Nothing is ever deleted except by this request. Only the user account that owns it can do this, itself or with its own agent key with the `manage` scope; the admin is refused with 403 `admin_cannot_delete_course`, and any other agent key with 403 `agent_key_not_allowed`.
          */
         post: {
             parameters: {
@@ -5916,7 +5916,7 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             /**
-                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                              * @enum {string}
                              */
                             kind: "course" | "topic";
@@ -6075,7 +6075,7 @@ export interface paths {
         };
         /**
          * What she deleted in a course, for Undo
-         * @description The course's exam pages, folders and sets deleted in the last 30 days, and her past exams deleted in that time, newest first: everything Undo can still bring back. Older deletes stay hidden and are not listed. The admin reads the same, with her exams.
+         * @description The course's pages, folders and sets deleted in the last 30 days, and her past exams deleted in that time, newest first: everything Undo can still bring back. Older deletes stay hidden and are not listed. The admin reads the same, with her exams.
          */
         get: {
             parameters: {
@@ -8089,7 +8089,7 @@ export interface components {
                 /** Format: uuid */
                 id: string;
                 /**
-                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+                 * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
                  * @enum {string}
                  */
                 kind: "course" | "topic";
@@ -8118,7 +8118,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /**
-             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty) and whose exam pages they call study pages. Everything inside it works as in a course. `course` for every course.
+             * @description `topic` for a study topic: a course with no semester, which the screens call by its title (its code is empty). Everything inside it, its pages included, works as in a course. `course` for every course.
              * @enum {string}
              */
             kind: "course" | "topic";
@@ -8156,9 +8156,9 @@ export interface components {
                 /** @description Exam-bank questions in its folders, asked only on exams. 0 when they have no exam bank. */
                 examBankCount: number;
             }[];
-            /** @description Every folder of the course, empty ones included: each exam page's folders, pages in the order of exams, then the folders on no exam page (the course's Folders list); each list in her order. */
+            /** @description Every folder of the course, empty ones included: each page's folders, pages in the order of exams, then the folders on no page (the course's Folders list); each list in her order. */
             folders: components["schemas"]["Folder"][];
-            /** @description The course's exam pages, such as Exam 1, each with its folders, in the order they were added. Empty until one is made. */
+            /** @description The course's pages, such as Exam 1, each with its folders, in the order they were added. Empty until one is made. */
             exams: components["schemas"]["CourseExam"][];
         };
         SetSummary: {
@@ -8191,14 +8191,14 @@ export interface components {
         Folder: {
             /** Format: uuid */
             id: string;
-            /** @description Unique within its list, ignoring case: within its exam page, or within the course's Folders list (no exam page). Two exam pages may each have a First Pass. */
+            /** @description Unique within its list, ignoring case: within its page, or within the course's Folders list (no page). Two pages may each have a First Pass. */
             name: string;
             /**
              * Format: uuid
-             * @description The exam page (CourseDetail.exams) it is on, or null when it is only in the course's Folders list. A folder is on one exam page at most. A folder of an exam page she deleted is null, in the Folders list after the folders there, until Undo puts it back on the page.
+             * @description The page (CourseDetail.exams) it is on, or null when it is only in the course's Folders list. A folder is on one page at most. A folder of a page she deleted is null, in the Folders list after the folders there, until Undo puts it back on the page.
              */
             examPageId: string | null;
-            /** @description Its place in its list (its exam page's folders, or the Folders list), smallest first. Her own order: PUT /api/courses/{id}/folder-order. */
+            /** @description Its place in its list (its page's folders, or the Folders list), smallest first. Her own order: PUT /api/courses/{id}/folder-order. */
             sortOrder: number;
             /** @description Its practice sets, by title. Every version of a set is in the same folder, so Restore never moves it. */
             sets: components["schemas"]["SetSummary"][];
@@ -8226,30 +8226,39 @@ export interface components {
             folderIds: string[];
             /** @description The page's primer: a web address she opens from the page, or null. QBank shows it as a link and renders nothing. */
             linkUrl: string | null;
+            /** @description What the page is for, or null for no badge. Set and taken off with PUT /api/course-exams/{id}; a new page has none unless POST sent one. */
+            badge: components["schemas"]["PageBadge"] | null;
         };
+        /**
+         * @description What a page is for, shown as a small tag beside its name: `exam` (Exam), `concept` (Concept) or `study` (Study).
+         * @enum {string}
+         */
+        PageBadge: "exam" | "concept" | "study";
         CourseExamInput: {
             name: string;
-            /** @description The folders on this exam page, in the order she wants them. A folder of another exam page is refused with 409, naming it ("First Pass is in Exam 2."); move it with PATCH /api/folders/{id} first. A folder taken off the page goes to the end of the course's Folders list. Send folderIds or weekLabels, not both; with neither, POST makes an empty page and PUT keeps its folders. */
+            /** @description The folders on this page, in the order she wants them. A folder of another page is refused with 409, naming it ("First Pass is in Exam 2."); move it with PATCH /api/folders/{id} first. A folder taken off the page goes to the end of the course's Folders list. Send folderIds or weekLabels, not both; with neither, POST makes an empty page and PUT keeps its folders. */
             folderIds?: string[];
-            /** @description Legacy, for clients from before folders: folder names, each meaning the folder of that name already on this page, else the one on no exam page. The page holds them in week order. */
+            /** @description Legacy, for clients from before folders: folder names, each meaning the folder of that name already on this page, else the one on no page. The page holds them in week order. */
             weekLabels?: string[];
             /** @description Its primer link, an http or https address of at most 2,000 characters. Null or empty takes it off; left out, PUT keeps the page's link. */
             linkUrl?: string | null;
+            /** @description Its badge. Null takes it off; left out, PUT keeps the page's badge and POST makes a page with none. */
+            badge?: components["schemas"]["PageBadge"] | null;
         };
         FolderInput: {
             name: string;
             /**
              * Format: uuid
-             * @description The exam page to make it on. Without it, or null, it goes in the course's Folders list.
+             * @description The page to make it on. Without it, or null, it goes in the course's Folders list.
              */
             examPageId?: string | null;
         };
         FolderUpdate: {
-            /** @description Its new name. Only the name changes: its sets, their progress, its exam page and her past exams stay with it. */
+            /** @description Its new name. Only the name changes: its sets, their progress, its page and her past exams stay with it. */
             name?: string;
             /**
              * Format: uuid
-             * @description Put it on this exam page, at the end of its folders, or take it off its page with null, to the end of the Folders list. Leave it out to keep its page.
+             * @description Put it on this page, at the end of its folders, or take it off its page with null, to the end of the Folders list. Leave it out to keep its page.
              */
             examPageId?: string | null;
         };
@@ -8265,7 +8274,7 @@ export interface components {
         FolderOrder: {
             /**
              * Format: uuid
-             * @description The list to order: an exam page's folders, or null for the course's Folders list.
+             * @description The list to order: a page's folders, or null for the course's Folders list.
              */
             examPageId: string | null;
             /** @description Every folder of that list, once each, in the order she wants. */
@@ -8472,7 +8481,7 @@ export interface components {
             folderName: string;
             /**
              * Format: uuid
-             * @description The folder's exam page, or null when it is in the course's Folders list.
+             * @description The folder's page, or null when it is in the course's Folders list.
              */
             examPageId: string | null;
             questionCount: number;
@@ -8688,7 +8697,7 @@ export interface components {
              * @description The folder its set is in (CourseDetail.folders).
              */
             folderId: string;
-            /** @description That folder's name. Two exam pages may each have a folder of this name; CourseDetail.folders says which page it is on. */
+            /** @description That folder's name. Two pages may each have a folder of this name; CourseDetail.folders says which page it is on. */
             folderName: string;
             format: string;
             /** @enum {string} */
@@ -8966,14 +8975,14 @@ export interface components {
         ExamSetup: {
             /** Format: uuid */
             courseId: string;
-            /** @description Every folder with a current question, in the course's order: each exam page's folders, pages in order, then the folders on no exam page. */
+            /** @description Every folder with a current question, in the course's order: each page's folders, pages in order, then the folders on no page. */
             folders: {
                 /** Format: uuid */
                 id: string;
                 name: string;
                 /**
                  * Format: uuid
-                 * @description Its exam page (CourseDetail.exams), or null when it is on none: Exam setup groups folders by page.
+                 * @description Its page (CourseDetail.exams), or null when it is on none: Exam setup groups folders by page.
                  */
                 examPageId: string | null;
                 /** @description How many questions an exam over this folder draws from. */
@@ -9004,7 +9013,7 @@ export interface components {
             rules: components["schemas"]["ExamRules"];
             /** @description The exam that starting over the `folderIds` (or `weeks`) and `pool` asked for would give. Null when neither was asked for. */
             preview: components["schemas"]["ExamPreview"] | null;
-            /** @description One for each of the course's exam pages (CourseDetail.exams), in the same order. */
+            /** @description One for each of the course's pages (CourseDetail.exams), in the same order. */
             courseExams: {
                 /** Format: uuid */
                 courseExamId: string;
@@ -9022,7 +9031,7 @@ export interface components {
             folderIds: string[] | null;
             /**
              * Format: uuid
-             * @description The exam page (CourseDetail.exams) that holds every folder this exam was over, so exams taken before the page was made belong to it too. Null when no page does, as while she has that page deleted: the exam stays, and belongs to the page again once Undo brings it back.
+             * @description The page (CourseDetail.exams) that holds every folder this exam was over, so exams taken before the page was made belong to it too. Null when no page does, as while she has that page deleted: the exam stays, and belongs to the page again once Undo brings it back.
              */
             courseExamId: string | null;
             /** @enum {string} */
@@ -9301,7 +9310,7 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The exam page it is on (CourseDetail.exams), or null. It comes off the page.
+             * @description The page it is on (CourseDetail.exams), or null. It comes off the page.
              */
             examPageId: string | null;
             examPageName: string | null;
@@ -9317,7 +9326,7 @@ export interface components {
             /** @description Her past exams over this folder. They stay, and the folder drops out of their folderIds. */
             pastExamCount: number;
             progress: components["schemas"]["StandingChange"];
-            /** @description The warning, as a few sentences to show her: its sets by name, her answers, its exam page, and Undo. */
+            /** @description The warning, as a few sentences to show her: its sets by name, her answers, its page, and Undo. */
             message: string;
             refusal: string | null;
             confirm: string;
@@ -9413,7 +9422,7 @@ export interface components {
             } | null;
             /** @description Its folders. They go with it, and come back with it. */
             folderCount: number;
-            /** @description Its exam pages (study pages, in a topic). */
+            /** @description Its pages. */
             examPageCount: number;
             /** @description Its sets, practice and exam, each counted once whatever its versions. */
             setCount: number;
@@ -9477,7 +9486,7 @@ export interface components {
         };
         RecentlyDeleted: {
             undoDays: number;
-            /** @description Exam pages (study pages, in a topic) she deleted, newest first. */
+            /** @description Pages she deleted, newest first. */
             examPages: components["schemas"]["DeletedExamPage"][];
             /** @description Folders she deleted, newest first. */
             folders: components["schemas"]["DeletedFolder"][];
@@ -9493,6 +9502,8 @@ export interface components {
              */
             id: string;
             name: string;
+            /** @description Its badge, or null for none. It comes back with it. */
+            badge: components["schemas"]["PageBadge"] | null;
             /** @description The folders Undo puts back on it, in its order. They are in the course's Folders list meanwhile (Folder.examPageId null). */
             folders: {
                 /** Format: uuid */
@@ -9506,7 +9517,7 @@ export interface components {
             undoUntil: string;
             /** @description The agent key that deleted it, such as the user's own AI agent (see the Agents tag): show it as "Deleted by your agent". Null when it was deleted in the app. It stays after the key is revoked. */
             deletedByAgent: components["schemas"]["DeletingAgent"] | null;
-            /** @description Why Undo would be refused now (the course has another exam page of its name), or null. */
+            /** @description Why Undo would be refused now (the course has another page of its name), or null. */
             undoRefusal: string | null;
         };
         DeletedFolder: {
@@ -9518,7 +9529,7 @@ export interface components {
             name: string;
             /**
              * Format: uuid
-             * @description The exam page Undo puts it back on; null when it goes back to the Folders list (its page was removed since, or it was on none).
+             * @description The page Undo puts it back on; null when it goes back to the Folders list (its page was removed since, or it was on none).
              */
             examPageId: string | null;
             /** @description The sets that went with it, which come back with it. */
@@ -10013,7 +10024,7 @@ export interface components {
             scopes: components["schemas"]["AgentScope"][];
         };
         /**
-         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: read the account's answers (its standing by topic, Review lists, exams and export) and change nothing. `manage`: add, change and delete the account's own content as the user can in QBank (semesters, courses, study topics, folders, exam pages, sets, and their questions through Import, Replace and Restore), every delete with Undo, as well as everything `import` reaches. More may be added later; show one you do not know by its name.
+         * @description What an agent key may do. `import`: check and import question files, and read the account's semesters, courses and sets to do it. `read`: read the account's answers (its standing by topic, Review lists, exams and export) and change nothing. `manage`: add, change and delete the account's own content as the user can in QBank (semesters, courses, study topics, folders, pages, sets, and their questions through Import, Replace and Restore), every delete with Undo, as well as everything `import` reaches. More may be added later; show one you do not know by its name.
          * @enum {string}
          */
         AgentScope: "import" | "read" | "manage";

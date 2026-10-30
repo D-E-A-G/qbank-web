@@ -30,13 +30,12 @@ export type SetSummary = Schemas["SetSummary"];
 /** A folder of a course: her name for it, the exam page it is on, its place in its list, and its sets. */
 export type CourseFolder = Schemas["Folder"];
 /** What a page is for, which she sets in its editor: Exam, Concept or Study. A page has one or none (null). */
-export type PageBadge = "exam" | "concept" | "study";
+export type PageBadge = Schemas["PageBadge"];
 /**
  * A page of a course or a topic (a course exam) and the folders on it. A folder is on one page at
- * most. Its `badge` is read through pageBadge: the pinned contract is from before badges, and a
- * server from before them leaves it out.
+ * most. Its badge is Exam, Concept or Study, or null for none.
  */
-export type CourseExam = Schemas["CourseExam"] & { badge?: PageBadge | null };
+export type CourseExam = Schemas["CourseExam"];
 export type ReviewQuestion = Schemas["ReviewQuestion"];
 export type ReviewList = Schemas["ReviewList"];
 export type RepairPlan = Schemas["RepairPlan"];

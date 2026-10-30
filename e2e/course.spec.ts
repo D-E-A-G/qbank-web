@@ -524,6 +524,51 @@ test.describe("pages", () => {
     await expect(admin.getByRole("link", { name: "Import here" })).toHaveCount(0);
     await admin.context().close();
   });
+
+  test("she sets a page's badge, sees its tag in Pages, and clears it", async ({ page }) => {
+    await signIn(page);
+    const code = `B${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
+    const imported = await page.request.post("/api/imports", {
+      data: {
+        source: set("Week 1 - Set 1: Communication", 2),
+        folderName: "Week 1",
+        newCourse: { code, title: `${code} badges`, semesterNumber: 1 },
+      },
+    });
+    expect(imported.status()).toBe(201);
+    const courseId = ((await imported.json()) as { courseId: string }).courseId;
+    const week1 = (await courseDetail(page, courseId)).folders[0]?.id;
+    if (week1 === undefined) throw new Error("no folder");
+    const exam1 = await addExamPage(page, courseId, "Exam 1", [week1]);
+
+    // A new page has no badge. She sets Concept in the editor.
+    await page.goto(`/course/${courseId}/exam-page/${exam1}`);
+    await page.getByRole("button", { name: "Edit the page" }).click();
+    await page.getByRole("button", { name: "Name and folders" }).click();
+    const editor = sheet(page, "Edit page");
+    await expect(editor.getByRole("tab", { name: "None" })).toHaveAttribute("aria-selected", "true");
+    await editor.getByRole("tab", { name: "Concept" }).click();
+    await editor.getByRole("button", { name: "Done" }).click();
+    await expect(editor).toBeHidden();
+
+    // The course's Pages list shows the tag beside the page's name.
+    await page.goto(`/course/${courseId}`);
+    const row = page.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Exam 1/ });
+    await expect(row.locator(".list-tag")).toHaveText("Concept");
+
+    // None takes the badge off, and the tag goes.
+    await row.click();
+    await page.getByRole("button", { name: "Edit the page" }).click();
+    await page.getByRole("button", { name: "Name and folders" }).click();
+    await expect(editor.getByRole("tab", { name: "Concept" })).toHaveAttribute("aria-selected", "true");
+    await editor.getByRole("tab", { name: "None" }).click();
+    await editor.getByRole("button", { name: "Done" }).click();
+    await expect(editor).toBeHidden();
+    await page.goto(`/course/${courseId}`);
+    const cleared = page.getByRole("list", { name: "Pages" }).getByRole("link", { name: /^Exam 1/ });
+    await expect(cleared).toBeVisible();
+    await expect(cleared.locator(".list-tag")).toHaveCount(0);
+  });
 });
 
 async function signedInPage(browser: Browser, email?: string, password?: string): Promise<Page> {
