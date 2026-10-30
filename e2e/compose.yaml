@@ -54,7 +54,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
     ports:
-      # WebAuthn needs a hostname, so the tests open http://localhost:4318.
+      # The tests open http://localhost:4318, the BETTER_AUTH_URL above.
       - "127.0.0.1:4318:8080"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]

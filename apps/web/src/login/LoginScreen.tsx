@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ApiError, changePassword, readSession, signInWithPassword, signUp, type Account } from "./api";
-import { signInWithPasskey } from "./passkey";
+import { ApiError, changePassword, signInWithPassword, signUp, type Account } from "./api";
 import { AuthFrame, Button, TextField } from "./ui";
 
 /** The server's rule for a new password. */
@@ -14,7 +13,7 @@ const TITLES: Record<Screen, string> = {
   "sign-up": "Sign up · Qbank",
 };
 
-export function LoginScreen({ onSignedIn }: { onSignedIn: (user: Account, method: "password" | "passkey") => void }) {
+export function LoginScreen({ onSignedIn }: { onSignedIn: (user: Account) => void }) {
   const [screen, setScreen] = useState<Screen>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +29,7 @@ export function LoginScreen({ onSignedIn }: { onSignedIn: (user: Account, method
     setError(undefined);
     try {
       const user = await signInWithPassword(email, password);
-      onSignedIn(user, "password");
+      onSignedIn(user);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Sign-in failed. Try again.");
     } finally {
@@ -47,7 +46,7 @@ export function LoginScreen({ onSignedIn }: { onSignedIn: (user: Account, method
     setError(undefined);
     try {
       const user = await signUp(email, password);
-      onSignedIn(user, "password");
+      onSignedIn(user);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Sign-up failed. Try again.");
     } finally {
@@ -59,24 +58,6 @@ export function LoginScreen({ onSignedIn }: { onSignedIn: (user: Account, method
     setError(undefined);
     setPassword("");
     setScreen(next);
-  }
-
-  async function submitPasskey(): Promise<void> {
-    setBusy(true);
-    setError(undefined);
-    try {
-      await signInWithPasskey();
-      const user = await readSession();
-      if (!user) {
-        setError("That passkey was not accepted.");
-        return;
-      }
-      onSignedIn(user, "passkey");
-    } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "That passkey was not accepted.");
-    } finally {
-      setBusy(false);
-    }
   }
 
   if (screen === "forgot") {
@@ -167,9 +148,6 @@ export function LoginScreen({ onSignedIn }: { onSignedIn: (user: Account, method
         <Button type="submit" disabled={busy}>
           Sign in
         </Button>
-        <Button variant="secondary" icon="scan-face" disabled={busy} onClick={() => void submitPasskey()}>
-          Sign in with a passkey
-        </Button>
         <Button
           variant="plain"
           onClick={() => {
@@ -247,32 +225,5 @@ export function ChoosePassword({ onChosen }: { onChosen: (user: Account) => void
         </Button>
       </form>
     </AuthFrame>
-  );
-}
-
-export function PasskeyOffer({
-  busy,
-  onSave,
-  onDismiss,
-}: {
-  busy: boolean;
-  onSave: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <div className="sheet-backdrop">
-      <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="passkey-offer-title">
-        <h2 id="passkey-offer-title" className="sheet-title">
-          Save a passkey for this device?
-        </h2>
-        <p className="sheet-copy">Next time, sign in with Face ID instead of your password. You can remove it in Settings.</p>
-        <Button icon="scan-face" disabled={busy} onClick={onSave}>
-          Save a passkey
-        </Button>
-        <Button variant="plain" disabled={busy} onClick={onDismiss}>
-          Not now
-        </Button>
-      </div>
-    </div>
   );
 }

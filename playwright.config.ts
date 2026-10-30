@@ -3,8 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 const ci = process.env.CI !== undefined;
 
 // Runs against the site as the server runs it: the web image and the pinned API image behind
-// Caddy, with Postgres. Start it first with `e2e/stack.sh up`, on an empty database. WebAuthn
-// needs a hostname, so the page is localhost rather than 127.0.0.1.
+// Caddy, with Postgres. Start it first with `e2e/stack.sh up`, on an empty database. The page is
+// localhost, the origin the API trusts (BETTER_AUTH_URL in e2e/compose.yaml).
 // One worker: sign-in tests share the sample student password.
 export default defineConfig({
   testDir: "e2e",

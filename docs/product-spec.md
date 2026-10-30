@@ -51,12 +51,12 @@ Each of these was cut on purpose. Anything a user asks for later is a new decisi
 
 | User | Can do | Cannot do |
 |---|---|---|
-| **A user** | Everything in her own account: import question files, make and edit semesters, courses, and study topics, practice, take exams, use Review and Terms, export her progress, manage her password and passkeys, and connect her agent. | See or change another account's questions, or let anyone else sign up. |
+| **A user** | Everything in her own account: import question files, make and edit semesters, courses, and study topics, practice, take exams, use Review and Terms, export her progress, manage her password, and connect her agent. | See or change another account's questions, or let anyone else sign up. |
 | **The owner** (who set the app up) | Sign in with his own **admin** login to fix things in the app and in the user account he is looking at: import question files; create or fix semesters, courses, and topics; restore a replaced set; reset her password; repair her account data if something breaks; keep the sign-up list of emails that may make an account. See **that account's** progress read-only: courses, topics, sets, completion, scores, Review list, and exam history. | Answer questions as her, or change her scores, progress, or Review list in normal use. He does not see any other account. In his words: "this is for her, I'm just creating the app for her to help her study in her program." |
 
 - **Sign-up only for emails the owner adds (2026-10-01).** A user makes her own account from the Sign up screen, but only with an email on the owner's sign-up list. The admin account is never made there; a setup command run by the owner creates it, and can also create a user account and put emails on the sign-up list.
 - **Each account's material is its own (2026-10-21).** Semesters, courses, topics, exam pages, study pages, folders, sets, questions, and terms belong to one account. Every list, detail, and edit is limited to that account, and another account's id is answered as if it were not there. Answers, progress, the Review list, and exams were already per account. The owner picks which user account he is looking at in Admin. There is no shared question bank.
-- Every login uses a password with an optional passkey (Face ID / Touch ID).
+- Every login uses a password. The browser or the iPhone saves it and fills it in (with Face ID on the iPhone). There are no passkeys.
 
 ## How questions get into the app
 
@@ -159,15 +159,14 @@ The clickable wireframes from the planning phase are the reference for every sta
 
 ### Sign in
 
-- Email and password, "Sign in with a passkey", "Forgot password?", and "Sign up".
+- Email and password, "Forgot password?", and "Sign up".
 - **Forgot password?** explains that the owner resets it from his admin account. The app sends no email.
-- **Passkey offer:** right after the first password sign-in on each device, a sheet offers "Save a passkey" / "Not now".
 - **Staying signed in:** the app stays signed in on each device until she signs out.
 - **Where she lands:** the course she used last. Home is one tap back.
 
 ### Sign up
 
-- Email and password, then the same passkey offer as after a first password sign-in. She lands on Home, signed in.
+- Email and password. She lands on Home, signed in.
 - **Only emails on the owner's sign-up list** can sign up, one account per email. Any other email, or one that already has an account, gets the same plain message: "This email can't sign up here. If you already have an account, sign in. Otherwise, ask the owner to add your email." The message does not tell a stranger which emails are on the list.
 - Five refused tries for one email lock that email's sign-up for 15 minutes, like sign-in.
 - Every account made here is a user account. The stored role value is still `student`. The app sends no email, so there is no verification email.
@@ -314,8 +313,7 @@ Courses, study topics, exam and study pages, sets, folders, and past exams can b
 ### Settings
 
 - Account; change password.
-- Passkeys: list, add, remove.
-- **Connect an agent**, under the passkeys: opens a screen where she enters the short code her agent shows (or confirms one her agent sent in the link), sees the agent's name and what it asks to do in plain words (manage marked "Most access"), and taps **Approve** or **Deny**. A code that is mistyped, answered already, or past its 10 minutes says so. **Your keys** lists each key's name, when it was made, when it was last used, and what it can do, with **Revoke**, which asks first. A revoked key stays listed and never works again; what it imported or changed stays, and what it deleted stays in Recently deleted. No key is ever shown or copied.
+- **Connect an agent**, under Change password: opens a screen where she enters the short code her agent shows (or confirms one her agent sent in the link), sees the agent's name and what it asks to do in plain words (manage marked "Most access"), and taps **Approve** or **Deny**. A code that is mistyped, answered already, or past its 10 minutes says so. **Your keys** lists each key's name, when it was made, when it was last used, and what it can do, with **Revoke**, which asks first. A revoked key stays listed and never works again; what it imported or changed stays, and what it deleted stays in Recently deleted. No key is ever shown or copied.
 - **Semesters:** each semester's name, start and end dates, and archive or unarchive it by hand. Nothing archives a semester because its end date has passed. Settings adds nothing: a semester, course, or topic is added with Home's + (or Import), and renamed, moved, or archived from its card's menu on Home.
 - **Look:** Match device / Light / Dark, per device.
 - **Color:** Dusk / Slate, saved to the account so it follows it to every device. Every account starts on Dusk.
@@ -336,7 +334,7 @@ He signs in the same way, with his own login, and lands on the Home of the user 
 - **Admin > Her account:** reset her password by setting a temporary password he gives her; she chooses her own at her next sign-in. There is no reset email.
 - **Admin > Sign-up list:** add or remove the emails that may sign up, each with "Has an account" or "not signed up yet". Removing an email does not remove an account made with it.
 - **Admin > Repair:** for when something breaks, not for normal use. It rebuilds her progress and Review list from her saved answers. Each repair says what it will change and asks first.
-- **His Settings:** account, change password, passkeys, Connect an agent (his agent's key imports into the user account he looks after), Look, Color, sign out. No Delete account: the admin account can't be deleted.
+- **His Settings:** account, change password, Connect an agent (his agent's key imports into the user account he looks after), Look, Color, sign out. No Delete account: the admin account can't be deleted.
 
 ## Platforms and layouts
 
@@ -408,7 +406,7 @@ Postgres. Question bodies stay JSON because the eight formats have different sha
 | API | Hono + TypeScript on Node, zod validation on every request; an OpenAPI description generated from the typed routes and published with the API. In D-E-A-G/qbank-server |
 | Question package | Question types, scoring, exam planning, and import validation, used by the API. In D-E-A-G/qbank-server |
 | Database | Postgres 16 in a Docker container on the app's own server, through Drizzle |
-| Login | Better Auth: email + password, optional passkeys; works for a native client as well as the browser. No email is sent. |
+| Login | Better Auth: email + password; works for a native client as well as the browser. No email is sent. |
 | Hosting | One self-managed DigitalOcean droplet declared in OpenTofu, running Caddy, the built screens, the API, and Postgres in Docker Compose (see [The server](#the-server)) |
 | Deploy | Merging to `main` builds the web image and deploys it to the droplet; the API is deployed the same way from D-E-A-G/qbank-server (see [Deploy path](#deploy-path)) |
 | Backups | DigitalOcean's weekly droplet backups, plus a nightly `pg_dump` off the box to a private Cloudflare R2 bucket, with a tested restore (see [Backups](#backups)) |
@@ -420,7 +418,7 @@ Postgres. Question bodies stay JSON because the eight formats have different sha
 
 - **Every rule lives behind the API:** scoring, question formats, import validation, Review behavior, and the admin's powers and limits are enforced by the server, never only inside the web screens.
 - **A language-neutral contract:** Swift cannot share the TypeScript types, so the API's contract is also published as an OpenAPI description generated from the typed routes and their zod schemas. CI fails when it is out of date, so a Swift client can be generated from it or checked against it. The web screens use it the same way: they pin a copy, generate their types from it, and run their end-to-end tests against the API image built from the same commit (see "The API" in the README).
-- **Sign-in for any client:** password and passkey sign-in, sessions, and sign-out work over the API for a native client as well as the browser. The passkey relying party is the app's web domain, so a native app tied to that domain can use the same passkeys, and a native client can hold its session as a token rather than a browser cookie.
+- **Sign-in for any client:** password sign-in, sessions, and sign-out work over the API for a native client as well as the browser, and a native client can hold its session as a token rather than a browser cookie. The web domain is associated with the iPhone app, so the iPhone fills in the password saved for the site.
 
 ### The server
 
@@ -431,7 +429,7 @@ One machine the owner rents and runs himself, in the shape of Kun's Eddie's Wall
 - **Set up on first boot** by a script that mirrors Kun's `deploy/bootstrap.sh`: a non-root deploy user, no root or password SSH login, `ufw` repeating the cloud firewall, `fail2ban`, automatic security updates, and Docker with a log size limit.
 - **Four containers in Docker Compose** (`server/` in deag-infra): Caddy, the only one reachable from the internet, which gets and renews the HTTPS certificate from Let's Encrypt and passes `/api/*`, `/health` and `/openapi.json` to the API and everything else to the web container; the web container, which serves the built screens; the API; and Postgres 16 on an internal network with no port outside Docker and its data in a volume.
 - **One production environment.** No staging, no preview environment per PR, one region.
-- **Address:** until the root domain exists, the droplet answers on its IP address. The domain goes on Cloudflare DNS, with the app on its own subdomain, before login (milestone 2), because passkeys and installing the app need a real HTTPS name.
+- **Address:** until the root domain exists, the droplet answers on its IP address. The domain goes on Cloudflare DNS, with the app on its own subdomain, before login (milestone 2), because sign-in and installing the app need a real HTTPS name.
 
 ### Deploy path
 
@@ -497,11 +495,11 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 2. **Hosting (2026-09-28, replacing Railway + Neon):** one self-managed DigitalOcean droplet (Basic Regular, 1 vCPU / 2 GB / 50 GB, $12 a month, New York, Ubuntu 24.04 LTS, weekly backups) declared in OpenTofu, running Caddy, the API, and Postgres 16 in Docker Compose, mirroring Kun's Hetzner setup. No Railway, Neon, or Resend. One production environment. Backups are DigitalOcean's weekly backups plus a nightly encrypted `pg_dump` off the box to Cloudflare R2, with a tested restore, starting in milestone 1. Later, one root domain with a subdomain per app, DNS on Cloudflare. (2026-10-01: the nightly dump is no longer encrypted. The owner chose not to keep a separate decryption key; the bucket stays private.)
 3. **Questions get in** through an Import screen in the app, where she imports the JSON her agent's weekly question skill makes, or through Make questions (see decision 4).
 4. **Questions are made** by her agent running the `nclex-questions` skill outside the app (imported), or by Make questions inside QBank, which runs a copy of the same recipe on the server (this revises the original decision, which had no Make questions).
-5. **Login** is a password with an optional passkey (Face ID / Touch ID).
+5. **Login** is a password with an optional passkey (Face ID / Touch ID). (2026-10-29: password only; see decision 26.)
 6. **Each week's slides and transcripts stay in her iCloud folder**, not synced to the app. The app holds questions only; Make questions reads only the material she hands it for one job.
 7. **Replacing a week's questions warns first** (naming the course, the week, and the number of questions), Cancel does nothing, and the previous version is kept and restorable.
 8. **The theme is built fresh in Claude Design** later, from this document.
-9. **API-first:** every rule lives on the server behind the API, never only inside the web screens, so a native iOS app built in SwiftUI can be added later as a second client of the same API, accounts, and data. The contract is published as OpenAPI for the Swift side, and sign-in, including passkeys, works for a native client. The iOS app itself is not part of this plan.
+9. **API-first:** every rule lives on the server behind the API, never only inside the web screens, so a native iOS app built in SwiftUI can be added later as a second client of the same API, accounts, and data. The contract is published as OpenAPI for the Swift side, and sign-in, including passkeys, works for a native client. The iOS app itself is not part of this plan. (2026-10-29: no passkeys; see decision 26.)
 10. **Password reset (2026-09-28):** the owner resets her password from his admin account with a temporary password he gives her. There is no email service.
 11. **Sign-up (2026-10-01, replacing "no signup screen"):** a Sign up screen like a regular app's, limited to the emails on a sign-up list the owner keeps in Admin; the list starts with the first user's email, set when the app is set up, and he can add more at any time. Strangers cannot get in or see the questions. Each email makes one user account; the admin account is never made by sign-up. (On this date the decision said each email makes one student account and the question bank is shared. 2026-10-21: accounts are user accounts, and nothing is shared; see decision 21.) With more than one user account, the owner picks in Admin whose account he sees, resets, and repairs, starting with the oldest user account.
 
@@ -514,7 +512,7 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 5. **Leaving Review:** a question leaves Review the next time she answers it fully right without "I'm guessing".
 6. **Courses and semesters** can be made in both Import and Settings. (2026-10-25: Home's + replaces Settings; see decision 23.)
 7. **The owner has an admin account**, not a read-only login. He can import question files; create or fix courses, semesters, and weeks; restore a replaced set; reset her password; and repair her account data if something breaks. He cannot answer questions as her or change her scores, progress, or Review list in normal use. He sees her progress read-only.
-8. **Passkey offer:** right after the first password sign-in on each device; the app stays signed in until she signs out.
+8. **Passkey offer:** right after the first password sign-in on each device; the app stays signed in until she signs out. (2026-10-29: no passkey offer; see decision 26.)
 9. **Review scope:** missed-and-guessed Review is per course only.
 10. **Landing:** she lands on the course she used last.
 11. **iPad and Mac** get a sidebar layout fitted to their screens (not the iPhone layout), shaped by the Claude Design system.
@@ -538,6 +536,8 @@ Made by the owner on 2026-09-27, except where a later date is given. Later worke
 24. **Delete account on the web too (2026-10-28):** the web's Settings has Delete account for a user account, as the iPhone app's Settings has had since 2026-10-26, rather than staying iPhone-only. Both use the server's `DELETE /api/me` with her current password, which deletes the account signed in and everything in it for good, with no Recently deleted and no Undo, and signs it out on every device. It is her own confirmed action, like a delete with Undo, so the rule that her data is never deleted still holds for our changes. The admin account has none.
 
 25. **Delete an exam page, with Undo (2026-10-28):** an exam or study page is deleted like a folder or set, rather than removed for good: **Delete this exam page** in its editor replaces **Remove this exam page**, which deleted the page and moved its folders to the Folders list with no Undo. The server's preview names the folders that stay and her past exams, the delete sends its confirmation, and the page waits 30 days in the course's Recently deleted, where Undo puts it back with its folders. Deleting a page deletes the page alone: no folder, set, answer, progress, or past exam is deleted or moved, so her folders and sets are never at risk from it. The web and the iPhone app use the same words, and the owner's read-only view has no Delete.
+
+26. **No passkeys (2026-10-29):** sign-in is a password only. The browser saves it, and on the iPhone Face ID fills it in, so "Sign in with a passkey", the "Save a passkey" sheet after sign-in, and the passkeys in Settings are gone from the web and the iPhone app. The server and what it stores are unchanged: passkeys saved before stay stored, unused, and go with an account when it is deleted. Every account has a password (the setup command and Sign up both set one), so no one loses their way in.
 
 ## Open questions
 

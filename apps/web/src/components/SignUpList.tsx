@@ -65,7 +65,7 @@ export function SignUpList() {
                 </span>
                 <button
                   type="button"
-                  className="btn btn-destructive passkey-remove"
+                  className="btn btn-destructive signup-remove"
                   aria-label={`Remove ${row.email}`}
                   disabled={busy}
                   onClick={() => {

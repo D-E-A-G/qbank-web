@@ -1,21 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AGENTS_PATH } from "../agents/agents";
 import { Icon } from "../components/Icon";
 import { ShellLink } from "../shell/ShellLink";
-import {
-  ApiError,
-  changePassword,
-  deletePasskey,
-  listPasskeys,
-  setTemporaryPassword,
-  signOut,
-  type Account,
-  type Passkey,
-} from "./api";
+import { ApiError, changePassword, setTemporaryPassword, signOut, type Account } from "./api";
 import { DeleteAccountSheet } from "./DeleteAccountSheet";
 import { isDeleteOffered } from "./delete-account";
-import { forgetPasskeyOffer } from "./offer";
-import { savePasskey } from "./passkey";
 import { Button, TextField } from "./ui";
 
 export function AccountSection({ user, onUser, onSignedOut }: { user: Account; onUser: (user: Account) => void; onSignedOut: () => void }) {
@@ -24,22 +13,7 @@ export function AccountSection({ user, onUser, onSignedOut }: { user: Account; o
   const [message, setMessage] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-  const [passkeys, setPasskeys] = useState<Passkey[]>([]);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    let cancel = false;
-    void listPasskeys()
-      .then((rows) => {
-        if (!cancel) setPasskeys(rows);
-      })
-      .catch(() => {
-        if (!cancel) setPasskeys([]);
-      });
-    return () => {
-      cancel = true;
-    };
-  }, [user.id]);
 
   return (
     <section className="group">
@@ -88,46 +62,6 @@ export function AccountSection({ user, onUser, onSignedOut }: { user: Account; o
             Change password
           </Button>
         </form>
-        {passkeys.map((passkey) => (
-          <div className="passkey-row" key={passkey.id}>
-            <span className="passkey-name">{passkey.name ?? "Passkey"}</span>
-            <button
-              className="btn btn-destructive passkey-remove"
-              type="button"
-              onClick={() => {
-                void deletePasskey(passkey.id).then(() => {
-                  setPasskeys((rows) => rows.filter((row) => row.id !== passkey.id));
-                });
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <Button
-          variant="secondary"
-          size="md"
-          icon="scan-face"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            setError(undefined);
-            void savePasskey()
-              .then(() => listPasskeys())
-              .then((rows) => {
-                setPasskeys(rows);
-                setMessage("Passkey saved on this device.");
-              })
-              .catch((caught: unknown) => {
-                setError(caught instanceof ApiError ? caught.message : "That passkey was not accepted.");
-              })
-              .finally(() => {
-                setBusy(false);
-              });
-          }}
-        >
-          Save a passkey
-        </Button>
         {message !== undefined ? <p className="form-note">{message}</p> : null}
         {error !== undefined ? (
           <p className="form-error" role="alert">
@@ -175,7 +109,6 @@ export function AccountSection({ user, onUser, onSignedOut }: { user: Account; o
           onDone={(outcome) => {
             if (outcome.kind === "deleted") {
               // The server ended its sessions and cleared this device's cookie; the rest goes as a sign-out's does.
-              forgetPasskeyOffer(user.id);
               onSignedOut();
             } else if (outcome.kind === "signed-out") {
               void signOut().finally(onSignedOut);

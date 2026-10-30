@@ -93,7 +93,6 @@ test("deletes her user account for good and signs her out everywhere, and anothe
   await giveCourse(page.request, doomedCode, 2);
   await page.goto("/");
   await expect(page.getByText(doomedCode).first()).toBeVisible();
-  const doomedId = await page.evaluate(async () => ((await (await fetch("/api/session")).json()) as { user: { id: string } }).user.id);
   await openSettings(page);
 
   // Cancel changes nothing.
@@ -117,7 +116,7 @@ test("deletes her user account for good and signs her out everywhere, and anothe
   await sheet.getByLabel("Current password").fill(doomed.password);
   await sheet.getByRole("button", { name: "Delete account" }).click();
   await signedOut(page);
-  expect(await page.evaluate((id) => [localStorage.getItem("qbank-palette"), localStorage.getItem(`qbank.passkey-offer.${id}`)], doomedId)).toEqual([null, null]);
+  expect(await page.evaluate(() => localStorage.getItem("qbank-palette"))).toBeNull();
 
   // Gone on every device, and it can no longer sign in.
   expect((await page.request.get("/api/session")).status()).toBe(401);

@@ -2,10 +2,8 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { forgetCatalog } from "./catalog";
 import { forgetUndo } from "./course/deletion";
 import { ApiError, readSession, type Account } from "./login/api";
-import { ChoosePassword, LoginScreen, PasskeyOffer } from "./login/LoginScreen";
+import { ChoosePassword, LoginScreen } from "./login/LoginScreen";
 import { AuthFrame } from "./login/ui";
-import { passkeyOfferState, rememberPasskeyOffer } from "./login/offer";
-import { savePasskey } from "./login/passkey";
 import { SessionProvider } from "./login/session";
 import { navigate } from "./router";
 import { AppShell } from "./shell/AppShell";
@@ -17,11 +15,10 @@ type Gate =
   | { status: "unavailable" }
   | { status: "signed-out" }
   | { status: "must-change"; user: Account }
-  | { status: "signed-in"; user: Account; offer: boolean };
+  | { status: "signed-in"; user: Account };
 
 export function App() {
   const [gate, setGate] = useState<Gate>({ status: "loading" });
-  const [savingPasskey, setSavingPasskey] = useState(false);
 
   useEffect(() => {
     if (gate.status === "unavailable") document.title = "Qbank";
@@ -42,7 +39,7 @@ export function App() {
       .then((user) => {
         if (!user) setGate({ status: "signed-out" });
         else if (user.mustChangePassword) setGate({ status: "must-change", user });
-        else setGate({ status: "signed-in", user, offer: false });
+        else setGate({ status: "signed-in", user });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
@@ -78,16 +75,8 @@ export function App() {
   if (gate.status === "signed-out") {
     return (
       <LoginScreen
-        onSignedIn={(user, method) => {
-          if (user.mustChangePassword) {
-            setGate({ status: "must-change", user });
-            return;
-          }
-          setGate({
-            status: "signed-in",
-            user,
-            offer: method === "password" && passkeyOfferState(user.id) === null,
-          });
+        onSignedIn={(user) => {
+          setGate(user.mustChangePassword ? { status: "must-change", user } : { status: "signed-in", user });
         }}
       />
     );
@@ -97,7 +86,7 @@ export function App() {
     return (
       <ChoosePassword
         onChosen={(user) => {
-          setGate({ status: "signed-in", user, offer: passkeyOfferState(user.id) === null });
+          setGate({ status: "signed-in", user });
         }}
       />
     );
@@ -110,7 +99,7 @@ export function App() {
         user,
         // An account with a temporary password chooses a new one before anything else.
         replace: (next) => {
-          setGate(next.mustChangePassword ? { status: "must-change", user: next } : { status: "signed-in", user: next, offer: false });
+          setGate(next.mustChangePassword ? { status: "must-change", user: next } : { status: "signed-in", user: next });
         },
         // Nothing of this account stays on the screen for the next one on this device.
         signOut: () => {
@@ -123,29 +112,6 @@ export function App() {
       }}
     >
       <AppShell role={user.role} />
-      {gate.offer ? (
-        <PasskeyOffer
-          busy={savingPasskey}
-          onDismiss={() => {
-            rememberPasskeyOffer(user.id, "dismissed");
-            setGate({ status: "signed-in", user, offer: false });
-          }}
-          onSave={() => {
-            setSavingPasskey(true);
-            void savePasskey()
-              .then(() => {
-                rememberPasskeyOffer(user.id, "saved");
-                setGate({ status: "signed-in", user, offer: false });
-              })
-              .catch((error: unknown) => {
-                console.error(error);
-              })
-              .finally(() => {
-                setSavingPasskey(false);
-              });
-          }}
-        />
-      ) : null}
     </SessionProvider>
   );
 }

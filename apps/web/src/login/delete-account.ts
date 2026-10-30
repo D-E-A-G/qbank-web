@@ -10,7 +10,7 @@ export function isDeleteOffered(user: Pick<Account, "role">): boolean {
   return user.role === "student";
 }
 
-/** What goes, in plain words: the iPhone app's, with the passkeys and agent keys Settings shows here. */
+/** What goes, in plain words: the iPhone app's, with the agent keys Settings shows here and any passkeys saved before. */
 export function deletionWarning(email: string): string {
   return `Your user account, ${email}, and everything in it are deleted for good: your courses and study topics, their sets, your answers, progress and past exams, and your passkeys and agent keys. You are signed out on every device. Nothing goes to Recently deleted, and there is no Undo.`;
 }
