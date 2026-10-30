@@ -117,7 +117,8 @@ test.describe("striking out choices", () => {
     await expect(page.locator(".choice-row-struck")).toHaveCount(1);
     await expect(page.locator(".choice-row-struck .choice-text")).toHaveCSS("text-decoration-line", "line-through");
     await expect(page.getByRole("button", { name: "Check answer" })).toBeDisabled();
-    await wrong.choice.click();
+    // A tap on the struck choice still reaches it (Playwright treats aria-disabled as disabled) and picks nothing.
+    await wrong.choice.click({ force: true });
     await expect(wrong.choice).toHaveAttribute("aria-checked", "false");
 
     // The same control restores it, in one tap.
