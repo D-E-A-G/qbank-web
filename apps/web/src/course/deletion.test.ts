@@ -314,12 +314,12 @@ describe("the Undo offer", () => {
 
   it("brings a deleted exam page back, or says why not: another page has its name, or its 30 days are over", async () => {
     const calls = fakeApi(
-      { status: 409, body: { error: "request_refused", message: "This course already has an exam named Exam 2. Rename one of them, then bring this one back." } },
+      { status: 409, body: { error: "request_refused", message: "This course already has a page named Exam 2. Rename one of them, then bring this one back." } },
       { status: 409, body: { error: "undo_expired", message: "Exam 2 was deleted more than 30 days ago, so it can't be brought back." } },
       { status: 200, body: {} },
     );
     for (const refusal of [
-      "This course already has an exam named Exam 2. Rename one of them, then bring this one back.",
+      "This course already has a page named Exam 2. Rename one of them, then bring this one back.",
       "Exam 2 was deleted more than 30 days ago, so it can't be brought back.",
     ]) {
       offerUndo(COURSE, [examPage("Exam 2", "")]);

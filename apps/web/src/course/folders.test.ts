@@ -35,7 +35,7 @@ function folder(name: string, sets: SetSummary[], options: { examPageId?: string
 }
 
 function page(id: string, name: string): CourseExam {
-  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [], linkUrl: null };
+  return { id, name, sortOrder: 0, weekLabels: [], folderIds: [], linkUrl: null, badge: null };
 }
 
 /** Only the fields the folder helpers read. */
