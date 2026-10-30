@@ -49,7 +49,7 @@ For study use only; not clinical advice.
 | Screens (this repository) | React and TypeScript with Vite, an installable web app (PWA), served by Caddy from the web image; types generated from the API's contract |
 | API ([D-E-A-G/qbank-server](https://github.com/D-E-A-G/qbank-server)) | Hono and TypeScript on Node, zod on every request, an OpenAPI description generated from the routes, and the question formats, scoring, exam planning, and import checks |
 | Database | Postgres 16 through Drizzle, used by the API |
-| Sign-in | Better Auth: email and password, with optional passkeys (Face ID, Touch ID) |
+| Sign-in | Better Auth: email and password, saved and filled in by the browser or the iPhone |
 | Tests | Vitest, and Playwright on iPhone and desktop browsers against the web image and the API image |
 | Hosting | One DigitalOcean server declared in OpenTofu, running Caddy, the screens, the API, and Postgres in Docker Compose; nightly database backups to Cloudflare R2 |
 | CI and deploys | GitHub Actions: every change is linted, type-checked, tested, built, run end to end, and checked for secrets; merging to `main` deploys the new web image over Tailscale |

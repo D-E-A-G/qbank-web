@@ -341,7 +341,7 @@ jobs:
             -t qbank-web:ci .
       # Read-only with tmpfs for /tmp, /config and /data, as the server's
       # compose.yaml runs it, and the checks its ci-deploy.sh makes.
-      - name: Run it the way the server does and check the screens, their caching, /version.txt and the passkey file
+      - name: Run it the way the server does and check the screens, their caching, /version.txt and the app association file
         run: |
           docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' qbank-web:ci |
             grep -qxF "APP_VERSION=$GITHUB_SHA"
@@ -365,7 +365,7 @@ jobs:
           # A screen address gets index.html.
           test "$(curl -fsS http://127.0.0.1:8080/course/42)" = "$index"
           test "$(answer /course/42)" = "200 no-cache"
-          # The passkey association file has no extension. It is that file,
+          # The app association file has no extension. It is that file,
           # as JSON, and not the screen shell a later rewrite would send.
           aasa_body="$(mktemp)"
           aasa_headers="$(curl -sS -D - -o "$aasa_body" \

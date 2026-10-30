@@ -26,7 +26,7 @@ export async function newAccount(browser: Browser, label: string): Promise<FakeA
   return account;
 }
 
-/** Signs in with a password and dismisses the passkey offer when it appears. */
+/** Signs in with a password. */
 export async function signIn(page: Page, email = STUDENT_EMAIL, password = STUDENT_PASSWORD): Promise<void> {
   await page.goto("/");
   await signInHere(page, email, password);
@@ -38,9 +38,5 @@ export async function signInHere(page: Page, email: string, password: string): P
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   // She lands on Home, or on the course she used last.
-  const signedIn = page.getByRole("navigation", { name: /^(Sections|Tabs)$/ });
-  const notNow = page.getByRole("button", { name: "Not now" });
-  await expect(signedIn).toBeVisible();
-  if (await notNow.isVisible()) await notNow.click();
-  await expect(notNow).toBeHidden();
+  await expect(page.getByRole("navigation", { name: /^(Sections|Tabs)$/ })).toBeVisible();
 }

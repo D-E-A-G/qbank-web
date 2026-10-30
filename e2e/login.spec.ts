@@ -1,13 +1,14 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { ADMIN_EMAIL, ADMIN_PASSWORD, newAccount, signIn, signInHere, STUDENT_EMAIL, STUDENT_PASSWORD } from "./sign-in";
 
-test("the sign-in screen offers a passkey and does not send email", async ({ page }) => {
+test("the sign-in screen asks for a password only and does not send email", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "Qbank" })).toBeVisible();
   await expect(page.getByLabel("Email")).toBeVisible();
   await expect(page.getByLabel("Password")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in with a passkey" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.getByText(/passkey/i)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sign up", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Forgot password?" }).click();
@@ -87,22 +88,17 @@ test.describe("signed-in account", () => {
     await expect(page.getByRole("alert")).toContainText("Too many tries");
   });
 
-  test("offers a passkey after a password sign-in, and not after a passkey sign-in", async ({ page }) => {
+  test("a password sign-in lands on Home with nothing to dismiss, and Settings has no passkeys", async ({ page }) => {
     await page.goto("/");
-    await addVirtualAuthenticator(page);
     await page.getByLabel("Email").fill(STUDENT_EMAIL);
     await page.getByLabel("Password").fill(STUDENT_PASSWORD);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Save a passkey for this device?" })).toBeVisible();
-    await page.getByRole("button", { name: "Save a passkey", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Save a passkey for this device?" })).toBeHidden();
+    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     await page.getByRole("link", { name: "Settings" }).click();
-    await expect(page.getByText("This device", { exact: true }).first()).toBeVisible();
-    await page.getByRole("button", { name: "Sign out" }).click();
-    await page.getByRole("button", { name: "Sign in with a passkey" }).click();
-    await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Save a passkey for this device?" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Change password" })).toBeVisible();
+    await expect(page.getByText(/passkey/i)).toHaveCount(0);
   });
 
   test("the admin resets her password, and she chooses her own", async ({ page }) => {
@@ -172,9 +168,8 @@ test.describe("sign-up", () => {
 
     await page.getByLabel("Password").fill("new-pass-123");
     await page.getByRole("button", { name: "Sign up", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Save a passkey for this device?" })).toBeVisible();
-    await page.getByRole("button", { name: "Not now" }).click();
     await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
 
     await page.getByRole("link", { name: "Settings" }).click();
@@ -196,18 +191,3 @@ test.describe("sign-up", () => {
     await expect(page.getByText(`For ${STUDENT_EMAIL}.`, { exact: false })).toBeVisible();
   });
 });
-
-async function addVirtualAuthenticator(page: Page): Promise<void> {
-  const client = await page.context().newCDPSession(page);
-  await client.send("WebAuthn.enable");
-  await client.send("WebAuthn.addVirtualAuthenticator", {
-    options: {
-      protocol: "ctap2",
-      transport: "internal",
-      hasResidentKey: true,
-      hasUserVerification: true,
-      isUserVerified: true,
-      automaticPresenceSimulation: true,
-    },
-  });
-}

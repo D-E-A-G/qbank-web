@@ -34,7 +34,8 @@
 
 	# Screen addresses such as /course/42 are routed by the web app in the
 	# browser, so a path with no extension gets index.html. A missing file (a
-	# path with an extension) stays a 404. Apple's passkey association file is
+	# path with an extension) stays a 404. Apple's app association file, which
+	# lets the iPhone app fill the passwords saved for this site, is
 	# extensionless and has to be that file, not the screen shell.
 	@screen {
 		not path /.well-known/apple-app-site-association

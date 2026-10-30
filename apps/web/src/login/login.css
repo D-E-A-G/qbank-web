@@ -225,20 +225,7 @@
   text-wrap: pretty;
 }
 
-.passkey-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 44px;
-}
-
-.passkey-name {
-  font: var(--text-body);
-  color: var(--text-1);
-}
-
-/* Connect an agent, under the passkeys: a row that opens its screen. */
+/* Connect an agent, under Change password: a row that opens its screen. */
 .account-link {
   display: flex;
   align-items: center;
@@ -259,14 +246,6 @@
 .account-link:focus-visible {
   outline-offset: 2px;
   border-radius: var(--radius-sm);
-}
-
-.passkey-remove {
-  width: auto;
-  min-height: 32px;
-  height: 32px;
-  padding: 0 12px;
-  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
 }
 
 @media (min-width: 768px) and (min-height: 600px) {

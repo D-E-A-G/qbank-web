@@ -958,6 +958,15 @@ button.review-row:disabled {
   overflow-wrap: anywhere;
 }
 
+/* login.css gives every .btn full width; Remove sits at the end of its row. */
+.signup-remove {
+  width: auto;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 12px;
+  font: var(--weight-semibold) var(--size-subhead) / var(--lh-subhead) var(--font-ui);
+}
+
 .text-danger {
   color: var(--wrong);
 }

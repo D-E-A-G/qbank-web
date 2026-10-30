@@ -134,32 +134,3 @@ export async function setTemporaryPassword(temporaryPassword: string): Promise<s
   }
   return body.email;
 }
-
-export type Passkey = components["schemas"]["Passkey"];
-
-function isPasskey(value: unknown): value is Passkey {
-  if (!isRecord(value)) return false;
-  return typeof value.id === "string" && (value.name === null || typeof value.name === "string");
-}
-
-export async function listPasskeys(): Promise<Passkey[]> {
-  const body = await send("/api/passkeys");
-  if (!isRecord(body) || !Array.isArray(body.passkeys)) return [];
-  return body.passkeys.filter(isPasskey);
-}
-
-export async function deletePasskey(id: string): Promise<void> {
-  await send(`/api/passkeys/${encodeURIComponent(id)}`, { method: "DELETE" });
-}
-
-export async function getJson(path: string): Promise<unknown> {
-  return send(path);
-}
-
-export async function postJson(path: string, body: unknown): Promise<unknown> {
-  return send(path, { method: "POST", body: JSON.stringify(body) });
-}
-
-export function isOptions(value: unknown): value is { challenge: string } {
-  return isRecord(value) && typeof value.challenge === "string";
-}
