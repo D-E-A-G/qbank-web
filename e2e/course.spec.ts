@@ -507,6 +507,7 @@ test.describe("pages", () => {
     await expect(admin.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
     await expect(admin.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
     await expect(admin.getByRole("button", { name: `Add to ${course.code}` })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: `More for ${course.code}` })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Rename", exact: true })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Edit folder order" })).toHaveCount(0);
 

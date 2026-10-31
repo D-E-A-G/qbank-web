@@ -85,12 +85,31 @@ body,
   text-wrap: balance;
 }
 
-/* A screen that holds things has its + at the title's right edge, level with the title's first line. */
+/* A screen that holds things has its + at the title's right edge, level with the title's first line.
+   A course or topic also has a quiet "…" just to the left of that +. */
 .screen-intro-action {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.screen-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: calc((var(--lh-large-title) - 44px) / 2);
+}
+
+.screen-actions .add-button {
+  margin-top: 0;
+}
+
+/* The card "…" is pinned to its card and hides until hover. In the title row it stays put and visible. */
+.screen-actions .card-more {
+  position: static;
+  opacity: 1;
 }
 
 .screen-intro-action .screen-title {

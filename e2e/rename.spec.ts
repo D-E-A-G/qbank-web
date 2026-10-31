@@ -123,12 +123,16 @@ test.describe("renaming from the screen", () => {
     const afterPage = await held(page, course.courseId);
     expect(afterPage).toEqual({ ...beforePage, exams: [{ ...beforePage.exams[0], name: "Git page" }] });
 
-    // The course's name is on the course, and Home's card menu still offers Rename.
+    // The course's name is in More, beside +, and Home's card menu still offers Rename.
     await page.getByRole("link", { name: code, exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: code })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Rename", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Rename", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Testing course · 1 question · 1 folder", { exact: true })).toBeVisible();
     const beforeCourse = await held(page, course.courseId);
-    await page.getByRole("button", { name: "Rename", exact: true }).click();
+    await page.getByRole("button", { name: `More for ${code}` }).click();
+    const courseMenu = page.getByRole("menu", { name: code });
+    await expect(courseMenu.getByRole("menuitem")).toHaveText(["Rename"]);
+    await courseMenu.getByRole("menuitem", { name: "Rename" }).click();
     const renameCourse = sheet(page, "Rename course");
     await expect(renameCourse.getByRole("textbox", { name: "Course code" })).toHaveValue(code);
     await expect(renameCourse.getByRole("textbox", { name: "Course name" })).toHaveValue("Testing course");
@@ -145,7 +149,7 @@ test.describe("renaming from the screen", () => {
     await expect(page.getByRole("menu", { name: nextCode }).getByRole("menuitem", { name: "Rename" })).toBeVisible();
     await page.keyboard.press("Escape");
 
-    // A topic is only a name, from the topic screen.
+    // A topic is only a name, from More on the topic screen.
     const madeTopic = await page.request.post("/api/topics", { data: { title: topic } });
     expect(madeTopic.status()).toBe(201);
     const topicId = ((await madeTopic.json()) as { id: string }).id;
@@ -153,9 +157,12 @@ test.describe("renaming from the screen", () => {
     expect(topicImport.status()).toBe(201);
     await page.goto(`/course/${topicId}`);
     await expect(page.getByRole("heading", { level: 1, name: topic })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Rename", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Rename", exact: true })).toHaveCount(0);
     const beforeTopic = await held(page, topicId);
-    await page.getByRole("button", { name: "Rename", exact: true }).click();
+    await page.getByRole("button", { name: `More for ${topic}` }).click();
+    const topicMenu = page.getByRole("menu", { name: topic });
+    await expect(topicMenu.getByRole("menuitem")).toHaveText(["Rename"]);
+    await topicMenu.getByRole("menuitem", { name: "Rename" }).click();
     const renameTopic = sheet(page, "Rename topic");
     await expect(renameTopic.getByRole("textbox", { name: "Course code" })).toHaveCount(0);
     await expect(renameTopic.getByRole("textbox", { name: "Topic name" })).toHaveValue(topic);
