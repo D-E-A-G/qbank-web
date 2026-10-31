@@ -547,7 +547,7 @@ label.list-row:active {
   color: var(--tint);
 }
 
-/* A folder's own buttons, as pills: Rename, Exam page, and Import here. */
+/* Pill buttons under a title: Edit page, Rename, and a folder's own actions. */
 .folder-actions {
   display: flex;
   flex-wrap: wrap;

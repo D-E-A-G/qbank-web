@@ -23,10 +23,12 @@ import { ShellLink } from "../shell/ShellLink";
 
 /**
  * One exam page: Start exam over its folders, its folders in her order, and the exams she took over
- * them. Its + adds into it: a question file (Import with this page's folders first), a new folder
- * on the page, or folders the course already has. A topic's study page is the same screen, with its
- * primer link when it has one. Its editor ends with Delete: the page goes to Recently deleted, and
- * its folders stay in the course, with their sets, at the end of its Folders list.
+ * them. Edit page, under the title, opens its name, badge and folders directly. Study material's
+ * Edit still reorders those folders, and Name and folders stays inside that mode. Its + adds into
+ * it: a question file (Import with this page's folders first), a new folder on the page, or folders
+ * the course already has. A topic's study page is the same screen, with its primer link when it has
+ * one. Its editor ends with Delete: the page goes to Recently deleted, and its folders stay in the
+ * course, with their sets, at the end of its Folders list.
  */
 export function ExamPageScreen({ courseId, examPageId }: { courseId: string; examPageId: string }) {
   const session = useSession();
@@ -116,6 +118,20 @@ export function ExamPageScreen({ courseId, examPageId }: { courseId: string; exa
       ) : (
         <>
           <p className="note">{pageMeta(course, page)}</p>
+          {readOnly ? null : (
+            <div className="folder-actions">
+              <button
+                type="button"
+                className="folder-action"
+                onClick={() => {
+                  setEditing(true);
+                }}
+              >
+                <Icon name="pencil" size={16} strokeWidth={2} />
+                Edit page
+              </button>
+            </div>
+          )}
           {page.linkUrl === null ? null : <PrimerLink url={page.linkUrl} />}
           {readOnly ? null : <StartExam course={course} page={page} setup={setup} />}
           <section className="group">

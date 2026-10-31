@@ -507,12 +507,14 @@ test.describe("pages", () => {
     await expect(admin.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Exam 1/]);
     await expect(admin.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Week 4/, /^Week 5/, /^Week 6/, /^Week 7/]);
     await expect(admin.getByRole("button", { name: `Add to ${course.code}` })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Rename", exact: true })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Edit folder order" })).toHaveCount(0);
 
     await admin.goto(`/course/${course.id}/exam-page/${exam1}`);
     await expect(admin.getByRole("heading", { level: 1, name: "Exam 1" })).toBeVisible();
     await expect(admin.getByRole("link", { name: "Start exam" })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Edit the page" })).toHaveCount(0);
+    await expect(admin.getByRole("button", { name: "Edit page", exact: true })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Add to Exam 1" })).toHaveCount(0);
     await expect(admin.getByRole("heading", { name: "Her past exams" })).toBeVisible();
 
