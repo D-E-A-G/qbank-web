@@ -165,4 +165,55 @@ test.describe("renaming from the screen", () => {
     await expect(page.getByRole("list", { name: "Folders", exact: true }).getByRole("link")).toHaveText([/^Notes/]);
     expect(await held(page, topicId)).toEqual(beforeTopic);
   });
+
+  test("she renames a topic page that has a primer, and the primer and folder stay", async ({ page }) => {
+    const topic = topicName();
+    await signIn(page);
+    const madeTopic = await page.request.post("/api/topics", { data: { title: topic } });
+    expect(madeTopic.status()).toBe(201);
+    const topicId = ((await madeTopic.json()) as { id: string }).id;
+    const imported = await page.request.post("/api/imports", { data: { source: set("Week 1 - Set 1"), folderName: "Week 1", courseId: topicId } });
+    expect(imported.status()).toBe(201);
+    const folderId = ((await imported.json()) as { folderId: string }).folderId;
+    const made = await page.request.post(`/api/courses/${topicId}/course-exams`, {
+      data: { name: "Testing, Got & Tooling", folderIds: [folderId], linkUrl: "https://notes.example.com/git" },
+    });
+    expect(made.status()).toBe(201);
+    const examPage = (await made.json()) as { id: string };
+
+    await page.goto(`/course/${topicId}/exam-page/${examPage.id}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Testing, Got & Tooling" })).toBeVisible();
+    const primer = page.getByRole("list", { name: "Primer" }).getByRole("link");
+    await expect(primer).toHaveAttribute("href", "https://notes.example.com/git");
+
+    // Study material's Edit, then Name and folders: the page name is there, and saving it leaves the primer and the folder.
+    const before = await held(page, topicId);
+    await page.getByRole("button", { name: "Edit the page" }).click();
+    await page.getByRole("button", { name: "Name and folders" }).click();
+    const editor = sheet(page, "Edit page");
+    await expect(editor.getByRole("textbox", { name: "Page name" })).toHaveValue("Testing, Got & Tooling");
+    await expect(editor.getByRole("textbox", { name: "Primer link" })).toHaveValue("https://notes.example.com/git");
+    await editor.getByRole("textbox", { name: "Page name" }).fill("Testing, Git & Tooling");
+    await editor.getByRole("button", { name: "Done" }).click();
+    await expect(editor).toBeHidden();
+    await expect(page.getByRole("heading", { level: 1, name: "Testing, Git & Tooling" })).toBeVisible();
+    await expect(primer).toHaveAttribute("href", "https://notes.example.com/git");
+    await page.getByRole("button", { name: "Done editing the page" }).click();
+    await expect(page.getByRole("list", { name: "Study material on Testing, Git & Tooling" }).getByRole("link")).toHaveText([/^Week 1/]);
+    const afterHidden = await held(page, topicId);
+    expect(afterHidden).toEqual({ ...before, exams: [{ ...before.exams[0], name: "Testing, Git & Tooling" }] });
+
+    // Edit page opens that same editor in one step.
+    await page.getByRole("button", { name: "Edit page", exact: true }).click();
+    const direct = sheet(page, "Edit page");
+    await expect(direct.getByRole("textbox", { name: "Page name" })).toHaveValue("Testing, Git & Tooling");
+    await expect(direct.getByRole("textbox", { name: "Primer link" })).toHaveValue("https://notes.example.com/git");
+    await direct.getByRole("textbox", { name: "Page name" }).fill("Git & Tooling");
+    await direct.getByRole("button", { name: "Done" }).click();
+    await expect(direct).toBeHidden();
+    await expect(page.getByRole("heading", { level: 1, name: "Git & Tooling" })).toBeVisible();
+    await expect(primer).toHaveAttribute("href", "https://notes.example.com/git");
+    await expect(page.getByRole("list", { name: "Study material on Git & Tooling" }).getByRole("link")).toHaveText([/^Week 1/]);
+    expect(await held(page, topicId)).toEqual({ ...afterHidden, exams: [{ ...afterHidden.exams[0], name: "Git & Tooling" }] });
+  });
 });
