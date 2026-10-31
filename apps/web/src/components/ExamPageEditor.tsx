@@ -64,15 +64,18 @@ export function ExamPageEditor({
   return (
     <FormSheet title={page === null ? "New page" : "Edit page"} busy={busy} error={error} onDone={save} onClose={onClose}>
       <div className="exam-edit">
-        <input
-          className="control exam-edit-input"
-          aria-label="Page name"
-          value={name}
-          maxLength={80}
-          onChange={(event) => {
-            setName(event.target.value);
-          }}
-        />
+        <label className="field">
+          <span className="field-label">Page name</span>
+          <input
+            className="control exam-edit-input"
+            aria-label="Page name"
+            value={name}
+            maxLength={80}
+            onChange={(event) => {
+              setName(event.target.value);
+            }}
+          />
+        </label>
         {chips.length > 0 ? (
           <div className="folder-chips" role="group" aria-label="Folders on this page">
             {chips.map((folder) => {
