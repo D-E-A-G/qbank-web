@@ -111,7 +111,13 @@ test.describe("striking out choices", () => {
     const wrong = row(page, "radio", WRONG);
     await wrong.choice.click();
     await expect(wrong.choice).toHaveAttribute("aria-checked", "true");
+    // The control is a plain X, still named Strike out, not the S-with-a-line glyph.
+    await expect(wrong.strike.locator("path")).toHaveCount(2);
+    await expect(wrong.strike.locator("path").nth(0)).toHaveAttribute("d", "M18 6 6 18");
+    await expect(wrong.strike.locator("path").nth(1)).toHaveAttribute("d", "m6 6 12 12");
     await wrong.strike.click();
+    await expect(wrong.restore.locator("path").nth(0)).toHaveAttribute("d", "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8");
+    await expect(wrong.restore.locator("path").nth(1)).toHaveAttribute("d", "M3 3v5h5");
     await expect(wrong.choice).toHaveAttribute("aria-checked", "false");
     await expect(wrong.choice).toHaveAttribute("aria-disabled", "true");
     await expect(page.locator(".choice-row-struck")).toHaveCount(1);

@@ -207,7 +207,7 @@ function OptionList({
                   onStrike(original);
                 }}
               >
-                <Icon name={out ? "rotate-ccw" : "strikethrough"} size={18} />
+                <Icon name={out ? "rotate-ccw" : "x"} size={18} />
               </button>
             ) : null}
           </div>

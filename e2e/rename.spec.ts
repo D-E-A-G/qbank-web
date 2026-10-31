@@ -113,6 +113,7 @@ test.describe("renaming from the screen", () => {
     const beforePage = await held(page, course.courseId);
     await page.getByRole("button", { name: "Edit page", exact: true }).click();
     const editor = sheet(page, "Edit page");
+    await expect(editor.getByText("Page name", { exact: true })).toBeVisible();
     await expect(editor.getByRole("textbox", { name: "Page name" })).toHaveValue("Testing, Got & Tooling");
     await editor.getByRole("textbox", { name: "Page name" }).fill("Git page");
     await editor.getByRole("button", { name: "Done" }).click();
@@ -191,6 +192,7 @@ test.describe("renaming from the screen", () => {
     await page.getByRole("button", { name: "Edit the page" }).click();
     await page.getByRole("button", { name: "Name and folders" }).click();
     const editor = sheet(page, "Edit page");
+    await expect(editor.getByText("Page name", { exact: true })).toBeVisible();
     await expect(editor.getByRole("textbox", { name: "Page name" })).toHaveValue("Testing, Got & Tooling");
     await expect(editor.getByRole("textbox", { name: "Primer link" })).toHaveValue("https://notes.example.com/git");
     await editor.getByRole("textbox", { name: "Page name" }).fill("Testing, Git & Tooling");
