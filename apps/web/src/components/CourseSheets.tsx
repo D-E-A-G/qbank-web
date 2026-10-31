@@ -49,8 +49,16 @@ export function NewCourseSheet({
   );
 }
 
-/** Rename, from a card's menu on Home: a course's code and name, or a topic's name. Its folders, sets and progress stay. */
-export function RenameCourseSheet({ course, onSaved, onClose }: { course: CourseLink; onSaved: () => void; onClose: () => void }) {
+/** Rename, from Home's card menu or the course or topic screen: a course's code and name, or a topic's name. Its folders, sets and progress stay. */
+export function RenameCourseSheet({
+  course,
+  onSaved,
+  onClose,
+}: {
+  course: Pick<CourseLink, "id" | "kind" | "code" | "title">;
+  onSaved: () => void;
+  onClose: () => void;
+}) {
   const topic = course.kind === "topic";
   const [code, setCode] = useState(course.code);
   const [title, setTitle] = useState(course.title);

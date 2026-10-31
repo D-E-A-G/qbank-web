@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CourseDetail } from "../api";
 import { refreshCatalog } from "../catalog";
+import { RenameCourseSheet } from "../components/CourseSheets";
 import { EmptyState } from "../components/EmptyState";
 import { ExamPageEditor } from "../components/ExamPageEditor";
 import { NewFolderSheet } from "../components/FolderSheets";
@@ -22,14 +23,16 @@ import { ShellLink } from "../shell/ShellLink";
 /**
  * A course, as in the iPhone's Files app: the study tiles, then two lists. Pages, one row each with
  * its badge, and the folders on no page, one row each, in her order. Each opens its own screen.
- * Its + adds into it: a question file (Import with the course picked), a folder, or a page. A
- * study topic is the same screen, called by its name.
+ * Rename, under the title, changes a course's code and name, or a topic's name. Its folders, sets
+ * and progress stay. Its + adds into it: a question file (Import with the course picked), a folder,
+ * or a page. A study topic is the same screen, called by its name.
  */
 export function CourseScreen({ courseId }: { courseId: string }) {
   const session = useSession();
   const readOnly = session.user.role !== "student";
   const { course, error, reload, replace } = useCourse(courseId);
   const [ordering, setOrdering] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [making, setMaking] = useState<"page" | "folder" | null>(null);
   const deleted = useRecentlyDeleted(courseId);
   const { name, words } = useCourseNaming(courseId, course);
@@ -41,6 +44,10 @@ export function CourseScreen({ courseId }: { courseId: string }) {
 
   const closeSheet = useCallback(() => {
     setMaking(null);
+  }, []);
+
+  const closeRename = useCallback(() => {
+    setRenaming(false);
   }, []);
 
   const loose = course ? looseFolders(course) : [];
@@ -102,6 +109,20 @@ export function CourseScreen({ courseId }: { courseId: string }) {
               </>
             ) : null}
           </p>
+          {readOnly ? null : (
+            <div className="folder-actions">
+              <button
+                type="button"
+                className="folder-action"
+                onClick={() => {
+                  setRenaming(true);
+                }}
+              >
+                <Icon name="pencil" size={16} strokeWidth={2} />
+                Rename
+              </button>
+            </div>
+          )}
           <div className="tile-row">
             <ShellLink to={`/course/${course.id}/exam`} className="study-tile" current={false}>
               <Icon name="timer" size={22} />
@@ -207,6 +228,16 @@ export function CourseScreen({ courseId }: { courseId: string }) {
       ) : error ? null : (
         <p className="note">Loading the {words.container}.</p>
       )}
+      {renaming && course ? (
+        <RenameCourseSheet
+          course={course}
+          onSaved={() => {
+            setRenaming(false);
+            reload();
+          }}
+          onClose={closeRename}
+        />
+      ) : null}
       {making === "page" && course ? (
         <ExamPageEditor
           course={course}
