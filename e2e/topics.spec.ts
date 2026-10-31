@@ -325,6 +325,7 @@ test.describe("study topics", () => {
     await main(admin).getByRole("link", { name: new RegExp(`^${name}`) }).click();
     await expect(admin.getByText(/progress, read-only\./)).toBeVisible();
     await expect(admin.getByRole("heading", { level: 1, name })).toBeVisible();
+    await expect(admin.getByRole("button", { name: `More for ${name}` })).toHaveCount(0);
     await expect(admin.getByRole("button", { name: "Rename", exact: true })).toHaveCount(0);
     await expect(admin.getByRole("list", { name: "Pages" }).getByRole("link")).toHaveText([/^Page 1/]);
     await expect(admin.getByRole("button", { name: `Add to ${name}` })).toHaveCount(0);

@@ -49,7 +49,7 @@ export function NewCourseSheet({
   );
 }
 
-/** Rename, from Home's card menu or the course or topic screen: a course's code and name, or a topic's name. Its folders, sets and progress stay. */
+/** Rename, from Home's card menu or More on the course or topic screen: a course's code and name, or a topic's name. Its folders, sets and progress stay. */
 export function RenameCourseSheet({
   course,
   onSaved,

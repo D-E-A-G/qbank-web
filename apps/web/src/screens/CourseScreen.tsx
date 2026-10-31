@@ -7,7 +7,7 @@ import { ExamPageEditor } from "../components/ExamPageEditor";
 import { NewFolderSheet } from "../components/FolderSheets";
 import { FolderRows } from "../components/FolderRows";
 import { Icon } from "../components/Icon";
-import { AddMenu } from "../components/Menu";
+import { AddMenu, Menu, type MenuAnchor } from "../components/Menu";
 import { NavRow, RowBody } from "../components/NavRow";
 import { ReadOnlyBanner } from "../components/ReadOnlyBanner";
 import { recentlyDeleted, useCourseVersion } from "../course/deletion";
@@ -23,9 +23,9 @@ import { ShellLink } from "../shell/ShellLink";
 /**
  * A course, as in the iPhone's Files app: the study tiles, then two lists. Pages, one row each with
  * its badge, and the folders on no page, one row each, in her order. Each opens its own screen.
- * Rename, under the title, changes a course's code and name, or a topic's name. Its folders, sets
- * and progress stay. Its + adds into it: a question file (Import with the course picked), a folder,
- * or a page. A study topic is the same screen, called by its name.
+ * More, the "…" beside +, renames it: a course's code and name, or a topic's name. Its folders,
+ * sets and progress stay. Its + adds into it: a question file (Import with the course picked), a
+ * folder, or a page. A study topic is the same screen, called by its name.
  */
 export function CourseScreen({ courseId }: { courseId: string }) {
   const session = useSession();
@@ -55,42 +55,50 @@ export function CourseScreen({ courseId }: { courseId: string }) {
   // Ordering needs two folders; if another device leaves one, edit mode ends with its Done button.
   const editing = ordering && !readOnly && loose.length > 1;
 
-  const add =
+  const header =
     course && !readOnly ? (
-      <AddMenu
-        label={`Add to ${courseName(course)}`}
-        items={[
-          {
-            key: "import",
-            label: "Import a question file",
-            detail: "A JSON file from your agent",
-            icon: "file-input",
-            onSelect: () => {
-              navigate(importPath(course.id));
+      <div className="screen-actions">
+        <CourseMore
+          name={courseName(course)}
+          onRename={() => {
+            setRenaming(true);
+          }}
+        />
+        <AddMenu
+          label={`Add to ${courseName(course)}`}
+          items={[
+            {
+              key: "import",
+              label: "Import a question file",
+              detail: "A JSON file from your agent",
+              icon: "file-input",
+              onSelect: () => {
+                navigate(importPath(course.id));
+              },
             },
-          },
-          {
-            key: "folder",
-            label: "New folder",
-            icon: "folder",
-            onSelect: () => {
-              setMaking("folder");
+            {
+              key: "folder",
+              label: "New folder",
+              icon: "folder",
+              onSelect: () => {
+                setMaking("folder");
+              },
             },
-          },
-          {
-            key: "page",
-            label: "New page",
-            icon: "layers",
-            onSelect: () => {
-              setMaking("page");
+            {
+              key: "page",
+              label: "New page",
+              icon: "layers",
+              onSelect: () => {
+                setMaking("page");
+              },
             },
-          },
-        ]}
-      />
+          ]}
+        />
+      </div>
     ) : undefined;
 
   return (
-    <Screen title={name ?? "Course"} action={add}>
+    <Screen title={name ?? "Course"} action={header}>
       {session.user.role === "admin" ? <ReadOnlyBanner /> : null}
       <ShellLink to="/" className="text-action" current={false}>
         {words.home}
@@ -109,20 +117,6 @@ export function CourseScreen({ courseId }: { courseId: string }) {
               </>
             ) : null}
           </p>
-          {readOnly ? null : (
-            <div className="folder-actions">
-              <button
-                type="button"
-                className="folder-action"
-                onClick={() => {
-                  setRenaming(true);
-                }}
-              >
-                <Icon name="pencil" size={16} strokeWidth={2} />
-                Rename
-              </button>
-            </div>
-          )}
           <div className="tile-row">
             <ShellLink to={`/course/${course.id}/exam`} className="study-tile" current={false}>
               <Icon name="timer" size={22} />
@@ -261,6 +255,38 @@ export function CourseScreen({ courseId }: { courseId: string }) {
         />
       ) : null}
     </Screen>
+  );
+}
+
+/** The "…" beside + on a course or topic. Rename opens the same sheet Home's card menu uses. */
+function CourseMore({ name, onRename }: { name: string; onRename: () => void }) {
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+  const close = useCallback(() => {
+    setAnchor(null);
+  }, []);
+  return (
+    <>
+      <button
+        type="button"
+        className="card-more"
+        aria-label={`More for ${name}`}
+        aria-haspopup="menu"
+        aria-expanded={anchor !== null}
+        onClick={(event) => {
+          setAnchor(anchor === null ? { element: event.currentTarget } : null);
+        }}
+      >
+        <Icon name="ellipsis" size={20} strokeWidth={2} />
+      </button>
+      {anchor === null ? null : (
+        <Menu
+          label={name}
+          anchor={anchor}
+          items={[{ key: "rename", label: "Rename", icon: "pencil", onSelect: onRename }]}
+          onClose={close}
+        />
+      )}
+    </>
   );
 }
 

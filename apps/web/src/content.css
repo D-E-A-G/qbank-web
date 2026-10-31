@@ -1632,7 +1632,7 @@ button.review-row:disabled {
   background: var(--surface-pressed);
 }
 
-/* A menu over the screen: Home's and a page's +, and a card's "…". The layer catches a tap outside. */
+/* A menu over the screen: Home's and a page's +, a card's "…", and More on a course or topic. The layer catches a tap outside. */
 .menu-layer {
   position: fixed;
   inset: 0;
